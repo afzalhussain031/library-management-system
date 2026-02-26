@@ -19,6 +19,16 @@ const Home: React.FC = () => {
             <span className="button-icon">👤</span>
             <span className="button-text">Your Profile</span>
           </Link>
+
+          <Link to="/login" className="nav-button login-button">
+            <span className="button-icon">🔐</span>
+            <span className="button-text">Staff Login</span>
+          </Link>
+
+          <Link to="/signup" className="nav-button signup-button">
+            <span className="button-icon">📝</span>
+            <span className="button-text">Sign Up</span>
+          </Link>
         </div>
       </div>
     </div>
