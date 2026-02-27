@@ -4,7 +4,7 @@ const ROOT = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_URL = `${ROOT}/api`;
 
 // Type definitions
-interface Book {
+export interface Book {
   id?: number;
   title: string;
   author: string;
@@ -12,14 +12,14 @@ interface Book {
   published_date?: string;
 }
 
-interface UserProfile {
+export interface UserProfile {
   id?: number;
   name?: string;
   email?: string;
   bio?: string;
 }
 
-interface User {
+export interface User {
   id: number;
   username: string;
   email?: string;
@@ -32,21 +32,9 @@ export const api = axios.create({
   baseURL: API_URL,
 });
 
-// Register
-export async function register(payload: {
-  username: string;
-  email?: string;
-  password: string;
-  password2: string;
-  invite_code?: string;
-}) {
-  try {
-    const res = await api.post("/register/", payload);
-    // optionally auto-login: call login() after successful register
-    return res.data;
-  } catch (err) {
-    throw new Error("Signup failed: " + handleError(err));
-  }
+// check if user is logged in
+export function isAuthenticated(): boolean {
+  return !!localStorage.getItem("accessToken");
 }
 
 // set token on api (call after login or on app init)
@@ -76,6 +64,22 @@ export async function login(username: string, password: string) {
   return res.data;
 }
 
+// register
+export async function register(payload: {
+  username: string;
+  email?: string;
+  password: string;
+  password2: string;
+  invite_code?: string;
+}) {
+  try {
+    const res = await api.post("/register/", payload);
+    return res.data;
+  } catch (err) {
+    throw new Error("Signup failed: " + handleError(err));
+  }
+}
+
 // refresh access token
 export async function refreshToken() {
   const refresh = localStorage.getItem("refreshToken");
@@ -90,8 +94,10 @@ export async function refreshToken() {
 export function logout() {
   setAuthToken(null);
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem("currentUser");
 }
 
+// error handler
 const handleError = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;
@@ -103,7 +109,7 @@ const handleError = (error: unknown): string => {
   return error instanceof Error ? error.message : "An unknown error occurred";
 };
 
-// Book API endpoints (use api instance)
+// Book API endpoints
 export const fetchBooks = async (): Promise<Book[]> => {
   try {
     const response = await api.get<Book[]>("/books/");
@@ -143,18 +149,7 @@ export const deleteBook = async (bookId: number): Promise<void> => {
 };
 
 // User API endpoints
-export const fetchUserProfile = async (
-  userId: number,
-): Promise<UserProfile> => {
-  try {
-    const response = await api.get<UserProfile>(`/users/${userId}/`);
-    return response.data;
-  } catch (error) {
-    throw new Error("Error fetching user profile: " + handleError(error));
-  }
-};
-
-export const getUserProfile = async (): Promise<UserProfile> => {
+export const fetchUserProfile = async (): Promise<UserProfile> => {
   try {
     const response = await api.get<UserProfile>("/profile/");
     return response.data;
@@ -163,7 +158,6 @@ export const getUserProfile = async (): Promise<UserProfile> => {
   }
 };
 
-// fetch brief current user info (includes is_staff)
 export const getCurrentUser = async (): Promise<User> => {
   try {
     const response = await api.get<User>("/me/");

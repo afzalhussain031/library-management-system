@@ -1,8 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Home.css";
+import AuthModal, { Mode } from "../components/AuthModal";
+import { useNavigate } from "react-router-dom";
 
 const Home: React.FC = () => {
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<Mode>("login");
+  const navigate = useNavigate();
+
+  const handleSuccess = () => {
+    // after login / signup we send the user to the dashboard
+    navigate("/dashboard");
+  };
+
   return (
     <div className="home-container">
       <div className="home-content">
@@ -10,26 +21,53 @@ const Home: React.FC = () => {
         <p className="subtitle">Manage your university library efficiently</p>
 
         <div className="button-container">
-          <Link to="/books" className="nav-button books-button">
+          <button
+            className="nav-button books-button"
+            onClick={() => navigate("/books")}
+          >
             <span className="button-icon">📖</span>
             <span className="button-text">Manage Books</span>
-          </Link>
+          </button>
 
-          <Link to="/profile" className="nav-button profile-button">
+          <button
+            className="nav-button profile-button"
+            onClick={() => navigate("/profile")}
+          >
             <span className="button-icon">👤</span>
             <span className="button-text">Your Profile</span>
-          </Link>
+          </button>
 
-          <Link to="/login" className="nav-button login-button">
+          <button
+            className="nav-button login-button"
+            onClick={() => {
+              setAuthMode("login");
+              setAuthOpen(true);
+            }}
+          >
             <span className="button-icon">🔐</span>
-            <span className="button-text">Staff Login</span>
-          </Link>
+            <span className="button-text">Sign In</span>
+          </button>
 
-          <Link to="/signup" className="nav-button signup-button">
+          <button
+            className="nav-button signup-button"
+            onClick={() => {
+              setAuthMode("signup");
+              setAuthOpen(true);
+            }}
+          >
             <span className="button-icon">📝</span>
-            <span className="button-text">Sign Up</span>
-          </Link>
+            <span className="button-text">Register</span>
+          </button>
         </div>
+
+        {authOpen && (
+          <AuthModal
+            isOpen={authOpen}
+            initialMode={authMode}
+            onClose={() => setAuthOpen(false)}
+            onSuccess={handleSuccess}
+          />
+        )}
       </div>
     </div>
   );

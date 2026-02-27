@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getUserProfile, updateUserProfile } from "../services/api";
+import {
+  fetchUserProfile as getUserProfile,
+  updateUserProfile,
+} from "../services/api";
 import "../styles/Pages.css";
 
 interface User {
