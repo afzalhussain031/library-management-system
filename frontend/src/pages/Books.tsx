@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { useBooks } from "../hooks/useBooks";
 import "../styles/Pages.css";
-import { fetchBooks, addBook, deleteBook } from "../services/api";
+import type { FormErrors } from "../types";
 
-interface FormErrors {
-  title?: string;
-  author?: string;
-  isbn?: string;
-  published_date?: string;
-  general?: string;
-}
-
+/**
+ * Books Page
+ * Displays book list and form to add/delete books (staff only)
+ * Uses useAuth hook for user info and useBooks hook for book CRUD
+ */
 const Books: React.FC = () => {
-  const [books, setBooks] = useState<any[]>([]);
-  const [isStaff, setIsStaff] = useState<boolean>(false);
+  const { user } = useAuth();
+  const { books, fetchBooks, addBook, deleteBook } = useBooks();
+  const isStaff = user?.is_staff || false;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -21,32 +21,22 @@ const Books: React.FC = () => {
   const [isbn, setIsbn] = useState("");
   const [publishedDate, setPublishedDate] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
+  const [loading, setLoading] = useState(false);
 
+  // Load books on mount
   useEffect(() => {
-    load();
-    try {
-      const stored = localStorage.getItem("currentUser");
-      if (stored) {
-        const usr = JSON.parse(stored);
-        setIsStaff(Boolean(usr.is_staff));
+    const load = async () => {
+      try {
+        await fetchBooks();
+      } catch (err) {
+        console.error("Failed to fetch books", err);
       }
-    } catch (e) {
-      setIsStaff(false);
-    }
-  }, []);
-
-  async function load() {
-    try {
-      const data = await fetchBooks();
-      setBooks(data);
-    } catch (err) {
-      console.error("Failed to fetch books", err);
-      setBooks([]);
-    }
-  }
+    };
+    load();
+  }, [fetchBooks]);
 
   // Client-side validation
-  function validateForm(): boolean {
+  const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     if (!title.trim()) newErrors.title = "Title is required";
@@ -56,17 +46,16 @@ const Books: React.FC = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }
+  };
 
   // Form submission with validation
-  async function handleAdd(e: React.FormEvent) {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Step 1: Validate client-side
     if (!validateForm()) return;
 
+    setLoading(true);
     try {
-      // Step 2: Submit to API (backend validates again)
       await addBook({
         title,
         author,
@@ -74,32 +63,29 @@ const Books: React.FC = () => {
         published_date: publishedDate,
       });
 
-      // Step 3: Reset form on success
+      // Reset form on success
       setTitle("");
       setAuthor("");
       setIsbn("");
       setPublishedDate("");
       setErrors({});
-
-      // Step 4: Refresh book list
-      await load();
     } catch (err: any) {
-      // Display server-side validation error to user
       setErrors({
         general: err.message || "Failed to add book",
       });
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  async function handleDelete(id: number) {
+  const handleDelete = async (id: number) => {
     if (!confirm("Delete this book?")) return;
     try {
       await deleteBook(id);
-      await load();
     } catch (err) {
       alert("Delete failed (staff only)");
     }
-  }
+  };
 
   return (
     <div className="page-container">
@@ -108,7 +94,11 @@ const Books: React.FC = () => {
           ← Back to Home
         </Link>
         <h1>📖 Manage Books</h1>
-        <p>View, add, and manage library books</p>
+        <p>
+          {isStaff
+            ? "You can add, edit, and delete books"
+            : "View books in the library"}
+        </p>
       </div>
 
       <div className="page-content">
@@ -124,6 +114,7 @@ const Books: React.FC = () => {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter book title"
+                  disabled={loading}
                 />
                 {errors.title && <p className="error">{errors.title}</p>}
               </div>
@@ -135,6 +126,7 @@ const Books: React.FC = () => {
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
                   placeholder="Enter author name"
+                  disabled={loading}
                 />
                 {errors.author && <p className="error">{errors.author}</p>}
               </div>
@@ -146,6 +138,7 @@ const Books: React.FC = () => {
                   value={isbn}
                   onChange={(e) => setIsbn(e.target.value)}
                   placeholder="Enter ISBN"
+                  disabled={loading}
                 />
                 {errors.isbn && <p className="error">{errors.isbn}</p>}
               </div>
@@ -157,6 +150,7 @@ const Books: React.FC = () => {
                   type="date"
                   value={publishedDate}
                   onChange={(e) => setPublishedDate(e.target.value)}
+                  disabled={loading}
                 />
                 {errors.published_date && (
                   <p className="error">{errors.published_date}</p>
@@ -165,7 +159,9 @@ const Books: React.FC = () => {
 
               {errors.general && <p className="error">{errors.general}</p>}
 
-              <button type="submit">Add Book</button>
+              <button type="submit" disabled={loading}>
+                {loading ? "Adding..." : "Add Book"}
+              </button>
             </form>
           ) : (
             <div style={{ opacity: 0.9, fontStyle: "italic" }}>

@@ -1,0 +1,12 @@
+# Ignore local virtual environment used for backend
+backend_env/
+
+# Backup created by cleanup script
+backend_env_backup.zip
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# SQLite database
+*.sqlite3

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { login, register } from "../services/api";
-import "../styles/Modal.css"; // or a dedicated Modal.css
+import { authService } from "../services/apiClient";
+import { handleError } from "../utils/errorHandler";
+import "../styles/Modal.css";
+import type { RegisterPayload } from "../types";
 
 export type Mode = "login" | "signup";
 
@@ -8,7 +10,7 @@ interface Props {
   isOpen: boolean;
   initialMode?: Mode;
   onClose: () => void;
-  onSuccess: () => void; // parent will navigate
+  onSuccess: () => void;
 }
 
 const AuthModal: React.FC<Props> = ({
@@ -21,19 +23,16 @@ const AuthModal: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [k: string]: string }>({});
 
-  // form fields
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [email, setEmail] = useState("");
   const [inviteCode, setInviteCode] = useState("");
 
-  // lock scroll when modal open
   useEffect(() => {
     document.body.classList.toggle("modal-open", isOpen);
   }, [isOpen]);
 
-  // close on ESC
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) onClose();
@@ -57,22 +56,23 @@ const AuthModal: React.FC<Props> = ({
     setLoading(true);
     try {
       if (mode === "login") {
-        await login(username, password);
+        await authService.login(username, password);
       } else {
-        await register({
+        const payload: RegisterPayload = {
           username,
           email,
           password,
           password2,
           invite_code: inviteCode,
-        });
+        };
+        await authService.register(payload);
+        await authService.login(username, password);
       }
       resetForm();
       onSuccess();
       onClose();
-    } catch (err: any) {
-      // the helper in api.ts returns a text message, use it directly
-      setErrors({ general: err.message || "Something went wrong" });
+    } catch (err) {
+      setErrors({ general: handleError(err) });
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ const AuthModal: React.FC<Props> = ({
               setErrors({});
             }}
           >
-            Sign Up
+            Sign Up
           </button>
         </div>
 

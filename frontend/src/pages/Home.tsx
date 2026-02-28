@@ -1,17 +1,27 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import "../styles/Home.css";
 import AuthModal, { Mode } from "../components/AuthModal";
-import { useNavigate } from "react-router-dom";
 
+/**
+ * Home Page
+ * Landing page with navigation and auth modal
+ * Uses useAuth hook to check if user is logged in
+ */
 const Home: React.FC = () => {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<Mode>("login");
   const navigate = useNavigate();
+  const { user, refreshUserData } = useAuth();
 
-  const handleSuccess = () => {
-    // after login / signup we send the user to the dashboard
-    navigate("/dashboard");
+  const handleAuthSuccess = async () => {
+    setAuthOpen(false);
+    await refreshUserData();
+    // Auto-navigate after successful login
+    setTimeout(() => {
+      navigate("/books");
+    }, 500);
   };
 
   return (
@@ -37,27 +47,31 @@ const Home: React.FC = () => {
             <span className="button-text">Your Profile</span>
           </button>
 
-          <button
-            className="nav-button login-button"
-            onClick={() => {
-              setAuthMode("login");
-              setAuthOpen(true);
-            }}
-          >
-            <span className="button-icon">🔐</span>
-            <span className="button-text">Sign In</span>
-          </button>
+          {!user && (
+            <>
+              <button
+                className="nav-button login-button"
+                onClick={() => {
+                  setAuthMode("login");
+                  setAuthOpen(true);
+                }}
+              >
+                <span className="button-icon">🔐</span>
+                <span className="button-text">Sign In</span>
+              </button>
 
-          <button
-            className="nav-button signup-button"
-            onClick={() => {
-              setAuthMode("signup");
-              setAuthOpen(true);
-            }}
-          >
-            <span className="button-icon">📝</span>
-            <span className="button-text">Register</span>
-          </button>
+              <button
+                className="nav-button signup-button"
+                onClick={() => {
+                  setAuthMode("signup");
+                  setAuthOpen(true);
+                }}
+              >
+                <span className="button-icon">📝</span>
+                <span className="button-text">Register</span>
+              </button>
+            </>
+          )}
         </div>
 
         {authOpen && (
@@ -65,7 +79,7 @@ const Home: React.FC = () => {
             isOpen={authOpen}
             initialMode={authMode}
             onClose={() => setAuthOpen(false)}
-            onSuccess={handleSuccess}
+            onSuccess={handleAuthSuccess}
           />
         )}
       </div>

@@ -49,11 +49,13 @@ library-management-system
 ### Frontend Setup
 
 1. Navigate to the `frontend` directory:
+
    ```
    cd frontend
    ```
 
 2. Install the required npm packages:
+
    ```
    npm install
    ```
@@ -66,17 +68,20 @@ library-management-system
 ### Backend Setup
 
 1. Navigate to the `backend` directory:
+
    ```
    cd backend
    ```
 
 2. Create a virtual environment (optional but recommended):
+
    ```
    python -m venv venv
    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
    ```
 
 3. Install the required Python packages:
+
    ```
    pip install -r requirements.txt
    ```
@@ -85,6 +90,7 @@ library-management-system
    - Update the `DATABASES` setting with your PostgreSQL credentials.
 
 5. Run database migrations:
+
    ```
    python manage.py migrate
    ```
