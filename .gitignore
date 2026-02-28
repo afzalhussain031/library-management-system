@@ -1,8 +1,8 @@
 # Ignore local virtual environment used for backend
 backend_env/
 
-# Backup created by cleanup script
-backend_env_backup.zip
+# Documentation for developer only
+ARCHITECTURE.md
 
 # Python cache
 __pycache__/
