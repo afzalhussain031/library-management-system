@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import StaffCreateModal from "../components/StaffCreateModal";
 import "../styles/Dashboard.css";
 
 /**
@@ -11,6 +12,7 @@ import "../styles/Dashboard.css";
 const StaffDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -48,9 +50,18 @@ const StaffDashboard: React.FC = () => {
             <div className="card-icon">👥</div>
             <h2>User Management</h2>
             <p>View and manage student and staff accounts</p>
-            <button className="card-button" disabled>
-              Coming Soon
-            </button>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <button className="card-button" disabled>
+                Coming Soon
+              </button>
+              <button
+                className="card-button"
+                onClick={() => setStaffModalOpen(true)}
+                title="Create staff account (admin only)"
+              >
+                Create Staff
+              </button>
+            </div>
           </div>
 
           <div className="dashboard-card staff-card">
@@ -93,6 +104,13 @@ const StaffDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      <StaffCreateModal
+        isOpen={staffModalOpen}
+        onClose={() => setStaffModalOpen(false)}
+        onCreated={() => {
+          // Optionally refresh data or show a toast
+        }}
+      />
     </div>
   );
 };

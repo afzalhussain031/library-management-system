@@ -110,6 +110,15 @@ export const authService = {
     }
   },
 
+  async createStaff(payload: RegisterPayload): Promise<User> {
+    try {
+      const response = await api.post<User>(API_ENDPOINTS.STAFF_CREATE, payload);
+      return response.data;
+    } catch (error) {
+      throw new Error("Create staff failed: " + handleError(error));
+    }
+  },
+
   async getCurrentUser(): Promise<User> {
     try {
       const response = await api.get<User>(API_ENDPOINTS.CURRENT_USER);

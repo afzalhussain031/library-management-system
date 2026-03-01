@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import "../styles/Home.css";
-import AuthModal, { Mode } from "../components/AuthModal";
+import AuthModal from "../components/AuthModal";
 
 /**
  * Home Page
@@ -12,14 +12,19 @@ import AuthModal, { Mode } from "../components/AuthModal";
  */
 const Home: React.FC = () => {
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<Mode>("login");
+  const [initialUserMode, setInitialUserMode] = useState<"student" | "staff">(
+    "student",
+  );
+  const [initialTab, setInitialTab] = useState<"login" | "signup">("login");
   const navigate = useNavigate();
   const { user, loading, refreshUserData } = useAuth();
 
   // Redirect authenticated users to appropriate dashboard
   useEffect(() => {
     if (!loading && user) {
-      const redirectPath = user.is_staff ? "/staff-dashboard" : "/student-dashboard";
+      const redirectPath = user.is_staff
+        ? "/staff-dashboard"
+        : "/student-dashboard";
       navigate(redirectPath, { replace: true });
     }
   }, [user, loading, navigate]);
@@ -41,7 +46,7 @@ const Home: React.FC = () => {
     );
   }
 
-  // Show unauthenticated view - only login/register buttons
+  // Unauthenticated view
   if (!user) {
     return (
       <div className="home-container">
@@ -53,7 +58,8 @@ const Home: React.FC = () => {
             <button
               className="nav-button login-button"
               onClick={() => {
-                setAuthMode("login");
+                setInitialUserMode("student");
+                setInitialTab("login");
                 setAuthOpen(true);
               }}
             >
@@ -64,7 +70,8 @@ const Home: React.FC = () => {
             <button
               className="nav-button signup-button"
               onClick={() => {
-                setAuthMode("signup");
+                setInitialUserMode("student");
+                setInitialTab("signup");
                 setAuthOpen(true);
               }}
             >
@@ -76,7 +83,8 @@ const Home: React.FC = () => {
           {authOpen && (
             <AuthModal
               isOpen={authOpen}
-              initialMode={authMode}
+              initialUserMode={initialUserMode}
+              initialTab={initialTab}
               onClose={() => setAuthOpen(false)}
               onSuccess={handleAuthSuccess}
             />

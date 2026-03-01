@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Book, UserProfile
 from .serializers import BookSerializer, UserProfileSerializer, RegisterSerializer
 from .permissions import IsStaffOrReadOnly
+from .serializers import StaffCreateSerializer
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """Retrieve or update the profile for the currently authenticated user."""
@@ -46,3 +47,14 @@ class BookViewSet(viewsets.ModelViewSet):
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+
+
+class StaffCreateView(generics.CreateAPIView):
+    """Endpoint to create staff/admin user accounts.
+
+    This endpoint is protected: only authenticated staff users may create
+    new staff accounts. The server enforces the `is_staff` flag and ignores
+    any role information sent from the client.
+    """
+    serializer_class = StaffCreateSerializer
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]

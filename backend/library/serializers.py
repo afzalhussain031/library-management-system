@@ -9,7 +9,7 @@ class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
-    invite_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    # invite_code removed: frontend must NOT control roles
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -25,16 +25,11 @@ class RegisterSerializer(serializers.Serializer):
         username = validated_data["username"]
         email = validated_data.get("email", "")
         password = validated_data["password"]
-        invite_code = validated_data.get("invite_code", "")
-
-        is_staff = False
-        # Check invite code from settings (store a secret in env vars in production)
-        STAFF_INVITE = getattr(settings, "STAFF_INVITE_CODE", "")
-        if invite_code and STAFF_INVITE and invite_code == STAFF_INVITE:
-            is_staff = True
+        # Always create public registrations as non-staff. Staff accounts must be created
+        # by an authenticated staff/admin via a protected endpoint.
 
         user = User.objects.create_user(username=username, email=email, password=password)
-        user.is_staff = is_staff
+        user.is_staff = False
         user.save()
 
         # create profile if your model expects it
@@ -64,3 +59,39 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['user', 'bio']
+
+
+class StaffCreateSerializer(serializers.Serializer):
+    """Serializer for creating staff users. This is only used by authenticated
+    staff/admins via a protected endpoint. Frontend must not be able to
+    set roles on public registration endpoints."""
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True)
+    password2 = serializers.CharField(write_only=True)
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username already taken")
+        return value
+
+    def validate(self, data):
+        if data.get("password") != data.get("password2"):
+            raise serializers.ValidationError({"password2": "Passwords do not match"})
+        return data
+
+    def create(self, validated_data):
+        username = validated_data["username"]
+        email = validated_data.get("email", "")
+        password = validated_data["password"]
+
+        user = User.objects.create_user(username=username, email=email, password=password)
+        user.is_staff = True
+        user.save()
+
+        try:
+            UserProfile.objects.create(user=user)
+        except Exception:
+            pass
+
+        return user

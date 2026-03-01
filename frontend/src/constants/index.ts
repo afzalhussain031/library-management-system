@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
   // Authentication
   LOGIN: "/token/",
   REGISTER: "/register/",
+  STAFF_CREATE: "/staff/create/",
   REFRESH: "/token/refresh/",
   CURRENT_USER: "/me/",
 
