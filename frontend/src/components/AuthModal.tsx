@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { authService } from "../services/apiClient";
 import { handleError } from "../utils/errorHandler";
-import "../styles/Modal.css";
+import "../styles/AuthModalNew.css";
 import type { RegisterPayload } from "../types";
 
 export type TabMode = "login" | "signup";
@@ -143,75 +143,101 @@ const AuthModal: React.FC<Props> = ({
           </div>
         )}
 
-        <form onSubmit={submit}>
-          <div className="form-group">
-            <label>Username</label>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          {/* In student signup allow email and confirm password */}
-          {userMode === "student" && tab === "signup" && (
-            <>
-              <div className="form-group">
-                <label>Email (optional)</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                />
+        {/* Single content area for login/signup/staff states */}
+        <div className="page">
+          <div className="hero">
+            <div className="card">
+              <div className="card-header">
+                {userMode === "staff"
+                  ? "Staff / Admin Access"
+                  : tab === "login"
+                    ? "Login"
+                    : "Sign Up"}
               </div>
-            </>
-          )}
 
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-          </div>
+              <form onSubmit={submit} className="form">
+                <input
+                  className="input"
+                  type="text"
+                  name="username"
+                  placeholder="Enrollment Number / Faculty Email ID"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+                {userMode === "student" && tab === "signup" && (
+                  <input
+                    className="input"
+                    type="email"
+                    name="email"
+                    placeholder="Email (optional)"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                  />
+                )}
+                <input
+                  className="input"
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+                {userMode === "student" && tab === "signup" && (
+                  <input
+                    className="input"
+                    type="password"
+                    name="password2"
+                    placeholder="Confirm Password"
+                    value={password2}
+                    onChange={(e) => setPassword2(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                )}
 
-          {userMode === "student" && tab === "signup" && (
-            <div className="form-group">
-              <label>Confirm password</label>
-              <input
-                type="password"
-                value={password2}
-                onChange={(e) => setPassword2(e.target.value)}
-                disabled={loading}
-              />
+                {/* Staff mode: signup is replaced with informational message */}
+                {userMode === "staff" && tab === "signup" && (
+                  <p className="info">
+                    Staff accounts are created by administrators. Please contact
+                    an existing staff/admin for registration.
+                  </p>
+                )}
+
+                {errors.general && <p className="error">{errors.general}</p>}
+
+                <button
+                  type="submit"
+                  disabled={loading || (userMode === "staff" && tab === "signup")}
+                  className="button"
+                >
+                  {loading
+                    ? "Please wait..."
+                    : tab === "login"
+                      ? "Login"
+                      : "Register"}
+                </button>
+              </form>
+
+              {tab === "login" && userMode === "student" && (
+                <div className="login-note">
+                  Don't have an account?{" "}
+                  <a
+                    href="#"
+                    onClick={() => setTab("signup")}
+                    className="login-link"
+                  >
+                    Sign Up
+                  </a>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Staff mode: signup is replaced with informational message */}
-          {userMode === "staff" && tab === "signup" && (
-            <p className="info">
-              Staff accounts are created by administrators. Please contact an
-              existing staff/admin for registration.
-            </p>
-          )}
-
-          {errors.general && <p className="error">{errors.general}</p>}
-
-          <button
-            type="submit"
-            disabled={loading || (userMode === "staff" && tab === "signup")}
-            className="submit-button"
-          >
-            {loading
-              ? "Please wait…"
-              : tab === "login"
-                ? "Log in"
-                : "Register"}
-          </button>
-        </form>
+          </div>
+        </div>
       </div>
     </div>
   );

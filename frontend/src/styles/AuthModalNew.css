@@ -1,0 +1,191 @@
+/* Adapted CSS for AuthModal with new login design */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 90vw;
+  max-width: 1200px;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.modal-role-tabs {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.modal-role-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.modal-role-tabs button.active {
+  background: #f0c452;
+  border-radius: 8px;
+  color: #1a1a1a;
+}
+
+.modal-tabs {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.modal-tabs button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.modal-tabs button.active {
+  border-bottom: 2px solid #f0c452;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 40px 60px;
+}
+
+.hero {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  min-height: unset;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: block;
+  padding: 0;
+}
+
+.card {
+  background: #fff;
+  border-radius: 28px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  padding: 32px;
+}
+
+.card-header {
+  font-weight: 700;
+  font-size: 24px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.input {
+  height: 42px;
+  border-radius: 8px;
+  border: 1px solid #e6e6e6;
+  background: #f7f7f7;
+  padding: 0 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #f0c452;
+  background: #fffdf4;
+  box-shadow: 0 0 0 3px rgba(240, 196, 82, 0.25);
+}
+
+.button {
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(180deg, #f6d56a 0%, #f5c552 100%);
+  color: #1a1a1a;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.button:hover {
+  filter: brightness(0.98);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-note {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+}
+
+.login-link {
+  color: #2e6fd2;
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+}
+
+.error {
+  color: red;
+  font-size: 14px;
+  text-align: center;
+}
+
+.info {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1080px) {
+  .page {
+    grid-template-columns: 1fr;
+    padding: 28px;
+  }
+  .hero {
+    max-width: 100%;
+  }
+}
+
+body.modal-open {
+  overflow: hidden;
+}
