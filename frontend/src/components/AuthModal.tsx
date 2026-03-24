@@ -31,6 +31,7 @@ const AuthModal: React.FC<Props> = ({
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [email, setEmail] = useState("");
+  const staffContactEmail = "admin@library.local";
 
   useEffect(() => {
     document.body.classList.toggle("modal-open", isOpen);
@@ -117,31 +118,29 @@ const AuthModal: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* Inner tabs for student mode */}
-        {userMode === "student" && (
-          <div className="modal-tabs">
-            <button
-              disabled={loading}
-              className={tab === "login" ? "active" : ""}
-              onClick={() => {
-                setTab("login");
-                setErrors({});
-              }}
-            >
-              Login
-            </button>
-            <button
-              disabled={loading}
-              className={tab === "signup" ? "active" : ""}
-              onClick={() => {
-                setTab("signup");
-                setErrors({});
-              }}
-            >
-              Sign Up
-            </button>
-          </div>
-        )}
+        {/* Shared tabs for both student and staff modes */}
+        <div className="modal-tabs">
+          <button
+            disabled={loading}
+            className={tab === "login" ? "active" : ""}
+            onClick={() => {
+              setTab("login");
+              setErrors({});
+            }}
+          >
+            Login
+          </button>
+          <button
+            disabled={loading}
+            className={tab === "signup" ? "active" : ""}
+            onClick={() => {
+              setTab("signup");
+              setErrors({});
+            }}
+          >
+            Sign Up
+          </button>
+        </div>
 
         {/* Single content area for login/signup/staff states */}
         <div className="page">
@@ -156,16 +155,18 @@ const AuthModal: React.FC<Props> = ({
               </div>
 
               <form onSubmit={submit} className="form">
-                <input
-                  className="input"
-                  type="text"
-                  name="username"
-                  placeholder="Enrollment Number / Faculty Email ID"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                {!(userMode === "staff" && tab === "signup") && (
+                  <input
+                    className="input"
+                    type="text"
+                    name="username"
+                    placeholder="Enrollment Number / Faculty Email ID"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                )}
                 {userMode === "student" && tab === "signup" && (
                   <input
                     className="input"
@@ -177,16 +178,18 @@ const AuthModal: React.FC<Props> = ({
                     disabled={loading}
                   />
                 )}
-                <input
-                  className="input"
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                {!(userMode === "staff" && tab === "signup") && (
+                  <input
+                    className="input"
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                )}
                 {userMode === "student" && tab === "signup" && (
                   <input
                     className="input"
@@ -202,25 +205,32 @@ const AuthModal: React.FC<Props> = ({
 
                 {/* Staff mode: signup is replaced with informational message */}
                 {userMode === "staff" && tab === "signup" && (
-                  <p className="info">
-                    Staff accounts are created by administrators. Please contact
-                    an existing staff/admin for registration.
-                  </p>
+                  <div className="staff-contact">
+                    <p className="info">
+                      Staff accounts are created by administrators. Please
+                      contact admin for staff registration.
+                    </p>
+                    <a className="contact-admin-link" href={`mailto:${staffContactEmail}`}>
+                      Contact Admin
+                    </a>
+                  </div>
                 )}
 
                 {errors.general && <p className="error">{errors.general}</p>}
 
-                <button
-                  type="submit"
-                  disabled={loading || (userMode === "staff" && tab === "signup")}
-                  className="button"
-                >
-                  {loading
-                    ? "Please wait..."
-                    : tab === "login"
-                      ? "Login"
-                      : "Register"}
-                </button>
+                {userMode === "staff" && tab === "signup" ? null : (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="button"
+                  >
+                    {loading
+                      ? "Please wait..."
+                      : tab === "login"
+                        ? "Login"
+                        : "Register"}
+                  </button>
+                )}
               </form>
 
               {tab === "login" && userMode === "student" && (

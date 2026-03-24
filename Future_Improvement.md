@@ -52,3 +52,6 @@
     ├─ Two-factor authentication
     ├─ SQL injection prevention (already done: ORMs)
     └─ CSRF protection
+
+
+    In the staff mode, it should show "contanct admin" for staff registeration in the login/signup form
