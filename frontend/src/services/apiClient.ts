@@ -19,6 +19,7 @@ import type {
 // Create axios instance with base configuration
 export const api = axios.create({
   baseURL: API_CONFIG.BASE_URL,
+  withCredentials: true,
 });
 
 // Axios interceptor: inject JWT token on every request
@@ -39,29 +40,25 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If 401 and haven't already tried to refresh
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      TokenManager.hasRefreshToken()
+      !String(originalRequest?.url || "").includes(API_ENDPOINTS.REFRESH)
     ) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = TokenManager.getRefreshToken();
         const response = await api.post<{ access: string }>(
           API_ENDPOINTS.REFRESH,
-          { refresh: refreshToken },
+          {},
         );
-
         const { access } = response.data;
+
         TokenManager.setAccessToken(access);
         api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
 
-        // Retry original request with new token
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, user needs to login again
         TokenManager.clearTokens();
         window.location.href = "/";
         return Promise.reject(refreshError);
@@ -78,7 +75,7 @@ api.interceptors.response.use(
 
 /**
  * Login user with username and password
- * Returns: { access: string, refresh: string }
+ * Returns: { access: string }
  */
 export const authService = {
   async login(username: string, password: string): Promise<LoginResponse> {
@@ -87,12 +84,9 @@ export const authService = {
         username,
         password,
       });
-      const { access, refresh } = response.data;
+      const { access } = response.data;
 
-      // Store tokens
-      TokenManager.setTokens(access, refresh);
-
-      // Set authorization header for subsequent requests
+      TokenManager.setAccessToken(access);
       api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
 
       return response.data;
@@ -129,19 +123,15 @@ export const authService = {
   },
 
   async refreshToken(): Promise<string> {
-    const refresh = TokenManager.getRefreshToken();
-    if (!refresh) throw new Error("No refresh token available");
-
     try {
       const response = await api.post<{ access: string }>(
         API_ENDPOINTS.REFRESH,
-        {
-          refresh,
-        },
+        {},
       );
 
       const { access } = response.data;
       TokenManager.setAccessToken(access);
+      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
       return access;
     } catch (error) {
       throw new Error("Token refresh failed: " + handleError(error));
@@ -149,6 +139,9 @@ export const authService = {
   },
 
   logout(): void {
+    // best-effort server-side cookie clear
+    api.post(API_ENDPOINTS.LOGOUT).catch(() => undefined);
+
     TokenManager.clearTokens();
     delete api.defaults.headers.common["Authorization"];
   },
@@ -228,9 +221,3 @@ export const profileService = {
     }
   },
 };
-
-// Initialize: restore authorization header if token exists
-const existingToken = TokenManager.getAccessToken();
-if (existingToken) {
-  api.defaults.headers.common["Authorization"] = `Bearer ${existingToken}`;
-}

@@ -113,6 +113,15 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
+
+    # Refresh token cookie settings
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_SECURE': not DEBUG, # False on local host HTTP, True on prod HTTPS
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_SAMESITE': 'Lax',
+    'AUTH_COOKIE_PATH': '/api/token/refresh/',
+    'AUTH_COOKIE_MAX_AGE': int(timedelta(days=1).total_seconds()),
+
 }
 
 # CORS configuration
@@ -126,6 +135,6 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 # Development convenience: allow all origins (DO NOT use in production)
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 
 STAFF_INVITE_CODE = 'some-secret-code'  # set via env var in production

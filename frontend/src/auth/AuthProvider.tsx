@@ -26,28 +26,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        if (authService.isAuthenticated()) {
-          // Try to get user from localStorage first (faster)
-          const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
-          } else {
-            // Fetch from server if not in localStorage
-            try {
-              const userData = await authService.getCurrentUser();
-              setUser(userData);
-              localStorage.setItem(
-                STORAGE_KEYS.CURRENT_USER,
-                JSON.stringify(userData),
-              );
-            } catch (err) {
-              console.error("Failed to fetch current user:", err);
-              TokenManager.clearTokens();
-              setUser(null);
-            }
+        // Access token is memory-only, so page reload starts unauthenticated.
+        // Try silent refresh using HttpOnly cookie.
+        if (!authService.isAuthenticated()) {
+          try {
+            await authService.refreshToken();
+          } catch {
+            setUser(null);
+            return;
           }
+        }
+
+        const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
         } else {
-          setUser(null);
+          const userData = await authService.getCurrentUser();
+          setUser(userData);
+          localStorage.setItem(
+            STORAGE_KEYS.CURRENT_USER,
+            JSON.stringify(userData),
+          );
         }
       } catch (err) {
         console.error("Auth initialization error:", err);
@@ -65,7 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const login = async (username: string, password: string) => {
     try {
-      const { access } = await authService.login(username, password);
+      await authService.login(username, password);
 
       // Fetch user data after successful login
       const userData = await authService.getCurrentUser();

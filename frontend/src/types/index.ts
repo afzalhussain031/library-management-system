@@ -33,7 +33,6 @@ export interface Book {
 // API Response types
 export interface LoginResponse {
   access: string;
-  refresh: string;
 }
 
 export interface RegisterPayload {

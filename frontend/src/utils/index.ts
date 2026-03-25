@@ -6,7 +6,7 @@
 export {
   handleError,
   isAuthError,
-  isValidationError,
+   isValidationError,
   AppError,
 } from "./errorHandler";
 export { TokenManager } from "./tokenManager";

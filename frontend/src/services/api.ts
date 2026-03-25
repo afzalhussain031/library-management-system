@@ -2,6 +2,7 @@ import axios from "axios";
 
 const ROOT = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_URL = `${ROOT}/api`;
+let accessToken: string | null = null;
 
 // Type definitions
 export interface Book {
@@ -30,30 +31,29 @@ export interface User {
 
 export const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
 });
 
 // check if user is logged in
 export function isAuthenticated(): boolean {
-  return !!localStorage.getItem("accessToken");
+  return !!accessToken;
 }
 
 // set token on api (call after login or on app init)
 export function setAuthToken(token: string | null) {
+  accessToken = token;
   if (token) {
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    localStorage.setItem("accessToken", token);
   } else {
     delete api.defaults.headers.common["Authorization"];
-    localStorage.removeItem("accessToken");
   }
 }
 
 // login: returns { access, refresh }
 export async function login(username: string, password: string) {
   const res = await api.post("/token/", { username, password });
-  const { access, refresh } = res.data;
+  const { access } = res.data;
   setAuthToken(access);
-  localStorage.setItem("refreshToken", refresh);
   // fetch current user and store small copy locally
   try {
     const user = await getCurrentUser();
@@ -82,9 +82,7 @@ export async function register(payload: {
 
 // refresh access token
 export async function refreshToken() {
-  const refresh = localStorage.getItem("refreshToken");
-  if (!refresh) throw new Error("No refresh token");
-  const res = await api.post("/token/refresh/", { refresh });
+  const res = await api.post("/token/refresh/", {});
   const { access } = res.data;
   setAuthToken(access);
   return access;
@@ -92,8 +90,8 @@ export async function refreshToken() {
 
 // logout
 export function logout() {
+  api.post("/logout/").catch(() => undefined);
   setAuthToken(null);
-  localStorage.removeItem("refreshToken");
   localStorage.removeItem("currentUser");
 }
 
@@ -178,6 +176,4 @@ export const updateUserProfile = async (
   }
 };
 
-// initialize auth header if token exists
-const existingToken = localStorage.getItem("accessToken");
-if (existingToken) setAuthToken(existingToken);
+// Access token is memory-only by design. No localStorage bootstrap.

@@ -13,8 +13,6 @@ export const API_CONFIG = {
 
 // Storage Keys
 export const STORAGE_KEYS = {
-  ACCESS_TOKEN: "accessToken",
-  REFRESH_TOKEN: "refreshToken",
   CURRENT_USER: "currentUser",
 };
 
@@ -26,6 +24,7 @@ export const API_ENDPOINTS = {
   STAFF_CREATE: "/staff/create/",
   REFRESH: "/token/refresh/",
   CURRENT_USER: "/me/",
+  LOGOUT: "/logout/",
 
   // Books
   BOOKS: "/books/",
