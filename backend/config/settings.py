@@ -116,12 +116,11 @@ SIMPLE_JWT = {
 
     # Refresh token cookie settings
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_SECURE': not DEBUG, # False on local host HTTP, True on prod HTTPS
+    'AUTH_COOKIE_SECURE': not DEBUG,  # False on localhost HTTP, True in prod HTTPS
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_SAMESITE': 'Lax',
     'AUTH_COOKIE_PATH': '/api/token/refresh/',
     'AUTH_COOKIE_MAX_AGE': int(timedelta(days=1).total_seconds()),
-
 }
 
 # CORS configuration

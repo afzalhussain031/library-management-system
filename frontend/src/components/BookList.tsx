@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchBooks } from '../services/api';
+import { bookService } from '../services/apiClient';
 
 const BookList: React.FC = () => {
     const [books, setBooks] = useState<any[]>([]);
@@ -9,7 +9,7 @@ const BookList: React.FC = () => {
     useEffect(() => {
         const getBooks = async () => {
             try {
-                const data = await fetchBooks();
+                const data = await bookService.fetchAll();
                 setBooks(data);
             } catch (err) {
                 setError('Failed to fetch books');
