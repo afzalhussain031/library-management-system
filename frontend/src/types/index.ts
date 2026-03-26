@@ -3,6 +3,8 @@
  * Centralized location for all interfaces and types used across the app
  */
 
+import type { ReactElement, ReactNode } from "react";
+
 // User-related types
 export interface User {
   id: number;
@@ -57,4 +59,45 @@ export interface AuthContextType {
 // Form validation types
 export interface FormErrors {
   [key: string]: string;
+}
+
+// Auth modal UI modes
+export type TabMode = "login" | "signup";
+export type UserMode = "student" | "staff";
+
+// Component props types
+export interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export interface AuthModalProps {
+  isOpen: boolean;
+  initialUserMode?: UserMode;
+  initialTab?: TabMode;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export interface StaffCreateModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: () => void;
+}
+
+export interface PrivateRouteProps {
+  children: ReactElement;
+}
+
+export type BookFormData = Pick<Book, "title" | "author" | "isbn">;
+
+export interface BookFormProps {
+  onSubmit: (data: BookFormData) => void;
+  initialData?: BookFormData;
+}
+
+// Hook state types
+export interface UseBooksState {
+  books: Book[];
+  loading: boolean;
+  error: string | null;
 }

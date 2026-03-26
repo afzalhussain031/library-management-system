@@ -2,20 +2,15 @@ import React, { useEffect, useState } from "react";
 import { authService } from "../services/apiClient";
 import { handleError } from "../utils/errorHandler";
 import "../styles/AuthModalNew.css";
-import type { RegisterPayload } from "../types";
+import type {
+  RegisterPayload,
+  TabMode,
+  UserMode,
+  AuthModalProps,
+  FormErrors,
+} from "../types";
 
-export type TabMode = "login" | "signup";
-export type UserMode = "student" | "staff";
-
-interface Props {
-  isOpen: boolean;
-  initialUserMode?: UserMode;
-  initialTab?: TabMode;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-const AuthModal: React.FC<Props> = ({
+const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   initialUserMode = "student",
   initialTab = "login",
@@ -25,7 +20,7 @@ const AuthModal: React.FC<Props> = ({
   const [userMode, setUserMode] = useState<UserMode>(initialUserMode);
   const [tab, setTab] = useState<TabMode>(initialTab);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [k: string]: string }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

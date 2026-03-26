@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 import { authService } from "../services/apiClient";
 import { handleError } from "../utils/errorHandler";
 import "../styles/Modal.css";
+import type { StaffCreateModalProps } from "../types";
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreated?: () => void;
-}
-
-const StaffCreateModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
+const StaffCreateModal: React.FC<StaffCreateModalProps> = ({
+  isOpen,
+  onClose,
+  onCreated,
+}) => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

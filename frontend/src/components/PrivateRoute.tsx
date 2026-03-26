@@ -1,17 +1,14 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-
-interface Props {
-  children: JSX.Element;
-}
+import type { PrivateRouteProps } from "../types";
 
 /**
  * PrivateRoute Component
  * Protects routes by redirecting unauthenticated users to home
  * Uses useAuth hook to check authentication status
  */
-const PrivateRoute: React.FC<Props> = ({ children }) => {
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {

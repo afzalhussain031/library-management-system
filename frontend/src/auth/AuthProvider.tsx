@@ -9,11 +9,12 @@ import { TokenManager } from "../utils/tokenManager";
 import { handleError } from "../utils/errorHandler";
 import { AuthContext } from "./AuthContext";
 import { STORAGE_KEYS } from "../constants";
-import type { User, RegisterPayload, AuthContextType } from "../types";
-
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
+import type {
+  User,
+  RegisterPayload,
+  AuthContextType,
+  AuthProviderProps,
+} from "../types";
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);

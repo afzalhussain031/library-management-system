@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-
-interface BookFormProps {
-  onSubmit: (data: { title: string; author: string; isbn: string }) => void;
-  initialData?: { title: string; author: string; isbn: string };
-}
+import type { BookFormProps } from "../types";
 
 const BookForm: React.FC<BookFormProps> = ({ onSubmit, initialData }) => {
   const [title, setTitle] = useState(initialData ? initialData.title : "");

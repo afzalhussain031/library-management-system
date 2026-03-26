@@ -7,13 +7,7 @@
 import { useState, useCallback } from "react";
 import { bookService } from "../services/apiClient";
 import { handleError } from "../utils/errorHandler";
-import type { Book } from "../types";
-
-interface UseBooksState {
-  books: Book[];
-  loading: boolean;
-  error: string | null;
-}
+import type { Book, UseBooksState } from "../types";
 
 export const useBooks = () => {
   const [state, setState] = useState<UseBooksState>({
