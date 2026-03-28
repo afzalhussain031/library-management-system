@@ -182,7 +182,16 @@ const Books: React.FC = () => {
               </div>
               <div>
                 {isStaff ? (
-                  <button onClick={() => handleDelete(b.id)}>Delete</button>
+                  <button
+                    onClick={() => {
+                      if (typeof b.id === "number") {
+                        handleDelete(b.id);
+                      }
+                    }}
+                    disabled={typeof b.id !== "number"}
+                  >
+                    Delete
+                  </button>
                 ) : null}
               </div>
             </li>

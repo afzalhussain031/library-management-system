@@ -1,25 +1,7 @@
 
 ## Highest-impact improvements (do first)
 
-1. Move refresh token from localStorage to HttpOnly secure cookie
-- What to change: Keep access token short-lived in memory or session storage; store refresh token in HttpOnly, Secure, SameSite cookie via backend-set cookie response.
-- Why: Greatly reduces token theft risk from XSS. Current localStorage usage in tokenManager.ts and tokenManager.ts is convenient but less safe.
 
-2. Enable refresh-token rotation and blacklist on backend
-- What to change: Turn on rotation and blacklist in SimpleJWT config and invalidate old refresh tokens on use.
-- Why: Prevents replay attacks if refresh token leaks. Current config has rotation disabled at settings.py.
-
-3. Add brute-force protection for login/signup endpoints
-- What to change: Add rate limiting per IP and per username (for token and register endpoints), temporary lockout after repeated failures.
-- Why: Prevents credential stuffing and dictionary attacks. Public login/signup endpoints are currently open by design at urls.py and views.py.
-
-4. Strengthen signup password validation server-side
-- What to change: In register serializer, call Django validate_password and return field-specific errors; optionally enforce stronger policy.
-- Why: Right now serializer checks only password match and username uniqueness in serializers.py and serializers.py. Policy should be explicit at signup boundary.
-
-5. Remove production-risk settings immediately
-- What to change: Move secret key and staff invite code to environment variables, set DEBUG false in prod, disable allow-all CORS.
-- Why: These directly weaken auth/session security. See settings.py, settings.py, settings.py, settings.py.
 
 ## Login/signup flow improvements (product + UX)
 
@@ -49,9 +31,6 @@
 - What to change: Remove or deprecate legacy API module and use one service consistently.
 - Why: You currently have duplicated auth logic in apiClient.ts and api.ts, which can drift and cause bugs.
 
-12. Remove stale invite-code artifacts from frontend
-- What to change: Delete unused invite code constant/type fields and old Signup page invite input.
-- Why: Backend no longer uses invite code in public register path, but frontend still references it in index.ts, index.ts, and Signup.tsx. This creates confusion and future regressions.
 
 13. Make authentication state validity-aware, not presence-only
 - What to change: Treat user as authenticated only if access token is present and unexpired, or refresh succeeds.

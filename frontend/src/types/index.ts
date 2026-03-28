@@ -61,6 +61,25 @@ export interface FormErrors {
   [key: string]: string;
 }
 
+export type AuthFieldKey = "username" | "email" | "password" | "password2";
+
+export type AuthFieldTouched = Partial<Record<AuthFieldKey,boolean>>;
+
+export interface AuthFormValues {
+  username: string;
+  email: string;
+  password: string;
+  password2: string;
+}
+
+export interface AuthFieldErrors {
+  username?: string;
+  email?: string;
+  password?: string;
+  password2?: string;
+  general?: string;
+}
+
 // Auth modal UI modes
 export type TabMode = "login" | "signup";
 export type UserMode = "student" | "staff";

@@ -111,6 +111,11 @@
   margin-top: 6px;
 }
 
+.field-group {
+  display: grid;
+  gap: 6px;
+}
+
 .input {
   height: 42px;
   border-radius: 8px;
@@ -125,6 +130,62 @@
   border-color: #f0c452;
   background: #fffdf4;
   box-shadow: 0 0 0 3px rgba(240, 196, 82, 0.25);
+}
+
+.input-error {
+  border-color: #d64242;
+  background: #fff4f4;
+}
+
+.input-error:focus {
+  border-color: #d64242;
+  box-shadow: 0 0 0 3px rgba(214, 66, 66, 0.2);
+}
+
+.input-helper {
+  margin: 0;
+  color: #6e6e6e;
+  font-size: 12px;
+}
+
+.input-error-text {
+  margin: 0;
+  color: #c01d1d;
+  font-size: 12px;
+}
+
+.password-guidance {
+  display: grid;
+  gap: 6px;
+}
+
+.strength-badge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.strength-very-weak {
+  background: #ffe2e2;
+  color: #8f1c1c;
+}
+
+.strength-weak {
+  background: #ffeccf;
+  color: #885000;
+}
+
+.strength-medium {
+  background: #fff7cf;
+  color: #665400;
+}
+
+.strength-strong {
+  background: #daf5dd;
+  color: #1f6b2d;
 }
 
 .button {

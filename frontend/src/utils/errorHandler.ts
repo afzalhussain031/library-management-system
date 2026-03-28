@@ -5,6 +5,7 @@
 
 import axios from "axios";
 import { ERROR_MESSAGES } from "../constants";
+import type { AuthFieldErrors } from "../types";
 
 export class AppError extends Error {
   public statusCode: number;
@@ -94,3 +95,58 @@ export const isValidationError = (
   }
   return false;
 };
+
+const toMessage = (value: unknown): string | undefined => {
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : undefined;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  if (value == null) {
+    return undefined;
+  }
+
+  return String(value);
+};
+
+export const parseAuthFieldErrors = (error: unknown): AuthFieldErrors => {
+  const fieldErrors: AuthFieldErrors = {};
+
+  if (!axios.isAxiosError(error)) {
+    return fieldErrors;
+  }
+
+  const data = error.response?.data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return fieldErrors
+  }
+
+  const payload = data as Record<string, unknown>;
+
+  fieldErrors.username = toMessage(payload.username);
+  fieldErrors.email=toMessage(payload.email);
+  fieldErrors.password=toMessage(payload.password);
+  fieldErrors.password2=toMessage(payload.password2);
+
+  const nonFieldMessage = 
+    toMessage(payload.non_field_errors) ||
+    toMessage(payload.detail) ||
+    toMessage(payload.message);
+
+  if (nonFieldMessage) {
+    fieldErrors.general = nonFieldMessage;
+  }
+
+  return fieldErrors;
+}
