@@ -24,6 +24,16 @@ export const api = axios.create({
 
 let refreshInFlight: Promise<string> | null = null;
 
+const PUBLIC_AUTH_ENDPOINTS = [API_ENDPOINTS.LOGIN, API_ENDPOINTS.REGISTER];
+
+const getRequestUrl = (request: { url?: string } | undefined): string => String(request?.url || "");
+
+const isPublicAuthEndpoint = (url: string): boolean => 
+  PUBLIC_AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+
+const isRefreshEndpoint = (url:string): boolean => 
+  url.includes(API_ENDPOINTS.REFRESH)
+
 const applyAccessToken = (access: string) => {
   TokenManager.setAccessToken(access);
   api.defaults.headers.common["Authorization"] = `Bearer ${access}`
@@ -57,6 +67,13 @@ const requestAccessTokenRefresh = async (): Promise<string> => {
 // Axios interceptor: inject JWT token on every request
 api.interceptors.request.use(
   (config) => {
+    const requestUrl = getRequestUrl(config);
+
+    if (isPublicAuthEndpoint(requestUrl)) {
+      delete config.headers.Authorization;
+      return config;
+    }
+
     const token = TokenManager.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -73,11 +90,14 @@ api.interceptors.response.use(
     const originalRequest = error.config as
       | (typeof error.config & { _retry?: boolean })
       | undefined;
+    const requestUrl = getRequestUrl(originalRequest);
 
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
-      !String(originalRequest?.url || "").includes(API_ENDPOINTS.REFRESH)
+      !isRefreshEndpoint(requestUrl) &&
+      !isPublicAuthEndpoint(requestUrl)
     ) {
       originalRequest._retry = true;
 

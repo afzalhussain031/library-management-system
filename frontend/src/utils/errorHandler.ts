@@ -7,6 +7,38 @@ import axios from "axios";
 import { ERROR_MESSAGES } from "../constants";
 import type { AuthFieldErrors } from "../types";
 
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  user_not_found: "Your session is no longer valid. Please sign in again.",
+  "user not found": "Your session is no longer valid. Please sign in again.",
+  no_active_account: "Invalid username or password.",
+  "no active account fount with the given credentials": "Invalid username or password",
+  user_inactive: "Your account is inactive. Contact the administrator.",
+  "user is inactive": "Your account is inactive. Contact the administrator.",
+};
+
+const normalizeErrorKey = (value: unknown): string => 
+  String(value || "")
+  .trim()
+  .toLowerCase();
+
+const toFriendlyAuthMessage = (
+  message: unknown,
+  code?: unknown,
+): string | undefined => {
+  const codeKey = normalizeErrorKey(code);
+  if (codeKey && AUTH_ERROR_MESSAGES[codeKey]) {
+    return AUTH_ERROR_MESSAGES[codeKey];
+  }
+
+  const messageKey = normalizeErrorKey(message);
+  if (messageKey && AUTH_ERROR_MESSAGES[messageKey]) {
+    return AUTH_ERROR_MESSAGES[messageKey];
+  }
+
+  return undefined;
+};
+
+
 export class AppError extends Error {
   public statusCode: number;
   public details: unknown;
@@ -35,6 +67,17 @@ export const handleError = (error: unknown): string => {
     // Try to extract server error message
     const data = error.response?.data;
     if (data) {
+      if (typeof data === "object" && !Array.isArray(data)) {
+        const payload = data as Record<string, unknown>;
+        const friendly = toFriendlyAuthMessage(
+          payload.detail || payload.message,
+          payload.code,
+        );
+        if (friendly){
+          return friendly;
+        }
+      }
+
       // DRF returns validation errors with field names
       if (typeof data === "object" && !Array.isArray(data)) {
         const messages = Object.values(data)
@@ -144,7 +187,11 @@ export const parseAuthFieldErrors = (error: unknown): AuthFieldErrors => {
     toMessage(payload.detail) ||
     toMessage(payload.message);
 
-  if (nonFieldMessage) {
+  const friendlyMessage = toFriendlyAuthMessage(nonFieldMessage, payload.code);
+
+  if (friendlyMessage) {
+    fieldErrors.general = friendlyMessage;
+  } else if (nonFieldMessage) {
     fieldErrors.general = nonFieldMessage;
   }
 

@@ -49,6 +49,7 @@ class BookViewSet(viewsets.ModelViewSet):
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
 
 
