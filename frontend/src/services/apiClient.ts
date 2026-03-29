@@ -22,6 +22,38 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+let refreshInFlight: Promise<string> | null = null;
+
+const applyAccessToken = (access: string) => {
+  TokenManager.setAccessToken(access);
+  api.defaults.headers.common["Authorization"] = `Bearer ${access}`
+}
+
+const clearAccessTokenState = () => {
+  TokenManager.clearTokens();
+  delete api.defaults.headers.common["Authorization"];
+}
+
+const requestAccessTokenRefresh = async (): Promise<string> => {
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = (async () => {
+    const response = await api.post<{access: string}> (API_ENDPOINTS.REFRESH, {});
+    const { access } = response.data;
+    applyAccessToken(access);
+    return access;
+  }) ();
+
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
+  }
+};
+
+
 // Axios interceptor: inject JWT token on every request
 api.interceptors.request.use(
   (config) => {
@@ -38,7 +70,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config as
+      | (typeof error.config & { _retry?: boolean })
+      | undefined;
 
     if (
       error.response?.status === 401 &&
@@ -48,19 +82,12 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const response = await api.post<{ access: string }>(
-          API_ENDPOINTS.REFRESH,
-          {},
-        );
-        const { access } = response.data;
-
-        TokenManager.setAccessToken(access);
-        api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+        await requestAccessTokenRefresh();
 
         return api(originalRequest);
       } catch (refreshError) {
-        TokenManager.clearTokens();
-        window.location.href = "/";
+        clearAccessTokenState();
+        window.dispatchEvent(new Event("auth:session-expired"));
         return Promise.reject(refreshError);
       }
     }
@@ -79,71 +106,42 @@ api.interceptors.response.use(
  */
 export const authService = {
   async login(username: string, password: string): Promise<LoginResponse> {
-    try {
-      const response = await api.post<LoginResponse>(API_ENDPOINTS.LOGIN, {
-        username,
-        password,
-      });
-      const { access } = response.data;
+    const response = await api.post<LoginResponse> (API_ENDPOINTS.LOGIN, {
+      username, 
+      password,
+    });
+    const { access } = response.data;
 
-      TokenManager.setAccessToken(access);
-      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-
-      return response.data;
-    } catch (error) {
-      throw new Error("Login failed: " + handleError(error));
-    }
+    applyAccessToken(access);
+    return response.data;
   },
 
   async register(payload: RegisterPayload): Promise<User> {
-    try {
-      const response = await api.post<User>(API_ENDPOINTS.REGISTER, payload);
-      return response.data;
-    } catch (error) {
-      throw new Error("Registration failed: " + handleError(error));
-    }
+    const response = await api.post<User> (API_ENDPOINTS.REGISTER, payload);
+    return response.data;
   },
 
+
+
   async createStaff(payload: RegisterPayload): Promise<User> {
-    try {
-      const response = await api.post<User>(API_ENDPOINTS.STAFF_CREATE, payload);
-      return response.data;
-    } catch (error) {
-      throw new Error("Create staff failed: " + handleError(error));
-    }
+    const response = await api.post<User>(API_ENDPOINTS.STAFF_CREATE, payload);
+    return response.data;
   },
 
   async getCurrentUser(): Promise<User> {
-    try {
-      const response = await api.get<User>(API_ENDPOINTS.CURRENT_USER);
-      return response.data;
-    } catch (error) {
-      throw new Error("Failed to fetch user: " + handleError(error));
-    }
+    const response = await api.get<User>(API_ENDPOINTS.CURRENT_USER);
+    return response.data;
   },
 
   async refreshToken(): Promise<string> {
-    try {
-      const response = await api.post<{ access: string }>(
-        API_ENDPOINTS.REFRESH,
-        {},
-      );
-
-      const { access } = response.data;
-      TokenManager.setAccessToken(access);
-      api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-      return access;
-    } catch (error) {
-      throw new Error("Token refresh failed: " + handleError(error));
-    }
+    return requestAccessTokenRefresh();
   },
 
   logout(): void {
     // best-effort server-side cookie clear
     api.post(API_ENDPOINTS.LOGOUT).catch(() => undefined);
 
-    TokenManager.clearTokens();
-    delete api.defaults.headers.common["Authorization"];
+    clearAccessTokenState();
   },
 
   isAuthenticated(): boolean {

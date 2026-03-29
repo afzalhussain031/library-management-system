@@ -5,8 +5,6 @@
 
 import React, { useEffect, useState } from "react";
 import { authService } from "../services/apiClient";
-import { TokenManager } from "../utils/tokenManager";
-import { handleError } from "../utils/errorHandler";
 import { AuthContext } from "./AuthContext";
 import { STORAGE_KEYS } from "../constants";
 import type {
@@ -19,6 +17,17 @@ import type {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const syncUser = (nextUser: User) => {
+    setUser(nextUser);
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(nextUser));
+  };
+
+  const clearUser = () => {
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    setUser(null);
+  }
+
 
   /**
    * Initialize auth state on app load
@@ -33,48 +42,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             await authService.refreshToken();
           } catch {
-            setUser(null);
+            clearUser();
             return;
           }
         }
 
-        const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        } else {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
-          localStorage.setItem(
-            STORAGE_KEYS.CURRENT_USER,
-            JSON.stringify(userData),
-          );
-        }
+        const userData = await authService.getCurrentUser();
+        syncUser(userData);
       } catch (err) {
         console.error("Auth initialization error:", err);
-        setUser(null);
+        clearUser();
       } finally {
         setLoading(false);
       }
     };
 
+    const handleSessionExpired = () => {
+      clearUser();
+    };
+
+    window.addEventListener("auth:session-expired", handleSessionExpired);
+
     initializeAuth();
+
+    return () => {
+      window.removeEventListener("auth:session-expired", handleSessionExpired);
+    };
   }, []);
 
   /**
    * Login user with username and password
    */
   const login = async (username: string, password: string) => {
-    try {
-      await authService.login(username, password);
+    await authService.login(username, password);
 
-      // Fetch user data after successful login
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
-    } catch (err) {
-      const errorMsg = handleError(err);
-      throw new Error(errorMsg);
-    }
+    // Fetch user data after successful login
+    const userData = await authService.getCurrentUser();
+    syncUser(userData);
   };
 
   /**
@@ -82,15 +86,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * Auto-logs in after successful registration
    */
   const register = async (payload: RegisterPayload) => {
-    try {
-      await authService.register(payload);
+    await authService.register(payload);
 
-      // Auto-login after registration
-      await login(payload.username, payload.password);
-    } catch (err) {
-      const errorMsg = handleError(err);
-      throw new Error(errorMsg);
-    }
+    // Auto-login after registration
+    await login(payload.username, payload.password);
+  };
+
+  const createStaff = async (payload: RegisterPayload) => {
+    await authService.createStaff(payload);
   };
 
   /**
@@ -99,8 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const logout = () => {
     authService.logout();
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-    setUser(null);
+    clearUser();
   };
 
   /**
@@ -110,13 +112,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUserData = async () => {
     try {
       if (!authService.isAuthenticated()) {
-        setUser(null);
+        clearUser();
         return;
       }
 
       const userData = await authService.getCurrentUser();
-      setUser(userData);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userData));
+      syncUser(userData);
     } catch (err) {
       console.error("Failed to refresh user data:", err);
       // Don't throw - just log the error
@@ -129,6 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: authService.isAuthenticated(),
     login,
     register,
+    createStaff,
     logout,
     refreshUserData,
   };

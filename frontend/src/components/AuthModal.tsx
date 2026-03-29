@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { authService } from "../services/apiClient";
+import { useAuth } from "../hooks/useAuth";
 import { handleError, parseAuthFieldErrors } from "../utils/errorHandler";
 import "../styles/AuthModalNew.css";
 import type {
@@ -45,6 +45,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [values, setValues] = useState<AuthFormValues>(EMPTY_VALUES);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [touched, setTouched] = useState<AuthFieldTouched>({});
+  const { login, register } = useAuth();
   const staffContactEmail = "admin@library.local";
   const usernameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -199,7 +200,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
     try {
       if (tab === "login") {
-        await authService.login(values.username.trim(), values.password);
+        await login(values.username.trim(), values.password);
       } else {
         // Only allow signup for students. Staff signup is NOT available here.
         const payload: RegisterPayload = {
@@ -208,8 +209,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
           password: values.password,
           password2: values.password2,
         };
-        await authService.register(payload);
-        await authService.login(values.username.trim(), values.password);
+        await register(payload);
       }
 
       resetForm();

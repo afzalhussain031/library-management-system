@@ -1,8 +1,10 @@
 # Ignore local virtual environment used for backend
 backend_env/
 
-# Documentation for developer only
+# Personal documentation (local only)
 ARCHITECTURE.md
+Future_Improvement.md
+Implemented_Improvements.md
 
 # Python cache
 __pycache__/

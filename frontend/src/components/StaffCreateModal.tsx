@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { authService } from "../services/apiClient";
+import { useAuth } from "../hooks/useAuth";
 import { handleError, parseAuthFieldErrors } from "../utils/errorHandler";
 import "../styles/Modal.css";
 import {
@@ -27,6 +27,7 @@ const StaffCreateModal: React.FC<StaffCreateModalProps> = ({
   onClose,
   onCreated,
 }) => {
+  const { createStaff } = useAuth();
   const [values, setValues] = useState<AuthFormValues>(EMPTY_VALUES);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
   const [touched, setTouched] = useState<AuthFieldTouched>({});
@@ -99,7 +100,7 @@ const StaffCreateModal: React.FC<StaffCreateModalProps> = ({
     setErrors({});
     setLoading(true);
     try {
-      await authService.createStaff({
+      await createStaff({
         username: values.username.trim(),
         email: values.email.trim() || undefined,
         password: values.password,
