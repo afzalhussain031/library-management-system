@@ -11,7 +11,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   user_not_found: "Your session is no longer valid. Please sign in again.",
   "user not found": "Your session is no longer valid. Please sign in again.",
   no_active_account: "Invalid username or password.",
-  "no active account fount with the given credentials": "Invalid username or password",
+  "no active account found with the given credentials": "Invalid username or password.",
   user_inactive: "Your account is inactive. Contact the administrator.",
   "user is inactive": "Your account is inactive. Contact the administrator.",
 };

@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from .models import Book, UserProfile
 from django.contrib.auth.models import User
-from .models import UserProfile
-from django.conf import settings
 
 class BaseUserRegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
@@ -58,12 +56,33 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    
+    id = serializers.IntegerField(source='user.id', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', required=False, allow_blank=True)
+    first_name = serializers.CharField(source='user.first_name', required=False, allow_blank=True)
+    last_name = serializers.CharField(source='user.last_name', required=False, allow_blank=True)
+
     class Meta:
         model = UserProfile
-        fields = ['user', 'bio']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'bio']
 
+        def update(self, instance, validated_data):
+            user_data = validated_data.pop('user', {})
+
+            user_changed_fields = []
+            for field in ('email', 'first_name', 'last_name'):
+                if field in user_data:
+                    setattr(instance.user, field, user_data[field])
+                    user_changed_fields.append(field)
+            
+            if user_changed_fields:
+                instance.user.save(update_field=user_changed_fields)
+
+            if 'bio' in validated_data:
+                instance.bio = validated_data['bio']
+                instance.save(update_fields='bio')
+            
+            return instance
 
 class StaffCreateSerializer(BaseUserRegistrationSerializer):
     """Serializer for creating staff users. This is only used by authenticated

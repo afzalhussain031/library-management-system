@@ -14,8 +14,11 @@ import type { UserProfile } from "../types";
 const Profile: React.FC = () => {
   const { refreshUserData } = useAuth();
   const [profileData, setProfileData] = useState<UserProfile>({
-    name: "",
+    id: 0,
+    username: "",
     email: "",
+    first_name: "",
+    last_name: "",
     bio: "",
   });
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,14 @@ const Profile: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await profileService.update(profileData);
+      const updatePayload = {
+        email: profileData.email,
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        bio: profileData.bio,
+      };
+
+      await profileService.update(updatePayload);
       setSuccess("Profile updated successfully");
       setError("");
 
@@ -67,7 +77,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  if (loading && !profileData.name)
+  if (loading && !profileData.username)
     return (
       <div className="page-container">
         <div className="loader">Loading...</div>
@@ -88,14 +98,26 @@ const Profile: React.FC = () => {
         {success && <div className="success-message">{success}</div>}
         <form onSubmit={handleSubmit} className="profile-form">
           <div className="form-group">
-            <label htmlFor="name">Name:</label>
+            <label htmlFor="first_name">First Name:</label>
             <input
               type="text"
-              id="name"
-              name="name"
-              value={profileData.name || ""}
+              id="first_name"
+              name="first_name"
+              value={profileData.first_name || ""}
               onChange={handleChange}
-              placeholder="Enter your name"
+              placeholder="Enter your first name"
+              disabled={loading}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="last_name">Last Name:</label>
+            <input
+              type="text"
+              id="last_name"
+              name="last_name"
+              value={profileData.last_name || ""}
+              onChange={handleChange}
+              placeholder="Enter your last name"
               disabled={loading}
             />
           </div>

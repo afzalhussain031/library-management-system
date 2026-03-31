@@ -1,5 +1,9 @@
 # Ignore local virtual environment used for backend
 backend_env/
+.venv/
+venv/
+backend/.venv/
+frontend/.venv/
 
 # Personal documentation (local only)
 ARCHITECTURE.md
@@ -9,6 +13,19 @@ Implemented_Improvements.md
 # Python cache
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# JavaScript dependencies and build outputs
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# Misc build/cache
+.cache/
+.DS_Store
+Thumbs.db
 
 # SQLite database
 *.sqlite3

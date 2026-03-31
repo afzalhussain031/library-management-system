@@ -12,6 +12,7 @@ import type {
   Book,
   User,
   UserProfile,
+  UserProfileUpdatePayload,
   LoginResponse,
   RegisterPayload,
 } from "../types";
@@ -227,7 +228,7 @@ export const profileService = {
     }
   },
 
-  async update(profileData: UserProfile): Promise<UserProfile> {
+  async update(profileData: UserProfileUpdatePayload): Promise<UserProfile> {
     try {
       const response = await api.patch<UserProfile>(
         API_ENDPOINTS.USER_PROFILE,

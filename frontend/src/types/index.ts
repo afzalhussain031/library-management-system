@@ -17,11 +17,17 @@ export interface User {
 }
 
 export interface UserProfile {
-  id?: number;
-  name?: string;
-  email?: string;
-  bio?: string;
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  bio: string;
 }
+
+export type UserProfileUpdatePayload = Partial<
+  Pick<UserProfile, "email" | "first_name" | "last_name" | "bio">
+>;
 
 // Book-related types
 export interface Book {

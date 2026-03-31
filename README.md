@@ -177,10 +177,34 @@ library-management-system/
 
 ### User Profile
 
-| Method | Endpoint        | Description         |
-| ------ | --------------- | ------------------- |
-| GET    | `/api/profile/` | Get user profile    |
-| PUT    | `/api/profile/` | Update user profile |
+| Method | Endpoint        | Description                              |
+| ------ | --------------- | ---------------------------------------- |
+| GET    | `/api/profile/` | Get current user's profile               |
+| PATCH  | `/api/profile/` | Partially update current user's profile  |
+| PUT    | `/api/profile/` | Fully update current user's profile      |
+
+Profile response and update fields use a flat schema:
+
+```json
+{
+   "id": 7,
+   "username": "alice",
+   "email": "alice@example.com",
+   "first_name": "Alice",
+   "last_name": "Reader",
+   "bio": "Loves books"
+}
+```
+
+Writable fields for update payloads:
+- `email`
+- `first_name`
+- `last_name`
+- `bio`
+
+Read-only fields:
+- `id`
+- `username`
 
 ## 🔐 Authentication & Authorization
 
