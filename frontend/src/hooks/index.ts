@@ -5,3 +5,5 @@
 
 export { useAuth } from "./useAuth";
 export { useBooks } from "./useBooks";
+export { useProfileForm } from "./useProfileForm";
+export { useUnsavedChanges } from "./useUnsavedChanges";

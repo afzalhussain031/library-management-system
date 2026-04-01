@@ -68,6 +68,10 @@ export interface FormErrors {
   [key: string]: string;
 }
 
+export type ProfileFormErrors = Partial<
+  Record<"first_name" | "last_name" | "email" | "bio", string>
+>;
+
 export type AuthFieldKey = "username" | "email" | "password" | "password2";
 
 export type AuthFieldTouched = Partial<Record<AuthFieldKey,boolean>>;

@@ -102,6 +102,55 @@ export const validateLoginForm = (values: AuthFormValues): AuthFieldErrors => {
     return errors;
 };
 
+// Profiel form constants
+export const PROFILE_CONSTRAINTS = {
+  MIN_NAME_LENGTH: 1,
+  MAX_NAME_LENGTH: 150,
+  MAX_BIO_LENGTH: 500,
+};
+
+// Profile form validation
+export interface ProfileFormData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  bio: string;
+}
+
+export const validateProfileForm = (data: ProfileFormData): { [key: string]: string } => {
+  const errors: { [key: string]: string } = {};
+
+  // First name validation
+  if (!data.first_name || data.first_name.trim() === "") {
+    errors.first_name = "First name is required";
+  } else if (data.first_name.trim().length > PROFILE_CONSTRAINTS.MAX_NAME_LENGTH) {
+    errors.first_name = `First name must be ${PROFILE_CONSTRAINTS.MAX_NAME_LENGTH} characters or less`;
+  }
+
+  // Last name validation
+  if (!data.last_name || data.last_name.trim() === "") {
+    errors.last_name = "Last name is required";
+  } else if (data.last_name.trim().length > PROFILE_CONSTRAINTS.MAX_NAME_LENGTH) {
+    errors.last_name = `Last name must be ${PROFILE_CONSTRAINTS.MAX_NAME_LENGTH} characters or less`;
+  }
+
+  // Email validation
+  if (!data.email || data.email.trim() === "") {
+    errors.email = "Email is required";
+  } else if (!EMAIL_REGEX.test(data.email)) {
+    errors.email = "Please enter a valid email address";
+  }
+
+  // Bio validation
+  if (data.bio && data.bio.length > PROFILE_CONSTRAINTS.MAX_BIO_LENGTH) {
+    errors.bio = `Bio must be ${PROFILE_CONSTRAINTS.MAX_BIO_LENGTH} characters or less (${data.bio.length})/${PROFILE_CONSTRAINTS.MAX_BIO_LENGTH}`;
+  }
+   
+  return errors;
+
+
+}
+
 export const validateSignupForm = (values: AuthFormValues): AuthFieldErrors => {
     const errors: AuthFieldErrors = {};
 
