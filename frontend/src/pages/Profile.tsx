@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useProfileForm, useUnsavedChanges } from "../hooks";
 import { profileService } from "../services/apiClient";
 import { handleError } from "../utils/errorHandler";
+import { validateEmail } from "../utils/validators";
 import "../styles/Pages.css";
 import type { UserProfile } from "../types";
 
@@ -17,7 +18,7 @@ import type { UserProfile } from "../types";
  * - Error recovery with input preservation
  */
 const Profile: React.FC = () => {
-  const { refreshUserData } = useAuth();
+  const { user, refreshUserData } = useAuth();
   const [initialProfileData, setInitialProfileData] = React.useState<UserProfile | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = React.useState(true);
 
@@ -53,6 +54,42 @@ const Profile: React.FC = () => {
 
   // Setup unsaved changes warning
   useUnsavedChanges(form.isDirty, form.isSubmitting);
+
+  const accountData = user?? initialProfileData;
+
+  const profileChecks = [
+    {
+      label: "Name",
+      complete: Boolean(form.data.first_name?.trim()) && Boolean(form.data.last_name?.trim()),
+      detail: "First and last name are both filled in.",
+    },
+    {
+      label: "Email",
+      complete: Boolean(form.data.email?.trim()) && !validateEmail(form.data.email),
+      detail: "A valid email address is set.",
+    },
+    {
+      label: "Bio",
+      complete: Boolean(form.data.bio?.trim()),
+      detail: "A short bio has been added.",
+    },
+  ];
+
+  const completedChecks = profileChecks.filter((check) => check.complete).length;
+  const completionPercentage = Math.round((completedChecks / profileChecks.length) * 100)
+
+  const formatJoinedDate = (value?:string) => {
+    if (!value) return "Not available";
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return "Not available";
+
+    return parsedDate.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   // Handle form submission with validation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,6 +160,63 @@ return (
       </div>
 
       <div className="page-content">
+        <section className="profile-metadata-card" aria-labelledby="profile-metadata-title">
+          <div className="profile-section-header">
+            <div>
+              <p className="section-kicker">Account overview</p>
+              <h2 id="profile-metadata-title">Profile metadata</h2>
+            </div>
+            <span className={`role-badge ${accountData?.is_staff ? "role-staff" : "role-student"}`}>
+              {accountData?.is_staff ? "Staff" : "Student"}
+            </span>
+          </div>
+
+          <div className="profile-metadata-grid">
+            <div>
+              <span className="metadata-label">Username</span>
+              <strong className="metadata-value">{accountData?.username || "Not available"}</strong>
+            </div>
+            <div>
+              <span className="metadata-label">Joined</span>
+              <strong className="metadata-value">{formatJoinedDate(accountData?.date_joined)}</strong>
+            </div>
+            <div>
+              <span className="metadata-label">Account type</span>
+              <strong className="metadata-value">
+                {accountData?.is_staff ? "Library staff account" : "Student account"}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="profile-completeness-card" aria-labelledby="profile-completeness-title">
+          <div className="profile-section-header">
+            <div>
+              <p className="section-kicker">Profile status</p>
+              <h2 id="profile-completeness-title">Profile completeness</h2>
+            </div>
+            <span className="completion-pill">{completionPercentage}% complete</span>
+          </div>
+
+          <div className="completion-progress" aria-hidden="true">
+            <div className="completion-progress-bar" style={{ width: `${completionPercentage}%` }} />
+          </div>
+
+          <ul className="completion-checklist">
+            {profileChecks.map((check) => (
+              <li key={check.label} className={check.complete ? "complete" : "incomplete"}>
+                <span className="completion-icon" aria-hidden="true">
+                  {check.complete ? "✓" : "○"}
+                </span>
+                <div>
+                  <strong>{check.label}</strong>
+                  <p>{check.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* Top-level error summary */}
         {form.generalError && (
           <div className="error-summary" role="alert" aria-live="polite">
@@ -300,6 +394,39 @@ return (
             )}
           </button>
         </form>
+
+        <section className="profile-preferences-card" aria-labelledby="profile-preferences-title">
+          <div className="profile-section-header">
+            <div>
+              <p className="section-kicker">Future settings</p>
+              <h2 id="profile-preferences-title">Library preferences</h2>
+            </div>
+            <span className="coming-soon-pill">Coming soon</span>
+          </div>
+
+          <p className="preferences-intro">
+            This section is reserved for future personalization such as genres, borrowing habits,
+            and notification choices.
+          </p>
+
+          <div className="preferences-grid">
+            <article className="preference-placeholder">
+              <h3>Genres</h3>
+              <p>Favorite categories and reading interests.</p>
+              <span className="preference-chip">Placeholder</span>
+            </article>
+            <article className="preference-placeholder">
+              <h3>Borrowing preferences</h3>
+              <p>Loan durations, reminders, and renewal preferences.</p>
+              <span className="preference-chip">Placeholder</span>
+            </article>
+            <article className="preference-placeholder">
+              <h3>Notifications</h3>
+              <p>Email and in-app alerts for holds, due dates, and updates.</p>
+              <span className="preference-chip">Placeholder</span>
+            </article>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -13,12 +13,15 @@ export interface User {
   first_name?: string;
   last_name?: string;
   is_staff?: boolean;
+  date_joined?: string;
   name?: string;
 }
 
 export interface UserProfile {
   id: number;
   username: string;
+  is_staff?: boolean;
+  date_joined?: string;
   email: string;
   first_name: string;
   last_name: string;
