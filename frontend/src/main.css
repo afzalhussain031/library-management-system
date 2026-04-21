@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-y-scroll;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@theme {
+  --color-background: #FFFFFF;
+  --color-foreground: #1F2937;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1F2937;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1F2937;
+  --color-primary: #FCD34D;
+  --color-primary-foreground: #1A1A1A;
+  --color-secondary: #FFF4D2;
+  --color-secondary-foreground: #1F2937;
+  --color-muted: #F3F4F6;
+  --color-muted-foreground: #6B7280;
+  --color-accent: #F8DB7D;
+  --color-accent-foreground: #1A1A1A;
+  --color-destructive: #EF4444;
+  --color-border: #E5E7EB;
+  --color-input: #E5E7EB;
+  --color-ring: #A5B4FC;
+  --color-sidebar: #FFF4D2;
+  --color-sidebar-foreground: #1F2937;
+  --color-sidebar-primary: #F97316;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: #FCD34D;
+  --color-sidebar-accent-foreground: #FFFFFF;
+  --color-sidebar-border: #1A1A1A;
+  --color-sidebar-ring: #F97316;
+  /* TODO: */
+  --border-radius: 40px;
+}

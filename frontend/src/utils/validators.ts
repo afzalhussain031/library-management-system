@@ -1,8 +1,3 @@
-import type { AuthFieldErrors, AuthFormValues } from "../types";
-
-const MAX_USERNAME_LENGHT = 150;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export type PasswordStrengthLabel = "Very weak" | "Weak" | "Medium" | "Strong";
 
 const getPasswordScore = (password: string): number => {
@@ -57,52 +52,7 @@ export const getPasswordGuidance = (password: string): string[] => {
     return guidance;
 };
 
-export const validateUsername = (username: string): string | undefined => {
-    const value = username.trim();
-
-    if (!value) return "Username is required";
-    if (value.length > MAX_USERNAME_LENGHT) {
-        return `Usernam must be at most ${MAX_USERNAME_LENGHT} characters`;
-    }
-    if (/\s/.test(value)) return "Username must not contain spaces";
-
-    return undefined;
-    };
-
-export const validateEmail = (email: string): string | undefined => {
-    const value = email.trim()
-
-    if (!value) return undefined
-    if (!EMAIL_REGEX.test(value)) return "Please enter a valid email address";
-    
-    return undefined
-};
-
-export const validatePasswordRequired = (password: string): string | undefined => {
-  if (!password) return "Password is required";
-  return undefined;
-};
-
-
-export const validatePasswordConfirmation = (
-    password: string,
-    password2: string,
-) : string | undefined => {
-    if (!password2) return "Please confirm your password";
-    if (password !== password2) return "Passwords do not match";
-    return undefined;
-};
-
-export const validateLoginForm = (values: AuthFormValues): AuthFieldErrors => {
-    const errors: AuthFieldErrors = {};
-
-    errors.username = validateUsername(values.username)
-    errors.password = validatePasswordRequired(values.password);
-
-    return errors;
-};
-
-// Profiel form constants
+// Profile form constants
 export const PROFILE_CONSTRAINTS = {
   MIN_NAME_LENGTH: 1,
   MAX_NAME_LENGTH: 150,
@@ -116,64 +66,3 @@ export interface ProfileFormData {
   email: string;
   bio: string;
 }
-
-export const validateProfileForm = (data: ProfileFormData): { [key: string]: string } => {
-  const errors: { [key: string]: string } = {};
-
-  // First name validation
-  if (!data.first_name || data.first_name.trim() === "") {
-    errors.first_name = "First name is required";
-  } else if (data.first_name.trim().length > PROFILE_CONSTRAINTS.MAX_NAME_LENGTH) {
-    errors.first_name = `First name must be ${PROFILE_CONSTRAINTS.MAX_NAME_LENGTH} characters or less`;
-  }
-
-  // Last name validation
-  if (!data.last_name || data.last_name.trim() === "") {
-    errors.last_name = "Last name is required";
-  } else if (data.last_name.trim().length > PROFILE_CONSTRAINTS.MAX_NAME_LENGTH) {
-    errors.last_name = `Last name must be ${PROFILE_CONSTRAINTS.MAX_NAME_LENGTH} characters or less`;
-  }
-
-  // Email validation
-  if (!data.email || data.email.trim() === "") {
-    errors.email = "Email is required";
-  } else if (!EMAIL_REGEX.test(data.email)) {
-    errors.email = "Please enter a valid email address";
-  }
-
-  // Bio validation
-  if (data.bio && data.bio.length > PROFILE_CONSTRAINTS.MAX_BIO_LENGTH) {
-    errors.bio = `Bio must be ${PROFILE_CONSTRAINTS.MAX_BIO_LENGTH} characters or less (${data.bio.length})/${PROFILE_CONSTRAINTS.MAX_BIO_LENGTH}`;
-  }
-   
-  return errors;
-
-
-}
-
-export const validateSignupForm = (values: AuthFormValues): AuthFieldErrors => {
-    const errors: AuthFieldErrors = {};
-
-    errors.username = validateUsername(values.username);
-    errors.email = validateEmail(values.email);
-    errors.password = validatePasswordRequired(values.password)
-    errors.password2 = validatePasswordConfirmation(values.password, values.password2);
-
-    return errors;
-};
-
-export const validateStaffCreateForm = (
-    values: AuthFormValues, 
-): AuthFieldErrors => {
-    return validateSignupForm(values);
-}
-
-export const hasFieldErrors = (errors: AuthFieldErrors): boolean => {
-  return Boolean(
-    errors.username ||
-      errors.email ||
-      errors.password ||
-      errors.password2,
-  );
-};
-
