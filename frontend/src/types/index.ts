@@ -3,7 +3,7 @@
  * Centralized location for all interfaces and types used across the app
  */
 
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 // User-related types
 export interface User {
@@ -115,10 +115,6 @@ export interface StaffCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated?: () => void;
-}
-
-export interface PrivateRouteProps {
-  children: ReactElement;
 }
 
 export type BookFormData = Pick<Book, "title" | "author" | "isbn">;

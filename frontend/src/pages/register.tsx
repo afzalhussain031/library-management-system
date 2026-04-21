@@ -5,10 +5,14 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { useAuth } from "../hooks";
+
 import { cn } from "../utils/cn";
 
 import { SignWrapper } from "../components/sign-wrapper";
+
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 
 export default function Page() {
   return (
@@ -41,7 +45,15 @@ const formSchema = z.object({
   phoneNo: z.string().trim().min(3, "Min. 3 characters").max(50, "Max. 50 characters"),
   email: z.email(),
   password: z.string().trim().min(3, "Min. 3 characters").max(50, "Max. 50 characters"),
-  confirmPassword: z.string().trim().min(3, "Min. 3 characters").max(50, "Max. 50 characters"),
+  confirmPassword: z.string().trim().min(3, "Min. 3 characters").max(50, "Max. 50 characters")
+}).superRefine((data, ctx) => {
+  if (data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Passwords do not match",
+      path: ["confirmPassword"],
+    });
+  }
 });
 
 const labels: Record<Key, string> = {
@@ -56,19 +68,31 @@ const labels: Record<Key, string> = {
 };
 
 function RegisterForm() {
-  const {
-    register,
-    handleSubmit,
-    formState,
-  } = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
 
+  const auth = useAuth();
+
   return (
     <form
       className="my-auto border border-border rounded-xl bg-background p-4 space-y-2"
-      onSubmit={handleSubmit((e) => { alert(JSON.stringify(e)); })}
+      onSubmit={form.handleSubmit(async (data) => {
+        try {
+          await auth.register({
+            username: data.enrollmentNo,
+            email: data.email,
+            password: data.password,
+            password2: data.confirmPassword
+          });
+        } catch (e) {
+          const message = "You are offline. Connect to internet and try again!";
+          form.setError("root", { message });
+          // TODO:
+          alert(message);
+        }
+      })}
     >
       <h2 className="text-center text-3xl font-bold">Create Account</h2>
 
@@ -77,22 +101,25 @@ function RegisterForm() {
           key={key}
           className={cn(
             "flex flex-col capitalize",
-            formState.errors[key as Key]?.message && "text-destructive *:outline-destructive *:border-destructive"
+            form.formState.errors[key as Key]?.message && "text-destructive *:outline-destructive *:border-destructive"
           )}
         >
           <span>{labels[key as Key]}</span>
 
-          <input
-            className="border border-border rounded-md px-3 py-1 bg-input focus:outline-accent "
+          <Input
             placeholder={labels[key as Key]}
-            {...register(key as Key)}
+            {...form.register(key as Key)}
           />
 
-          <span className="text-destructive text-sm">{formState.errors[key as Key]?.message} &nbsp;</span>
+          <span className="text-destructive text-sm">{form.formState.errors[key as Key]?.message} &nbsp;</span>
         </label>
       ))}
 
-      <Button className="w-full">Register</Button>
+      <Button
+        className="w-full"
+        type="submit"
+        disabled={form.formState.isSubmitting || form.formState.isSubmitSuccessful}
+      >Register{form.formState.isSubmitting && "..."}</Button>
 
       <p className="text-center">
         Already have an account?

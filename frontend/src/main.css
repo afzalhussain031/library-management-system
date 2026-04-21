@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
 @layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-y-scroll;
+  }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
@@ -24,7 +32,7 @@
   --color-accent-foreground: #1A1A1A;
   --color-destructive: #EF4444;
   --color-border: #E5E7EB;
-  --color-input: #FFFFFF;
+  --color-input: #E5E7EB;
   --color-ring: #A5B4FC;
   --color-sidebar: #FFF4D2;
   --color-sidebar-foreground: #1F2937;
@@ -36,12 +44,4 @@
   --color-sidebar-ring: #F97316;
   /* TODO: */
   --border-radius: 40px;
-}
-
-* {
-  @apply border-border;
-}
-
-body {
-  @apply bg-background text-foreground overflow-y-scroll;
 }

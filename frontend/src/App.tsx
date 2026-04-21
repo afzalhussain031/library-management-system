@@ -9,6 +9,10 @@ import { Navbar } from "./components/navbar";
 import Register from "./pages/register";
 import Login from "./pages/login";
 
+import { Dashboard } from "./pages/dashboard";
+
+import { PrivateRoute } from "./components/private-route";
+
 export default function App() {
   return (
     <AuthProvider>
@@ -27,6 +31,15 @@ export default function App() {
           <Route path="/register" element={<Register />} />
 
           <Route path="/login" element={<Login />} />
+
+          <Route
+            path="/dashboard/*"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

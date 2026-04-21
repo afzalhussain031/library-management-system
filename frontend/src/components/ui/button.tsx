@@ -1,4 +1,4 @@
-import { type HTMLAttributes } from "react";
+import React from "react";
 
 import { cn } from "../../utils/cn";
 
@@ -9,7 +9,7 @@ export function Button({
   variant = "default",
   size = "default",
   ...props
-}: HTMLAttributes<HTMLButtonElement> & {
+}: React.ComponentProps<"button"> & {
   variant?: Variant | undefined;
   size?: Size | undefined;
 }) {

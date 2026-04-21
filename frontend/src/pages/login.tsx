@@ -5,9 +5,12 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { useAuth } from "../hooks";
+
 import { cn } from "../utils/cn";
 
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 
 import { SignWrapper } from "../components/sign-wrapper";
 
@@ -34,24 +37,31 @@ const formSchema = z.object({
 });
 
 const labels: Record<Key, string> = {
-  enrollmentNo: "Enrollment Nubmer",
+  enrollmentNo: "Enrollment Number",
   password: "Password"
 };
 
 function LoginForm() {
-  const {
-    register,
-    handleSubmit,
-    formState
-  } = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
 
+  const auth = useAuth();
+
   return (
     <form
       className="my-auto border border-border rounded-xl bg-background p-4 space-y-2"
-      onSubmit={handleSubmit((e) => { alert(JSON.stringify(e)); })}
+      onSubmit={form.handleSubmit(async ({ enrollmentNo, password }) => {
+        try {
+          await auth.login(enrollmentNo, password);
+        } catch (e) {
+          const message = "You are offline. Connect to internet and try again!";
+          form.setError("root", { message });
+          // TODO:
+          alert(message);
+        }
+      })}
     >
       <h2 className="text-center text-3xl font-bold">Login</h2>
 
@@ -60,22 +70,25 @@ function LoginForm() {
           key={key}
           className={cn(
             "flex flex-col capitalize",
-            formState.errors[key as Key]?.message && "text-destructive *:outline-destructive *:border-destructive"
+            form.formState.errors[key as Key]?.message && "text-destructive *:outline-destructive *:border-destructive"
           )}
         >
           <span>{labels[key as Key]}</span>
 
-          <input
-            className="border border-border rounded-md px-3 py-1 bg-input focus:outline-accent "
+          <Input
             placeholder={labels[key as Key]}
-            {...register(key as Key)}
+            {...form.register(key as Key)}
           />
 
-          <span className="text-destructive text-sm">{formState.errors[key as Key]?.message} &nbsp;</span>
+          <span className="text-destructive text-sm">{form.formState.errors[key as Key]?.message} &nbsp;</span>
         </label>
       ))}
 
-      <Button className="w-full">Login</Button>
+      <Button
+        className="w-full"
+        type="submit"
+        disabled={form.formState.isSubmitting || form.formState.isSubmitSuccessful}
+      >Login{form.formState.isSubmitting && "..."}</Button>
 
       <p className="text-center">
         Don't have an account?
