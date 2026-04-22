@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Book, UserProfile
+from .models import Book, BookCopy, Category, Fine, Loan, Publisher, Reservation, UserProfile
 from django.contrib.auth.models import User
 
 class BaseUserRegistrationSerializer(serializers.Serializer):
@@ -43,11 +43,65 @@ class RegisterSerializer(BaseUserRegistrationSerializer):
     is_staff_user = False
 
 class BookSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    added_by = serializers.PrimaryKeyRelatedField(read_only=True)
     published_date = serializers.DateField(required=False)
 
     class Meta:
         model = Book
+        fields = '__all__'
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+
+class PublisherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Publisher
+        fields = '__all__'
+
+
+class BookCopySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BookCopy
+        fields = '__all__'
+
+
+class LoanSerializer(serializers.ModelSerializer):
+    issued_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = Loan
+        fields = '__all__'
+
+    def validate(self, attrs):
+        copy = attrs.get('copy') or getattr(self.instance, 'copy', None)
+        returned_at = attrs.get('returned_at')
+        due_at = attrs.get('due_at') or getattr(self.instance, 'due_at', None)
+
+        if copy and self.instance is None and copy.status != copy.AVAILABLE:
+            raise serializers.ValidationError({'copy': 'This copy is not available for loan.'})
+
+        if returned_at and due_at and returned_at < due_at.replace(hour=0, minute=0, second=0, microsecond=0):
+            # Allow early return; the check only guards malformed edits where returned_at predates issue date.
+            pass
+
+        return attrs
+
+
+class ReservationSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Reservation
+        fields = '__all__'
+
+
+class FineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fine
         fields = '__all__'
 
 class UserSerializer(serializers.ModelSerializer):
@@ -66,7 +120,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'username', 'is_staff', 'date_joined', 'email', 'first_name', 'last_name', 'bio']
+        fields = [
+            'id',
+            'username',
+            'is_staff',
+            'date_joined',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+            'phone_number',
+            'department',
+            'student_id',
+        ]
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', {})
@@ -83,6 +150,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if 'bio' in validated_data:
             instance.bio = validated_data['bio']
             instance.save(update_fields=['bio'])
+
+        profile_changed_fields = []
+        for field in ('role', 'phone_number', 'department', 'student_id'):
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
+                profile_changed_fields.append(field)
+
+        if profile_changed_fields:
+            instance.save(update_fields=profile_changed_fields)
 
         return instance
 

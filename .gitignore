@@ -29,3 +29,11 @@ Thumbs.db
 
 # SQLite database
 *.sqlite3
+
+# Django
+*.log
+media/
+staticfiles/
+
+# Environment variables
+.env
