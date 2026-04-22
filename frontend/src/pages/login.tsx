@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../hooks";
 
 import { cn } from "../utils/cn";
+import { getAuthSubmitError } from "../utils/errorHandler";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -56,10 +57,17 @@ function LoginForm() {
         try {
           await auth.login(enrollmentNo, password);
         } catch (e) {
-          const message = "You are offline. Connect to internet and try again!";
-          form.setError("root", { message });
-          // TODO:
-          alert(message);
+          const { generalMessage, fieldErrors } = getAuthSubmitError(e);
+
+          if (fieldErrors.username) {
+            form.setError("enrollmentNo", { message: fieldErrors.username });
+          }
+
+          if (fieldErrors.password) {
+            form.setError("password", { message: fieldErrors.password });
+          }
+
+          form.setError("root", { message: generalMessage });
         }
       })}
     >
@@ -84,10 +92,20 @@ function LoginForm() {
         </label>
       ))}
 
+      {form.formState.errors.root?.message && (
+        <p
+          className="text-destructive text-sm text-center"
+          role="alert"
+          aria-live="polite"
+        >
+          {form.formState.errors.root.message}
+        </p>
+      )}
+
       <Button
         className="w-full"
         type="submit"
-        disabled={form.formState.isSubmitting || form.formState.isSubmitSuccessful}
+        disabled={form.formState.isSubmitting}
       >Login{form.formState.isSubmitting && "..."}</Button>
 
       <p className="text-center">

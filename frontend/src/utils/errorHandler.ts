@@ -172,15 +172,15 @@ export const parseAuthFieldErrors = (error: unknown): AuthFieldErrors => {
 
   const data = error.response?.data;
   if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return fieldErrors
+    return fieldErrors;
   }
 
   const payload = data as Record<string, unknown>;
 
   fieldErrors.username = toMessage(payload.username);
-  fieldErrors.email=toMessage(payload.email);
-  fieldErrors.password=toMessage(payload.password);
-  fieldErrors.password2=toMessage(payload.password2);
+  fieldErrors.email = toMessage(payload.email);
+  fieldErrors.password = toMessage(payload.password);
+  fieldErrors.password2 = toMessage(payload.password2);
 
   const nonFieldMessage = 
     toMessage(payload.non_field_errors) ||
@@ -196,4 +196,31 @@ export const parseAuthFieldErrors = (error: unknown): AuthFieldErrors => {
   }
 
   return fieldErrors;
-}
+};
+
+export const isNetworkError = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  // Network/CORS/timeout failures usually don't include an HTTP response.
+  return !error.response;
+};
+
+export const getAuthSubmitError = (
+  error: unknown,
+): { generalMessage: string; fieldErrors: AuthFieldErrors } => {
+  const fieldErrors = parseAuthFieldErrors(error);
+
+  if (isNetworkError(error)) {
+    return {
+      generalMessage: ERROR_MESSAGES.NETWORK,
+      fieldErrors,
+    };
+  }
+
+  return {
+    generalMessage: fieldErrors.general || handleError(error) || ERROR_MESSAGES.GENERIC,
+    fieldErrors,
+  };
+};

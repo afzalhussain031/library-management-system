@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "../hooks";
 
 import { cn } from "../utils/cn";
+import { getAuthSubmitError } from "../utils/errorHandler";
 
 import { SignWrapper } from "../components/sign-wrapper";
 
@@ -87,10 +88,25 @@ function RegisterForm() {
             password2: data.confirmPassword
           });
         } catch (e) {
-          const message = "You are offline. Connect to internet and try again!";
-          form.setError("root", { message });
-          // TODO:
-          alert(message);
+          const { generalMessage, fieldErrors } = getAuthSubmitError(e);
+
+          if (fieldErrors.username) {
+            form.setError("enrollmentNo", { message: fieldErrors.username });
+          }
+
+          if (fieldErrors.email) {
+            form.setError("email", { message: fieldErrors.email });
+          }
+
+          if (fieldErrors.password) {
+            form.setError("password", { message: fieldErrors.password });
+          }
+
+          if (fieldErrors.password2) {
+            form.setError("confirmPassword", { message: fieldErrors.password2 });
+          }
+
+          form.setError("root", { message: generalMessage });
         }
       })}
     >
@@ -115,10 +131,20 @@ function RegisterForm() {
         </label>
       ))}
 
+      {form.formState.errors.root?.message && (
+        <p
+          className="text-destructive text-sm text-center"
+          role="alert"
+          aria-live="polite"
+        >
+          {form.formState.errors.root.message}
+        </p>
+      )}
+
       <Button
         className="w-full"
         type="submit"
-        disabled={form.formState.isSubmitting || form.formState.isSubmitSuccessful}
+        disabled={form.formState.isSubmitting}
       >Register{form.formState.isSubmitting && "..."}</Button>
 
       <p className="text-center">
