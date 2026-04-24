@@ -3,8 +3,7 @@ import { type HTMLAttributes } from "react";
 import { Link } from "react-router-dom";
 
 import { cn } from "../utils/cn";
-
-import { BASE_VARIANT, VARIANTS, SIZES } from "../constants/ui/button";
+import { Button } from "../components/ui/button";
 
 export default function Page({ className }: HTMLAttributes<HTMLDivElement>) {
   return (
@@ -17,15 +16,20 @@ export default function Page({ className }: HTMLAttributes<HTMLDivElement>) {
       <p>Manage your university library efficiently</p>
 
       <div className="space-x-4">
-        <Link
-          className={cn(BASE_VARIANT, VARIANTS.outline, SIZES.lg)}
-          to="/login"
-        >Sign In</Link>
+        <Button
+          variant="outline"
+          size="lg"
+          asChild={true}
+        >
+          <Link to="/login">Sign In</Link>
+        </Button>
 
-        <Link
-          className={cn(BASE_VARIANT, VARIANTS.default, SIZES.lg)}
-          to="/register"
-        >Register</Link>
+        <Button
+          size="lg"
+          asChild={true}
+        >
+          <Link to="/register">Register</Link>
+        </Button>
       </div>
     </main>
   );

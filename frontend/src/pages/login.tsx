@@ -85,6 +85,7 @@ function LoginForm() {
 
           <Input
             placeholder={labels[key as Key]}
+            type={key === "password" ? "password" : "text"}
             {...form.register(key as Key)}
           />
 

@@ -124,6 +124,7 @@ function RegisterForm() {
 
           <Input
             placeholder={labels[key as Key]}
+            type={key.toLowerCase().includes("password") ? "password" : "text"}
             {...form.register(key as Key)}
           />
 

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthProvider";
+import { AuthLoader } from "./components/auth-loader";
 
 import Page from "./pages";
 
@@ -21,27 +22,33 @@ export default function App() {
           <Route
             path="/"
             element={
-              <div className="min-h-screen grid grid-rows-[auto_1fr] bg-linear-150 from-primary to-secondary">
+              <div className="min-h-svh grid grid-rows-[auto_1fr] bg-linear-150 from-primary to-secondary">
                 <Navbar />
                 <Page className="h-full" />
               </div>
             }
           />
 
-          <Route path="/register" element={<Register />} />
+          <Route path="*" element={
+            <AuthLoader>
+              <Routes>
+                <Route path="register" element={<Register />} />
 
-          <Route path="/login" element={<Login />} />
+                <Route path="login" element={<Login />} />
 
-          <Route
-            path="/dashboard/*"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
+                <Route
+                  path="dashboard/*"
+                  element={
+                    <PrivateRoute>
+                      <Dashboard />
+                    </PrivateRoute>
+                  }
+                />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AuthLoader>
+          } />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -8,8 +8,6 @@ import { Button } from "../ui/button";
 
 import { cn } from "../../utils/cn";
 
-import { BASE_VARIANT, SIZES, VARIANTS } from "../../constants/ui/button";
-
 export function Sidebar({ className }: React.ComponentProps<"aside">) {
   return (
     <aside
@@ -28,7 +26,7 @@ export function Sidebar({ className }: React.ComponentProps<"aside">) {
 
       {/* Right Bar Background */}
       <div
-        className="absolute inset-0 left-auto -z-1 border border-sidebar-border rounded-3xl bg-sidebar text-sidebar-foreground"
+        className="absolute inset-0 left-auto -z-1 hidden md:block border border-sidebar-border rounded-3xl bg-sidebar text-sidebar-foreground"
         style={rightBarStyle}
       />
 
@@ -53,7 +51,7 @@ function SidebarContent() {
 
   return (
     <>
-      <div className="mt-6 mb-8 flex">
+      <div className="mt-6 mb-8 flex overflow-y-auto">
         <LeftSide>
           <div className="flex justify-center">
             <MenuIcon />
@@ -71,33 +69,34 @@ function SidebarContent() {
       {navLinks.map(({ label, icon: Icon }) => (
         <div key={label} className="flex">
           <LeftSide>
-            <Link
-              className={cn(
-                BASE_VARIANT,
-                label === activeLabel ? VARIANTS.secondary : VARIANTS.ghost,
-                SIZES.icon,
-                "h-12 w-12 mx-auto flex"
-              )}
-              to={`/dashboard/${label}`}
+            <Button
+              className="mx-auto w-12 h-12 flex"
+              variant={label === activeLabel ? "secondary" : "ghost"}
+              size="icon"
+              asChild={true}
             >
-              <Icon />
-            </Link>
+              <Link to={`/dashboard/${label}`}>
+                <Icon />
+              </Link>
+            </Button>
           </LeftSide>
 
           <RightSide>
-            <Link
+            <Button
               className={cn(
-                BASE_VARIANT,
-                label === activeLabel ? VARIANTS.default : VARIANTS.ghost,
-                SIZES.default,
-                "mx-auto h-12 border-0 border-r-4 rounded-none flex capitalize",
+                "mx-auto w-full h-12 border-0 border-r-4 rounded-none capitalize",
                 label === activeLabel && "border-r-sidebar-primary"
               )}
-              to={`/dashboard/${label}`}
-            >{label}</Link>
+              variant={label === activeLabel ? "default" : "ghost"}
+              size="icon"
+              asChild={true}
+            >
+              <Link to={`/dashboard/${label}`}>{label}</Link>
+            </Button>
           </RightSide>
-        </div>
-      ))}
+        </div >
+      ))
+      }
     </>
   );
 }
@@ -121,7 +120,10 @@ const rightBarStyle: React.CSSProperties = {
 
 function RightSide({ children }: { children: React.ReactNode; }) {
   return (
-    <div style={rightBarStyle}>
+    <div
+      className="hidden md:block"
+      style={rightBarStyle}
+    >
       {children}
     </div>
   );
