@@ -1,12 +1,11 @@
 from django.contrib import admin
-from django.urls import path, include
-from library.views import CookieTokenObtainPairView, CookieTokenRefreshView, LogoutView
+from django.urls import include, path
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('library.urls')),
-
-    path('api/token/', CookieTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
-    path('api/logout/', LogoutView.as_view(), name='logout'),
+    path("admin/", admin.site.urls),
+    path("api/", include("apps.accounts.urls")),
+    path("api/", include("apps.catalog.urls")),
+    path("api/", include("apps.inventory.urls")),
+    path("api/", include("apps.circulation.urls")),
+    path("api/", include("apps.billing.urls")),
 ]

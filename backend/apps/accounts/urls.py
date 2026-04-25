@@ -1,0 +1,21 @@
+from django.urls import path
+
+from .views import (
+    CookieTokenObtainPairView,
+    CookieTokenRefreshView,
+    CurrentUserView,
+    LogoutView,
+    RegisterView,
+    StaffCreateView,
+    UserProfileView,
+)
+
+urlpatterns = [
+    path("token/", CookieTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/refresh/", CookieTokenRefreshView.as_view(), name="token_refresh"),
+    path("logout/", LogoutView.as_view(), name="logout"),
+    path("profile/", UserProfileView.as_view(), name="user-profile"),
+    path("me/", CurrentUserView.as_view(), name="current-user"),
+    path("register/", RegisterView.as_view(), name="register"),
+    path("staff/create/", StaffCreateView.as_view(), name="staff-create"),
+]
