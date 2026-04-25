@@ -14,7 +14,7 @@ export function SignWrapper({ children }: { children: React.ReactNode; }) {
   }
 
   return (
-    <main className="min-h-screen p-4 grid md:grid-cols-2 gap-4 bg-linear-30 from-primary to-secondary">
+    <main className="min-h-svh p-4 grid md:grid-cols-2 gap-4 bg-linear-30 from-primary to-secondary">
       <SideCard className="sticky top-4 hidden md:flex" />
       {children}
     </main>
