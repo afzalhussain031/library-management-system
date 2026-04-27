@@ -34,6 +34,20 @@ export type UserProfileUpdatePayload = Partial<
   Pick<UserProfile, "email" | "first_name" | "last_name" | "bio">
 >;
 
+// Category type
+export interface Category {
+  id: number;
+  name: string;
+  description: string;
+}
+
+// Publisher type
+export interface Publisher {
+  id: number;
+  name: string;
+  address: string;
+}
+
 // Book-related types
 export interface Book {
   id?: number;
@@ -41,6 +55,9 @@ export interface Book {
   author: string;
   isbn: string;
   published_date?: string;
+  category?: Category | null;
+  publisher?: Publisher | null;
+  added_by?: number;
 }
 
 // API Response types
@@ -119,7 +136,12 @@ export interface StaffCreateModalProps {
   onCreated?: () => void;
 }
 
-export type BookFormData = Pick<Book, "title" | "author" | "isbn">;
+// For form submission (send just IDs for category and publisher)
+export type BookFormData = Pick<Book, "title" | "author" | "isbn"> & {
+  category_id?: number | null;
+  publisher_id?: number | null;
+  published_date?: string;
+};
 
 export interface BookFormProps {
   onSubmit: (data: BookFormData) => void;
