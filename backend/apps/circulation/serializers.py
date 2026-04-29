@@ -4,29 +4,40 @@ from .models import Loan, Reservation
 
 
 class LoanSerializer(serializers.ModelSerializer):
+    book_title = serializers.CharField(source="copy.book.title", read_only=True)
+    book_author = serializers.CharField(source="copy.book.author", read_only=True)
+    book_id = serializers.IntegerField(source="copy.book.id", read_only=True)
     issued_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Loan
-        fields = "__all__"
-
-    def validate(self, attrs):
-        copy = attrs.get("copy") or getattr(self.instance, "copy", None)
-        returned_at = attrs.get("returned_at")
-        due_at = attrs.get("due_at") or getattr(self.instance, "due_at", None)
-
-        if copy and self.instance is None and copy.status != copy.AVAILABLE:
-            raise serializers.ValidationError({"copy": "This copy is not available for loan."})
-
-        if returned_at and due_at and returned_at < due_at.replace(hour=0, minute=0, second=0, microsecond=0):
-            pass
-
-        return attrs
+        fields = [
+            "id",
+            "book_id",
+            "book_title",
+            "book_author",
+            "issued_at",
+            "due_at",
+            "returned_at",
+            "renewed_count",
+            "notes",
+        ]
 
 
 class ReservationSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
+    book_title = serializers.CharField(source="book.title", read_only=True)
+    book_author = serializers.CharField(source="book.author", read_only=True)
+    book_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Reservation
-        fields = "__all__"
+        fields = [
+            "id",
+            "book_id",
+            "book_title",
+            "book_author",
+            "user",
+            "reserved_at",
+            "status",
+        ]

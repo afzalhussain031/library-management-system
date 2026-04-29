@@ -1,28 +1,93 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 
-import { useAuth } from "../../hooks";
+import { dashboardService } from "../../services/apiClient";
+import { useEffect, useState } from "react";
+
+interface DashboardData {
+  account_information: {
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone_number: string;
+    enrollment_number: string;
+  };
+  academic_details: {
+    department: string;
+    batch: string;
+    student_name: string;
+    father_name: string;
+    mother_name: string;
+  };
+  library_information: {
+    currently_borrowed: number;
+    total_borrowed: number;
+    pending_fines: number;
+    membership_valid_till: string | null;
+  };
+}
 
 export function Settings() {
-  const auth = useAuth();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await dashboardService.fetch();
+        setDashboardData(data);
+        setError(null);
+      } catch (err) {
+        setError("Failed to load dashboard data");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <p>Loading...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !dashboardData) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-destructive">{error || "Failed to load data"}</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const data = {
     "account information": {
-      enrollmentId: "ENR-2023-0456",
-      email: auth.user?.email ?? "",
-      phone: "1234567890",
-      studyYear: "3rd Year"
+      enrollmentId: dashboardData.account_information.enrollment_number,
+      email: dashboardData.account_information.email,
+      phone: dashboardData.account_information.phone_number,
+      studyYear: dashboardData.academic_details.batch || "N/A"
     },
     "academic details": {
-      course: "B.Tech Computer Science",
+      course: dashboardData.academic_details.student_name || "N/A",
       semester: "6th Semester",
       section: "A",
       attendance: "87%"
     },
     "library information": {
-      currentlyBorrowed: "3 Books",
-      totalBorrowed: "18 Books",
+      currentlyBorrowed: `${dashboardData.library_information.currently_borrowed} Books`,
+      totalBorrowed: `${dashboardData.library_information.total_borrowed} Books`,
       membershipId: "LIB-009876",
-      validTill: "31 Dec 2026"
+      validTill: dashboardData.library_information.membership_valid_till || "N/A"
     }
   };
 

@@ -1,12 +1,46 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { notificationService } from "../../../services/apiClient";
 
-const notifications = [
-  { title: "Atomic Habits", timeAgo: "4 hours ago", date: "02 Dec 2022" },
-  { title: "Python Basics", timeAgo: "4 hours ago", date: "30 Dec 2022" },
-  { title: "Critique of Pure...", timeAgo: "4 hours ago", date: "15 Nov 2022" }
-];
+interface NotificationData {
+  id: number;
+  title: string;
+  message: string;
+  created_at: string;
+}
 
 export function NotificationsCard({ className }: React.ComponentProps<"div">) {
+  const [notifications, setNotifications] = useState<NotificationData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const data = await notificationService.fetch();
+        setNotifications(data.slice(0, 3)); // Show last 3 notifications
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="font-bold">Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="py-4">
+          <p>Loading...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -14,17 +48,29 @@ export function NotificationsCard({ className }: React.ComponentProps<"div">) {
       </CardHeader>
 
       <CardContent className="py-4 space-y-4">
-        {notifications.map(notification => <NotificationsCardContent key={notification.title} {...{ notification }} />)}
+        {notifications.length === 0 ? (
+          <p className="text-muted-foreground">No notifications</p>
+        ) : (
+          notifications.map(notification => (
+            <NotificationsCardContent key={notification.id} notification={notification} />
+          ))
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function NotificationsCardContent({ notification }: { notification: typeof notifications[number]; }) {
+function NotificationsCardContent({ notification }: { notification: NotificationData }) {
+  const timeAgo = new Date(notification.created_at).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+
   return (
     <div>
       <h4 className="font-medium">{notification.title}</h4>
-      <span className="text-muted-foreground">{notification.timeAgo} . {notification.date}</span>
+      <span className="text-muted-foreground">{timeAgo}</span>
     </div>
   );
 }

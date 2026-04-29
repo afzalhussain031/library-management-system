@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Book, Category, Publisher
+from .models import Book, Category, Publisher, Wishlist
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -25,3 +25,18 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = "__all__"
+
+
+class WishlistSerializer(serializers.ModelSerializer):
+    book = BookSerializer(read_only=True)
+    book_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Wishlist
+        fields = ["id", "book", "book_id", "added_at"]
+        read_only_fields = ["id", "added_at"]
+
+    def create(self, validated_data):
+        book_id = validated_data.pop("book_id")
+        user = self.context["request"].user
+        return Wishlist.objects.create(user=user, book_id=book_id, **validated_data)

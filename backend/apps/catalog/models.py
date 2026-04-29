@@ -56,3 +56,24 @@ class Book(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Wishlist(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="wishlist_items",
+    )
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="wishlist_by",
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "library_wishlist"
+        unique_together = ("user", "book")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.book.title}"

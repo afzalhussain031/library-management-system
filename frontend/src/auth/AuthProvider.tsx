@@ -34,20 +34,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * Restores user from localStorage or server if token exists
    */
   useEffect(() => {
-    // TODO: Remove after backend sync
-    setTimeout(() => {
-      syncUser({
-        id: 123,
-        name: "mayank singh",
-        first_name: "mayank",
-        last_name: "singh",
-        username: "mayank",
-        email: "mayank@mayank.mayank",
-      });
-      setLoading(false)
-    }, 1000);
-    return;
-
     const initializeAuth = async () => {
       try {
         // Access token is memory-only, so page reload starts unauthenticated.
@@ -57,6 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             await authService.refreshToken();
           } catch {
             clearUser();
+            setLoading(false);
             return;
           }
         }

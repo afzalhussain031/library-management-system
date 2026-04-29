@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
+    "ops.apps.OpsConfig",
     "apps.accounts.apps.AccountsConfig",
     "apps.catalog.apps.CatalogConfig",
     "apps.inventory.apps.InventoryConfig",
