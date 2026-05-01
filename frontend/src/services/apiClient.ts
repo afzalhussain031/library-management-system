@@ -240,3 +240,113 @@ export const profileService = {
     }
   },
 };
+
+// ============================================================================
+// DASHBOARD ENDPOINT
+// ============================================================================
+
+export const dashboardService = {
+  async fetch() {
+    try {
+      const response = await api.get(API_ENDPOINTS.DASHBOARD);
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch dashboard: " + handleError(error));
+    }
+  },
+};
+
+// ============================================================================
+// LOANS ENDPOINTS
+// ============================================================================
+
+export const loanService = {
+  async fetchMyLoans() {
+    try {
+      const response = await api.get(API_ENDPOINTS.LOANS);
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch loans: " + handleError(error));
+    }
+  },
+
+  async renew(loanId: number) {
+    try {
+      const response = await api.post(API_ENDPOINTS.LOANS_RENEW(loanId), {});
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to renew loan: " + handleError(error));
+    }
+  },
+
+  async return(loanId: number) {
+    try {
+      const response = await api.post(API_ENDPOINTS.LOANS_RETURN(loanId), {});
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to return loan: " + handleError(error));
+    }
+  },
+};
+
+// ============================================================================
+// FINES ENDPOINTS
+// ============================================================================
+
+export const fineService = {
+  async fetchMyFines() {
+    try {
+      const response = await api.get(API_ENDPOINTS.FINES);
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch fines: " + handleError(error));
+    }
+  },
+};
+
+// ============================================================================
+// WISHLIST ENDPOINTS
+// ============================================================================
+
+export const wishlistService = {
+  async fetch() {
+    try {
+      const response = await api.get(API_ENDPOINTS.WISHLIST);
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch wishlist: " + handleError(error));
+    }
+  },
+
+  async add(bookId: number) {
+    try {
+      const response = await api.post(API_ENDPOINTS.WISHLIST, { book: bookId });
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to add to wishlist: " + handleError(error));
+    }
+  },
+
+  async remove(wishlistId: number) {
+    try {
+      await api.delete(API_ENDPOINTS.WISHLIST_DETAIL(wishlistId));
+    } catch (error) {
+      throw new Error("Failed to remove from wishlist: " + handleError(error));
+    }
+  },
+};
+
+// ============================================================================
+// NOTIFICATIONS ENDPOINTS
+// ============================================================================
+
+export const notificationService = {
+  async fetch() {
+    try {
+      const response = await api.get(API_ENDPOINTS.NOTIFICATIONS);
+      return response.data;
+    } catch (error) {
+      throw new Error("Failed to fetch notifications: " + handleError(error));
+    }
+  },
+};

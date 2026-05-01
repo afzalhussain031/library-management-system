@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.db import models
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -9,7 +11,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from common.permissions.base import IsStaffOrReadOnly
 
-from .models import UserProfile
+from .models import UserProfile, Membership
 from .serializers import RegisterSerializer, StaffCreateSerializer, UserProfileSerializer
 
 
@@ -35,6 +37,58 @@ class CurrentUserView(APIView):
             "is_staff": user.is_staff,
             "date_joined": user.date_joined,
         }
+        return Response(data)
+
+
+class DashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.circulation.models import Loan
+        from apps.billing.models import Fine
+
+        user = request.user
+        profile = get_object_or_404(UserProfile, user=user)
+        membership = Membership.objects.filter(user=user).first()
+
+        # Count borrowed books (active loans)
+        currently_borrowed = Loan.objects.filter(
+            borrower=user, returned_at__isnull=True
+        ).count()
+
+        # Count total borrowed books (all loans)
+        total_borrowed = Loan.objects.filter(borrower=user).count()
+
+        # Calculate total pending fines
+        pending_fines = Fine.objects.filter(
+            loan__borrower=user, status="pending"
+        ).aggregate(total=models.Sum("amount"))["total"] or 0
+
+        data = {
+            "account_information": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone_number": profile.phone_number,
+                "enrollment_number": profile.enrollment_number,
+            },
+            "academic_details": {
+                "department": profile.department,
+                "batch": profile.batch,
+                "student_name": profile.student_name,
+                "father_name": profile.father_name,
+                "mother_name": profile.mother_name,
+            },
+            "library_information": {
+                "currently_borrowed": currently_borrowed,
+                "total_borrowed": total_borrowed,
+                "pending_fines": float(pending_fines),
+                "membership_valid_till": membership.valid_till.isoformat() if membership else None,
+            },
+        }
+
         return Response(data)
 
 

@@ -1,9 +1,10 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 
 from common.permissions.base import IsStaffOrReadOnly
 
-from .models import Book, Category, Publisher
-from .serializers import BookSerializer, CategorySerializer, PublisherSerializer
+from .models import Book, Category, Publisher, Wishlist
+from .serializers import BookSerializer, CategorySerializer, PublisherSerializer, WishlistSerializer
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -25,3 +26,14 @@ class PublisherViewSet(viewsets.ModelViewSet):
     queryset = Publisher.objects.all()
     serializer_class = PublisherSerializer
     permission_classes = [IsStaffOrReadOnly]
+
+
+class WishlistViewSet(viewsets.ModelViewSet):
+    serializer_class = WishlistSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user).select_related("book")
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

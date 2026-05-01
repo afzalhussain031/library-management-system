@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import UserProfile
+from .models import UserProfile, Membership
 
 
 class BaseUserRegistrationSerializer(serializers.Serializer):
@@ -66,7 +66,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ["id", "username", "email", "first_name", "last_name", "bio"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "bio",
+            "student_name",
+            "enrollment_number",
+            "father_name",
+            "mother_name",
+            "batch",
+            "address",
+            "phone_number",
+            "department",
+            "student_id",
+            "role",
+        ]
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", {})
@@ -80,8 +97,34 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if user_changed_fields:
             instance.user.save(update_fields=user_changed_fields)
 
-        if "bio" in validated_data:
-            instance.bio = validated_data["bio"]
-            instance.save(update_fields=["bio"])
+        profile_fields_to_update = [
+            "bio",
+            "student_name",
+            "enrollment_number",
+            "father_name",
+            "mother_name",
+            "batch",
+            "address",
+            "phone_number",
+            "department",
+            "student_id",
+            "role",
+        ]
+
+        profile_changed_fields = []
+        for field in profile_fields_to_update:
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
+                profile_changed_fields.append(field)
+
+        if profile_changed_fields:
+            instance.save(update_fields=profile_changed_fields)
 
         return instance
+
+
+class MembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Membership
+        fields = ["id", "membership_id", "valid_till", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]

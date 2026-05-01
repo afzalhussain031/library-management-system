@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
   STAFF_CREATE: "/staff/create/",
   REFRESH: "/token/refresh/",
   CURRENT_USER: "/me/",
+  DASHBOARD: "/me/dashboard/",
   LOGOUT: "/logout/",
 
   // Books
@@ -32,6 +33,24 @@ export const API_ENDPOINTS = {
 
   // Profile
   USER_PROFILE: "/profile/",
+
+  // Wishlist
+  WISHLIST: "/wishlist/",
+  WISHLIST_DETAIL: (id: number) => `/wishlist/${id}/`,
+
+  // Loans
+  LOANS: "/loans/",
+  LOANS_RENEW: (id: number) => `/loans/${id}/renew/`,
+  LOANS_RETURN: (id: number) => `/loans/${id}/return_loan/`,
+
+  // Fines
+  FINES: "/fines/",
+
+  // Notifications
+  NOTIFICATIONS: "/notifications/",
+
+  // Reservations
+  RESERVATIONS: "/reservations/",
 };
 
 // Auth Invite Code (for staff registration)
