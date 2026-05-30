@@ -12,7 +12,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from common.permissions.base import IsStaffOrReadOnly
 
 from .models import UserProfile, Membership
-from .serializers import RegisterSerializer, StaffCreateSerializer, UserProfileSerializer
+from .serializers import (
+    PasswordChangeSerializer,
+    RegisterSerializer,
+    StaffCreateSerializer,
+    UserProfileSerializer,
+)
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -21,6 +26,16 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return get_object_or_404(UserProfile, user=self.request.user)
+
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
 
 
 class CurrentUserView(APIView):

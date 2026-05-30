@@ -92,3 +92,79 @@ class UserProfileApiContractTests(APITestCase):
         self.assertEqual(self.user.id, response.data["id"])
         self.assertEqual(self.user.username, "alice")
         self.assertEqual(self.profile.bio, "Still valid")
+
+
+class PasswordChangeApiContractTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="alice",
+            password="strong-pass-123",
+            email="alice@example.com",
+        )
+        UserProfile.objects.create(user=self.user, bio="Original bio")
+        self.url = "/api/me/password/"
+        self.client.force_authenticate(user=self.user)
+
+    def test_put_password_change_updates_password(self):
+        payload = {
+            "old_password": "strong-pass-123",
+            "new_password": "new-strong-pass-456",
+            "new_password2": "new-strong-pass-456",
+        }
+
+        response = self.client.put(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["detail"], "Password updated successfully.")
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("new-strong-pass-456"))
+
+    def test_put_password_change_rejects_wrong_old_password(self):
+        payload = {
+            "old_password": "wrong-old-password",
+            "new_password": "new-strong-pass-456",
+            "new_password2": "new-strong-pass-456",
+        }
+
+        response = self.client.put(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("old_password", response.data)
+
+    def test_put_password_change_rejects_mismatched_passwords(self):
+        payload = {
+            "old_password": "strong-pass-123",
+            "new_password": "new-strong-pass-456",
+            "new_password2": "new-strong-pass-789",
+        }
+
+        response = self.client.put(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("new_password2", response.data)
+
+    def test_put_password_change_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+
+        payload = {
+            "old_password": "strong-pass-123",
+            "new_password": "new-strong-pass-456",
+            "new_password2": "new-strong-pass-456",
+        }
+
+        response = self.client.put(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_put_password_change_rejects_weak_password(self):
+        payload = {
+            "old_password": "strong-pass-123",
+            "new_password": "123",
+            "new_password2": "123",
+        }
+
+        response = self.client.put(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("non_field_errors", response.data)
