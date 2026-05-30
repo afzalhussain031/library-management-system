@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import UserProfile, Membership
@@ -121,6 +122,31 @@ class UserProfileSerializer(serializers.ModelSerializer):
             instance.save(update_fields=profile_changed_fields)
 
         return instance
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password2 = serializers.CharField(write_only=True)
+
+    def validate_old_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password is incorrect")
+        return value
+
+    def validate(self, data):
+        if data.get("new_password") != data.get("new_password2"):
+            raise serializers.ValidationError({"new_password2": "Passwords do not match"})
+
+        validate_password(data["new_password"], user=self.context["request"].user)
+        return data
+
+    def save(self, **kwargs):
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return user
 
 
 class MembershipSerializer(serializers.ModelSerializer):
