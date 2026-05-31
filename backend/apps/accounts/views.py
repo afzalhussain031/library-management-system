@@ -1,7 +1,20 @@
+from binascii import Error as BinasciiError
+
+from common.permissions.base import IsStaffOrReadOnly
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -9,9 +22,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from common.permissions.base import IsStaffOrReadOnly
-
-from .models import UserProfile, Membership
+from .models import Membership, UserProfile
 from .serializers import (
     PasswordChangeSerializer,
     RegisterSerializer,
@@ -32,10 +43,14 @@ class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
-        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer = PasswordChangeSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "Password updated successfully."}, status=status.HTTP_200_OK
+        )
 
 
 class CurrentUserView(APIView):
@@ -59,8 +74,8 @@ class DashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        from apps.circulation.models import Loan
         from apps.billing.models import Fine
+        from apps.circulation.models import Loan
 
         user = request.user
         profile = get_object_or_404(UserProfile, user=user)
@@ -75,9 +90,12 @@ class DashboardView(APIView):
         total_borrowed = Loan.objects.filter(borrower=user).count()
 
         # Calculate total pending fines
-        pending_fines = Fine.objects.filter(
-            loan__borrower=user, status="pending"
-        ).aggregate(total=models.Sum("amount"))["total"] or 0
+        pending_fines = (
+            Fine.objects.filter(loan__borrower=user, status="pending").aggregate(
+                total=models.Sum("amount")
+            )["total"]
+            or 0
+        )
 
         data = {
             "account_information": {
@@ -100,7 +118,9 @@ class DashboardView(APIView):
                 "currently_borrowed": currently_borrowed,
                 "total_borrowed": total_borrowed,
                 "pending_fines": float(pending_fines),
-                "membership_valid_till": membership.valid_till.isoformat() if membership else None,
+                "membership_valid_till": (
+                    membership.valid_till.isoformat() if membership else None
+                ),
             },
         }
 
@@ -155,7 +175,10 @@ class CookieTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         refresh = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"])
         if not refresh:
-            return Response({"detail": "Refresh cookie not found."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"detail": "Refresh cookie not found."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         serializer = self.get_serializer(data={"refresh": refresh})
         try:
@@ -181,3 +204,90 @@ class LogoutView(APIView):
         response = Response(status=status.HTTP_204_NO_CONTENT)
         clear_refresh_cookie(response)
         return response
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = (request.data.get("email") or "").strip()
+
+        if not email:
+            return JsonResponse({"detail": "Email is required."}, status=400)
+
+        user = User.objects.filter(email__iexact=email).first()
+
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            frontend_url = getattr(
+                settings, "FRONTEND_URL", "http://localhost:5173"
+            ).rstrip("/")
+            reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+
+            subject = "Reset your password"
+            message = (
+                "You requested a password reset for your library account. \n\n"
+                f"Reset your password here: {reset_link}\n\n"
+                "If you did not request this, you can ignore this email."
+            )
+
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=None,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+
+        return JsonResponse(
+            {
+                "detail": "If an account exists for that email, password instructions have been sent."
+            },
+            status=200,
+        )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        uid = request.data.get("uid") or ""
+        token = request.data.get("token") or ""
+        new_password = request.data.get("new_password") or ""
+
+        if not uid or not token or not new_password:
+            return JsonResponse(
+                {"detail": "uid, token and new_password are required."},
+                status=400,
+            )
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=user_id)
+        except (
+            BinasciiError,
+            TypeError,
+            ValueError,
+            OverflowError,
+            UnicodeDecodeError,
+            User.DoesNotExist,
+        ):
+            return JsonResponse({"detail": "Invalid reset link."}, status=400)
+
+        if not default_token_generator.check_token(user, token):
+            return JsonResponse({"detail": "Invalid or expired token."}, status=400)
+
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as exc:
+            return JsonResponse({"detail": exc.messages}, status=400)
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return JsonResponse(
+            {"detail": "Password has been reset successfully."}, status=200
+        )
