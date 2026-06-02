@@ -1,8 +1,7 @@
+from apps.accounts.models import UserProfile
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APITestCase
-
-from apps.accounts.models import UserProfile
 
 
 class UserProfileApiContractTests(APITestCase):
@@ -24,7 +23,24 @@ class UserProfileApiContractTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             set(response.data.keys()),
-            {"id", "username", "email", "first_name", "last_name", "bio"},
+            {
+                "id",
+                "username",
+                "email",
+                "first_name",
+                "last_name",
+                "bio",
+                "department",
+                "role",
+                "enrollment_number",
+                "address",
+                "student_id",
+                "student_name",
+                "batch",
+                "mother_name",
+                "phone_number",
+                "father_name",
+            },
         )
         self.assertEqual(response.data["id"], self.user.id)
         self.assertEqual(response.data["username"], "alice")

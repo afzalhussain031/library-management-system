@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import UserProfile, Membership
+from .models import Membership, UserProfile
 
 
 class BaseUserRegistrationSerializer(serializers.Serializer):
@@ -52,18 +52,12 @@ class StaffCreateSerializer(BaseUserRegistrationSerializer):
     is_staff_user = True
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["id", "username", "email", "first_name", "last_name"]
-
-
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserProfileReadSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
-    email = serializers.EmailField(source="user.email", required=False, allow_blank=True)
-    first_name = serializers.CharField(source="user.first_name", required=False, allow_blank=True)
-    last_name = serializers.CharField(source="user.last_name", required=False, allow_blank=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
 
     class Meta:
         model = UserProfile
@@ -85,6 +79,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "student_id",
             "role",
         ]
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="user.id", read_only=True)
+    email = serializers.EmailField(
+        source="user.email", required=False, allow_blank=True
+    )
+    first_name = serializers.CharField(
+        source="user.first_name", required=False, allow_blank=True
+    )
+    last_name = serializers.CharField(
+        source="user.last_name", required=False, allow_blank=True
+    )
+
+    class Meta:
+        model = UserProfile
+        fields = ["id", "email", "first_name", "last_name", "bio"]
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", {})
@@ -137,7 +148,9 @@ class PasswordChangeSerializer(serializers.Serializer):
 
     def validate(self, data):
         if data.get("new_password") != data.get("new_password2"):
-            raise serializers.ValidationError({"new_password2": "Passwords do not match"})
+            raise serializers.ValidationError(
+                {"new_password2": "Passwords do not match"}
+            )
 
         validate_password(data["new_password"], user=self.context["request"].user)
         return data

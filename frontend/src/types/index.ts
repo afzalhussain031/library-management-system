@@ -28,6 +28,16 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   bio: string;
+  student_name?: string;
+  enrollment_number?: string;
+  father_name?: string;
+  mother_name?: string;
+  batch?: string;
+  address?: string;
+  phone_number?: string;
+  department?: string;
+  student_id?: string;
+  role?: string;
 }
 
 export type UserProfileUpdatePayload = Partial<

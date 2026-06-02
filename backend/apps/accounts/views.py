@@ -27,16 +27,21 @@ from .serializers import (
     PasswordChangeSerializer,
     RegisterSerializer,
     StaffCreateSerializer,
-    UserProfileSerializer,
+    UserProfileReadSerializer,
+    UserProfileUpdateSerializer,
 )
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return get_object_or_404(UserProfile, user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == "PATCH":
+            return UserProfileUpdateSerializer
+        return UserProfileReadSerializer
 
 
 class PasswordChangeView(APIView):
