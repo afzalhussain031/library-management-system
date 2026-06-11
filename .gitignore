@@ -1,39 +1,61 @@
-# Ignore local virtual environment used for backend
+# ==========================================
+# 1. LOCAL ENVIRONMENT & BACKEND (DJANGO)
+# ==========================================
 backend_env/
 .venv/
 venv/
 backend/.venv/
 frontend/.venv/
+*.sqlite3
+media/
+staticfiles/
 
-# Personal documentation (local only)
-ARCHITECTURE.md
-Future_Improvement.md
-Implemented_Improvements.md
+# Environment Variables (Keep these out of GitHub!)
+.env
+.env.local
+frontend/.env
+frontend/*.local
 
-# Python cache
+# ==========================================
+# 2. PYTHON / DJANGO CACHE
+# ==========================================
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
 
-# JavaScript dependencies and build outputs
-node_modules/
+# ==========================================
+# 3. JAVASCRIPT / FRONTEND (VITE & NPM)
+# ==========================================
 frontend/node_modules/
-dist/
 frontend/dist/
+frontend/dist-ssr/
 
-# Misc build/cache
-.cache/
+# Frontend Logs
+frontend/logs
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# ==========================================
+# 4. SYSTEM & SYSTEM EDITORS (VS Code / JetBrains / Mac)
+# ==========================================
+.vscode/*
+!.vscode/extensions.json
+.idea/
 .DS_Store
 Thumbs.db
+.cache/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# SQLite database
-*.sqlite3
-
-# Django
-*.log
-media/
-staticfiles/
-
-# Environment variables
-.env
+# Personal documentation
+ARCHITECTURE.md
+Future_Improvement.md
+Implemented_Improvements.md
