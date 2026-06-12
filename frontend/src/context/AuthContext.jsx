@@ -1,44 +1,58 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { loginUser, logoutUser, getCurrentUser, refreshToken } from '../services/api'
 
 const AuthContext = createContext(null)
 
-// ── Mock users for demo ────────────────────────────────────────────────────
-const MOCK_USERS = {
-  user: {
-    id: 1,
-    name: 'Rahul Sharma',
-    email: 'rahul@example.com',
-    role: 'user',
-    avatar: 'RS',
-  },
-  admin: {
-    id: 2,
-    name: 'Priya Singh',
-    email: 'priya@example.com',
-    role: 'admin',
-    avatar: 'PS',
-  },
-  superadmin: {
-    id: 3,
-    name: 'Amit Kumar',
-    email: 'amit@example.com',
-    role: 'superadmin',
-    avatar: 'AK',
-  },
-}
-
 export function AuthProvider({ children }) {
-  // Default to 'user' for demo — change to null in production (redirect to login)
-  const [currentUser, setCurrentUser] = useState(MOCK_USERS.user)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Demo helper: switch roles without a real login
-  const switchRole = (role) => {
-    setCurrentUser(MOCK_USERS[role])
+  // Check if user is logged in on app load
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  async function checkAuth() {
+    try {
+      const user = await getCurrentUser()
+      setCurrentUser(user)
+    } catch (err) {
+      console.log('Not logged in')
+    } finally {
+      setLoading(false)
+    }
   }
-  const logout = () => setCurrentUser(null)
+
+  // Login function
+  async function login(username, password) {
+    setLoading(true)
+    setError(null)
+    try {
+      await loginUser(username, password)
+      const user = await getCurrentUser()
+      setCurrentUser(user)
+      return user
+    } catch (err) {
+      setError(err.message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Logout function
+  async function logout() {
+    try {
+      await logoutUser()
+      setCurrentUser(null)
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
+  }
 
   return (
-    <AuthContext.Provider value={{ currentUser, switchRole, logout }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, loading, error }}>
       {children}
     </AuthContext.Provider>
   )

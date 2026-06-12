@@ -1,7 +1,6 @@
 import { Bell, Menu, LogOut } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useRole } from '../../hook/useRole'
-import RoleSwitcher from './RoleSwitcher'
 
 const ROLE_STYLES = {
   user: { avatar: 'bg-green-100 text-green-700' },
@@ -32,8 +31,6 @@ export default function Topbar({ onMenuToggle }) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Demo role switcher */}
-        <RoleSwitcher />
 
         <button className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
           <Bell size={16} />
