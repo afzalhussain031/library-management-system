@@ -63,6 +63,9 @@ class CurrentUserView(APIView):
 
     def get(self, request):
         user = request.user
+        # Fetch the UserProfile to get the role
+        profile = get_object_or_404(UserProfile, user=user)
+
         data = {
             "id": user.id,
             "username": user.username,
@@ -71,6 +74,12 @@ class CurrentUserView(APIView):
             "last_name": user.last_name,
             "is_staff": user.is_staff,
             "date_joined": user.date_joined,
+            "role": profile.role,
+            "phone_number": profile.phone_number,
+            "department": profile.department,
+            "student_name": profile.student_name,
+            "enrollment_number": profile.enrollment_number,
+            "avatar": user.username[:2].upper(),  # Optional: "RA" from "rahul"
         }
         return Response(data)
 
