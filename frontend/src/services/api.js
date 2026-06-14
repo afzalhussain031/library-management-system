@@ -70,3 +70,71 @@ export async function refreshToken() {
   localStorage.setItem('access_token', data.access)
   return data.access
 }
+
+// ======================= DASHBOARD ENDPOINTS ======================
+
+// Get dashboard statistics (borrowed count, fines, etc)
+export async function getDashboard() {
+  const res = await fetch(`${API_BASE}/me/dashboard/`, {
+    headers: getAuthHeader(),
+    credentials: 'include'
+  })
+
+  if (!res.ok) throw new Error('Failed to fetch dashboard')
+    return res.json()
+}
+
+// Get borrowed books ( active loans)
+export async function getBorrowedBooks() {
+  const res = await fetch(`${API_BASE}/circulation/loans/`, {
+    headers: getAuthHeader(),
+    credentials: 'include'
+  })
+
+  if (!res.ok) throw new Error('Failed to fetch borrowed books')
+    return res.json()
+}
+
+// Get user's fines
+export async function getUserFines() {
+  const res = await fetch(`${API_BASE}/billing/fines/`, {
+    headers: getAuthHeader(),
+    credentials: 'include'
+  })
+
+  if (!res.ok) throw new Error('Failed to fetch fines')
+    return res.json()
+}
+
+// Get user notification
+export async function getNotifications() {
+  const res = await fetch(`${API_BASE}/notifications/notifications/`, {
+    headers: getAuthHeader(),
+    credentials:'include'
+  })
+
+  if (!res.ok) throw new Error('Failed to fetch notifications')
+    return res.json()
+}
+
+// Get all books (for recommendations)
+export async function getBooks() {
+  const res = await fetch(`${API_BASE}/catalog/books/`, {
+    headers: getAuthHeader(),
+    credentials: 'include'
+  })
+
+  if (!res.ok) throw new Error('Failed to fetch books')
+    return res.json()
+}
+
+// Get user's wishlist
+export async function getWishlist() {
+  const res = await fetch(`${API_BASE}/catalog/wishlist/`, {
+    headers: getAuthHeader(),
+    credentials: 'include'
+  })
+
+  if (!res.ok) throw new Error('Failed to fetch wishlist')
+    return res.json()
+}
