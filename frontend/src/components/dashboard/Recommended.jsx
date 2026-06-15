@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getBooks } from "../../services/api";
+import { catalog } from "../../services/api";
 
 export default function Recommended() {
   const [books, setBooks] = useState([]);
@@ -8,7 +8,7 @@ export default function Recommended() {
   useEffect(() => {
     async function fetchBooks() {
       try {
-        const response = await getBooks();
+        const response = await catalog.getBooks();
         const bookList = Array.isArray(response) ? response : response.results || [];
         
         // Get first 4 books

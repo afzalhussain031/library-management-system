@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { loginUser, logoutUser, getCurrentUser, refreshToken } from '../services/api'
+import { auth } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
 
   async function checkAuth() {
     try {
-      const user = await getCurrentUser()
+      const user = await auth.getCurrentUser()
       setCurrentUser(user)
     } catch (err) {
       console.log('Not logged in')
@@ -29,8 +29,8 @@ export function AuthProvider({ children }) {
     setLoading(true)
     setError(null)
     try {
-      await loginUser(username, password)
-      const user = await getCurrentUser()
+      await auth.login(username, password)
+      const user = await auth.getCurrentUser()
       setCurrentUser(user)
       return user
     } catch (err) {
@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
   // Logout function
   async function logout() {
     try {
-      await logoutUser()
+      await auth.logout()
       setCurrentUser(null)
     } catch (err) {
       console.error('Logout error:', err)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getBorrowedBooks } from "../../services/api";
+import { dashboard } from "../../services/api";
 import { ArrowRight } from "lucide-react";
 
 export default function BorrowedList() {
@@ -9,7 +9,7 @@ export default function BorrowedList() {
   useEffect(() => {
     async function fetchBooks() {
       try {
-        const response = await getBorrowedBooks();
+        const response = await dashboard.getBorrowedBooks();
         const loansList = Array.isArray(response) ? response : response.results || [];
         
         // Filter only active loans (not returned)

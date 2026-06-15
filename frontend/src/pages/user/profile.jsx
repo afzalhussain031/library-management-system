@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { getUserProfile } from "../../services/api";
+import { profile } from "../../services/api";
 
 import ProfileCard from "../../components/Profile/ProfileCard";
 import InfoSection from "../../components/Profile/InfoSection";
@@ -15,7 +15,7 @@ export default function UserProfile() {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const data = await getUserProfile();
+        const data = await profile.get();
         setProfileData(data);
       } catch (error) {
         console.error("Failed to fetch profile:", error);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getUserFines } from "../../services/api";
+import { dashboard } from "../../services/api";
 
 export default function FineCard() {
   const [fines, setFines] = useState(null);
@@ -8,7 +8,7 @@ export default function FineCard() {
   useEffect(() => {
     async function fetchFines() {
       try {
-        const response = await getUserFines();
+        const response = await dashboard.getFines();
         const finesList = Array.isArray(response) ? response : response.results || [];
         
         // Get pending fines only
