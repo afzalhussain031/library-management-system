@@ -4,7 +4,7 @@ import Notifications from "../../components/Dashboard/Notifications";
 import Recommended from "../../components/Dashboard/Recommended";
 import FineCard from "../../components/Dashboard/FineCard";
 import { useState, useEffect } from "react";
-import { getDashboard } from "../../services/api";
+import { dashboard } from "../../services/api";
 import { Pause,Wallet,Mail, Heart } from "lucide-react";
 
 
@@ -16,7 +16,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const data = await getDashboard()
+        const data = await dashboard.getStats()
         setDashboardData(data)
       } catch (err) {
         setError(err.message)

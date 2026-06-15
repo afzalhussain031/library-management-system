@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getNotifications } from "../../services/api";
+import { dashboard } from "../../services/api";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -8,7 +8,7 @@ export default function Notifications() {
   useEffect(() => {
     async function fetchNotifications() {
       try {
-        const response = await getNotifications();
+        const response = await dashboard.getNotifications();
         const notifList = Array.isArray(response) ? response : response.results || [];
         
         // Get last 3 notifications
