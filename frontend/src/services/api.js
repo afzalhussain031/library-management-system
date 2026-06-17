@@ -3,9 +3,15 @@ import client from './httpClient'
 
 // ===================== AUTH =====================
 export const auth = {
-  login: (username, password) =>
-    client.post('/token/', { username, password }),
-  
+  login: async (username, password) => {
+    const response = await client.post('/token/', { username, password })
+
+    if (response.data.access) {
+      localStorage.setItem('access_token', response.data.access)
+    }
+    return response.data
+  },
+
   logout: () =>
     client.post('/logout/', {}),
   

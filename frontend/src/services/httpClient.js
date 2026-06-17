@@ -43,9 +43,9 @@ client.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${refreshRes.data.access}`
         return client(originalRequest)
       } catch (refreshError) {
-        // Refresh failed - clear token and redirect to login
-        localStorage.removeItem('access_token')
-        window.location.href = '/login'
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
         return Promise.reject(refreshError)
       }
     }
