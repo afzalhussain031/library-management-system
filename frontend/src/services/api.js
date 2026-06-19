@@ -6,7 +6,8 @@ export const auth = {
   login: async (username, password) => {
     const response = await client.post('/token/', { username, password })
 
-    if (response.data.access) {
+    const token = response.data.access || response.data.token
+    if (token) {
       localStorage.setItem('access_token', response.data.access)
     }
     return response.data
