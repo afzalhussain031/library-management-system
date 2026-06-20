@@ -1,35 +1,41 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext' // Kept your original context path
-import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap, Briefcase, ShieldCheck } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { loginSchema } from '../../schemas/formSchemas'
+import { useAuth } from '../../context/AuthContext'
+import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap } from 'lucide-react'
 import loginImage from "../../assets/signup-image.jpg"
 
 export default function Login() {
-  const [enrollmentNumber, setEnrollmentNumber] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false) // Added from current code
-
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  // 1. Made this function async to handle network requests
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+  // ====== REACT HOOK FORM SETUP ======
+  // This connects the form to Zod validation
+  const {
+    register,        // Function to connect input fields
+    handleSubmit,    // Wrapper function for form submission
+    formState: { 
+      errors,        // Object containing all field errors
+      isSubmitting   // Boolean: true when submitting (loading state)
+    },
+    setError         // Function to manually set field errors
+  } = useForm({
+    resolver: zodResolver(loginSchema), // Use Zod schema for validation
+    mode: 'onBlur'   // Validate when user leaves field (not on every keystroke)
+  })
 
-    if (!enrollmentNumber || !password) {
-      setError('Please fill in all fields')
-      return
-    }
 
-    setLoading(true) // Turn on loading spinner state
-
+  // ====== FORM SUBMISSION HANDLER ======
+  const handleFormSubmit = async (data) => {
     try {
-      // 2. Await the actual server response. Your context expects (username, password)
-      const user = await login(enrollmentNumber, password)
+      // data is ALREADY validated by Zod at this point
+      // data = { enrollmentNumber: "...", password: "..." }
       
-      // 3. Smart routing based on the role returned by your backend database
+      const user = await login(data.enrollmentNumber, data.password)
+      
+      // Route based on user role
       if (user?.role === 'superadmin') {
         navigate('/superadmin/dashboard')
       } else if (user?.role === 'admin') {
@@ -38,10 +44,10 @@ export default function Login() {
         navigate('/dashboard')
       }
     } catch (err) {
-      // 4. Fallback error message if backend rejects credentials
-      setError('Invalid enrollment number or password')
-    } finally {
-      setLoading(false) // Turn off loading state regardless of win or lose
+      // If API call fails, show error on enrollmentNumber field
+      setError('enrollmentNumber', {
+        message: 'Invalid enrollment number or password'
+      })
     }
   }
 
@@ -54,7 +60,9 @@ export default function Login() {
     <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 md:p-8">
       <div className="w-full max-w-[1100px] bg-white rounded-[32px] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[600px]">
 
-        {/* ── LEFT: Image panel ── */}
+        {/* ══════════════════════════════════════════════════════════
+            LEFT PANEL: Image with decorations (unchanged)
+            ══════════════════════════════════════════════════════════ */}
         <div className="relative w-full lg:w-[52%] overflow-hidden min-h-[300px]">
           <img
             src={loginImage}
@@ -102,7 +110,9 @@ export default function Login() {
           </div>
         </div>
 
-        {/* ── RIGHT: Login form ── */}
+        {/* ══════════════════════════════════════════════════════════
+            RIGHT PANEL: Login Form
+            ══════════════════════════════════════════════════════════ */}
         <div className="w-full lg:w-[48%] bg-white flex items-center justify-center px-8 py-12 lg:px-14">
           <div className="w-full max-w-sm">
 
@@ -111,58 +121,83 @@ export default function Login() {
               Sign in to your LibraryHub account
             </p>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-4 py-3 mb-5 text-sm flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {/* Enrollment */}
-              <div className="relative">
-                <IdCard className={iconClass} />
-                <input
-                  type="text"
-                  name="enrollmentNumber"
-                  value={enrollmentNumber}
-                  onChange={(e) => setEnrollmentNumber(e.target.value)}
-                  placeholder="Enrollment number / Employee ID"
-                  required
-                  className={inputClass}
-                  disabled={loading} // Disabled inputs while loading
-                />
-              </div>
-
-              {/* Password */}
-              <div className="relative">
-                <Lock className={iconClass} />
-                <input
-                  type="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  required
-                  className={inputClass}
-                  disabled={loading} // Disabled inputs while loading
-                />
+            {/* ============ FORM STARTS HERE ============ */}
+            <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-3">
+              
+              {/* ════════════════════════════════════════
+                  ENROLLMENT NUMBER FIELD
+                  ════════════════════════════════════════ */}
+              <div>
+                <div className="relative">
+                  <IdCard className={iconClass} />
+                  <input
+                    type="text"
+                    placeholder="Enrollment number / Employee ID"
+                    {...register('enrollmentNumber')}
+                    // ^^^ This connects the input to RHF
+                    // RHF will automatically track changes and validate with Zod
+                    className={`${inputClass} ${
+                      errors.enrollmentNumber 
+                        ? 'border-red-500 bg-red-50' // Red border if error
+                        : ''
+                    }`}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                {/* Show error message below field */}
+                {errors.enrollmentNumber && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-4 py-3 mt-2 text-sm flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {errors.enrollmentNumber.message}
+                  </div>
+                )}
               </div>
 
-              {/* Forgot password */}
+              {/* ════════════════════════════════════════
+                  PASSWORD FIELD
+                  ════════════════════════════════════════ */}
+              <div>
+                <div className="relative">
+                  <Lock className={iconClass} />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    {...register('password')}
+                    className={`${inputClass} ${
+                      errors.password 
+                        ? 'border-red-500 bg-red-50'
+                        : ''
+                    }`}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                {errors.password && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-4 py-3 mt-2 text-sm flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {errors.password.message}
+                  </div>
+                )}
+              </div>
+
+              {/* Forgot password link */}
               <div className="flex justify-end">
                 <a href="#" className="text-xs text-gray-400 hover:underline">
                   Forgot password?
                 </a>
               </div>
 
-              {/* Submit with loading state context feedback */}
+              {/* ════════════════════════════════════════
+                  SUBMIT BUTTON
+                  ════════════════════════════════════════ */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
+                // handleSubmit validates form before calling handleFormSubmit
+                // If validation fails, nothing happens (onSubmit not called)
+                // If validation passes, handleFormSubmit is called
                 className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-200 disabled:text-gray-400 disabled:scale-100 active:scale-[0.98] transition-all duration-200 py-3 rounded-full text-sm font-semibold text-gray-900"
               >
-                {loading ? 'Signing in...' : 'Login'}
+                {isSubmitting ? 'Signing in...' : 'Login'}
               </button>
             </form>
 
