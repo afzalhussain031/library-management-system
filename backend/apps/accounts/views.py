@@ -1,16 +1,13 @@
 from binascii import Error as BinasciiError
 
-from common.permissions.base import IsStaffOrReadOnly
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db import models
-from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -22,134 +19,23 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import Membership, UserProfile
+from .models import Membership
 from .serializers import (
+    CustomUserProfileSerializer,
+    CustomUserRegistrationSerializer,
+    CustomUserUpdateSerializer,
+    ForgotPasswordSerializer,
     PasswordChangeSerializer,
-    RegisterSerializer,
+    ResetPasswordSerializer,
     StaffCreateSerializer,
-    UserProfileReadSerializer,
-    UserProfileUpdateSerializer,
 )
 
+# Fetch our CustomUser model setup from base.py settings
+CustomUser = get_user_model()
 
-class UserProfileView(generics.RetrieveUpdateAPIView):
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self):
-        return get_object_or_404(UserProfile, user=self.request.user)
-
-    def get_serializer_class(self):
-        if self.request.method == "PATCH":
-            return UserProfileUpdateSerializer
-        return UserProfileReadSerializer
-
-
-class PasswordChangeView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def put(self, request):
-        serializer = PasswordChangeSerializer(
-            data=request.data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(
-            {"detail": "Password updated successfully."}, status=status.HTTP_200_OK
-        )
-
-
-class CurrentUserView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        # Fetch the UserProfile to get the role
-        profile = get_object_or_404(UserProfile, user=user)
-
-        data = {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "is_staff": user.is_staff,
-            "date_joined": user.date_joined,
-            "role": profile.role,
-            "phone_number": profile.phone_number,
-            "department": profile.department,
-            "student_name": profile.student_name,
-            "enrollment_number": profile.enrollment_number,
-            "avatar": user.username[:2].upper(),  # Optional: "RA" from "rahul"
-        }
-        return Response(data)
-
-
-class DashboardView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        from apps.billing.models import Fine
-        from apps.circulation.models import Loan
-
-        user = request.user
-        profile = get_object_or_404(UserProfile, user=user)
-        membership = Membership.objects.filter(user=user).first()
-
-        # Count borrowed books (active loans)
-        currently_borrowed = Loan.objects.filter(
-            borrower=user, returned_at__isnull=True
-        ).count()
-
-        # Count total borrowed books (all loans)
-        total_borrowed = Loan.objects.filter(borrower=user).count()
-
-        # Calculate total pending fines
-        pending_fines = (
-            Fine.objects.filter(loan__borrower=user, status="pending").aggregate(
-                total=models.Sum("amount")
-            )["total"]
-            or 0
-        )
-
-        data = {
-            "account_information": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "phone_number": profile.phone_number,
-                "enrollment_number": profile.enrollment_number,
-            },
-            "academic_details": {
-                "department": profile.department,
-                "batch": profile.batch,
-                "student_name": profile.student_name,
-                "father_name": profile.father_name,
-                "mother_name": profile.mother_name,
-            },
-            "library_information": {
-                "currently_borrowed": currently_borrowed,
-                "total_borrowed": total_borrowed,
-                "pending_fines": float(pending_fines),
-                "membership_valid_till": (
-                    membership.valid_till.isoformat() if membership else None
-                ),
-            },
-        }
-
-        return Response(data)
-
-
-class RegisterView(generics.CreateAPIView):
-    serializer_class = RegisterSerializer
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
-
-class StaffCreateView(generics.CreateAPIView):
-    serializer_class = StaffCreateSerializer
-    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
+# =========================================================================
+# 🍪 JWT COOKIE UTILITIES
+# =========================================================================
 
 
 def set_refresh_cookie(response, refresh_token: str):
@@ -172,11 +58,49 @@ def clear_refresh_cookie(response):
     )
 
 
+# =========================================================================
+# 🔐 AUTHENTICATION & REGISTRATION VIEWS
+# =========================================================================
+
+
+class RegisterView(generics.CreateAPIView):
+    """Public registration endpoint for students"""
+
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserRegistrationSerializer
+    permission_classes = [AllowAny]
+
+
+class StaffCreateView(generics.CreateAPIView):
+    """Protected endpoint to create staff users (admin only)"""
+
+    queryset = CustomUser.objects.all()
+    serializer_class = StaffCreateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Verify requester is admin/superuser
+        if not self.request.user.is_staff and not self.request.user.is_superuser:
+            raise ValidationError("Only staff can create staff accounts")
+        serializer.save()
+
+
 class CookieTokenObtainPairView(TokenObtainPairView):
+    """
+    Interceptors login payloads containing 'user_id', normalizes it
+    for SimpleJWT, and drops the refresh token into a highly secure cookie.
+    """
+
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
+        data = request.data.copy()
+        if "user_id" in data:
+            data["username"] = data.pop("user_id")  # Map user_id to username internally
+
+        request._full_data = data
         response = super().post(request, *args, **kwargs)
+
         refresh = response.data.pop("refresh", None)
         if refresh:
             set_refresh_cookie(response, refresh)
@@ -184,6 +108,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
 
 
 class CookieTokenRefreshView(TokenRefreshView):
+    """Regenerates access keys reading straight out of the encrypted secure cookie."""
+
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -212,6 +138,8 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 
 class LogoutView(APIView):
+    """Clears client browser authentication tokens securely."""
+
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -220,44 +148,179 @@ class LogoutView(APIView):
         return response
 
 
+# =========================================================================
+# 👤 USER PROFILE & MANAGEMENT VIEWS
+# =========================================================================
+
+
+class CurrentUserView(APIView):
+    """Returns dynamic account context directly from the active session token."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        membership = Membership.objects.filter(user=user).first()
+
+        data = {
+            "id": user.id,
+            "user_id": user.user_id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser,
+            "date_joined": user.date_joined,
+            "role": user.role,
+            "phone_number": user.phone_number,
+            "department": user.department,
+            "student_name": user.student_name,
+            "membership_valid_till": (
+                membership.valid_till.isoformat() if membership else None
+            ),
+            "avatar": user.user_id[:2].upper(),
+        }
+        return Response(data)
+
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """Reads or performs atomic updates directly onto the CustomUser row."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def get_serializer_class(self):
+        if self.request.method in ["PUT", "PATCH"]:
+            return CustomUserUpdateSerializer
+        return CustomUserProfileSerializer
+
+
+class PasswordChangeView(APIView):
+    """Verifies existing secret key structures before saving a new pass."""
+
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = PasswordChangeSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"detail": "Password updated successfully."}, status=status.HTTP_200_OK
+        )
+
+
+# =========================================================================
+# 📊 METRICS & DASHBOARD DATA VIEWS
+# =========================================================================
+
+
+class DashboardView(APIView):
+    """Compiles loans, active holdings, and pending liabilities directly via User ID."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.billing.models import Fine
+        from apps.circulation.models import Loan
+
+        user = request.user
+        membership = Membership.objects.filter(user=user).first()
+
+        currently_borrowed = Loan.objects.filter(
+            borrower=user, returned_at__isnull=True
+        ).count()
+
+        total_borrowed = Loan.objects.filter(borrower=user).count()
+
+        pending_fines = (
+            Fine.objects.filter(loan__borrower=user, status="pending").aggregate(
+                total=models.Sum("amount")
+            )["total"]
+            or 0
+        )
+
+        data = {
+            "account_information": {
+                "id": user.id,
+                "user_id": user.user_id,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone_number": user.phone_number,
+            },
+            "academic_details": {
+                "department": user.department,
+                "batch": user.batch,
+                "student_name": user.student_name,
+                "father_name": user.father_name,
+                "mother_name": user.mother_name,
+            },
+            "library_information": {
+                "currently_borrowed": currently_borrowed,
+                "total_borrowed": total_borrowed,
+                "pending_fines": float(pending_fines),
+                "membership_valid_till": (
+                    membership.valid_till.isoformat() if membership else None
+                ),
+            },
+        }
+        return Response(data)
+
+
+# =========================================================================
+# 🔑 SECURITY & RECOVERY VIEWS
+# =========================================================================
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class ForgotPasswordView(APIView):
+    """Generates encrypted system tokens targeted to a confirmed CustomUser account email."""
+
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = (request.data.get("email") or "").strip()
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if not email:
-            return JsonResponse({"detail": "Email is required."}, status=400)
+        email = serializer.validated_data["email"]
+        user = CustomUser.objects.get(email=email)
 
-        user = User.objects.filter(email__iexact=email).first()
+        # Generate token
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
 
-        if user:
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            frontend_url = getattr(
-                settings, "FRONTEND_URL", "http://localhost:5173"
-            ).rstrip("/")
-            reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+        # Create reset link
+        frontend_url = getattr(
+            settings, "FRONTEND_URL", "http://localhost:5173"
+        ).rstrip("/")
+        reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
 
-            subject = "Reset your password"
-            message = (
-                "You requested a password reset for your library account. \n\n"
-                f"Reset your password here: {reset_link}\n\n"
-                "If you did not request this, you can ignore this email."
-            )
-
+        # Send email
+        try:
             send_mail(
-                subject=subject,
-                message=message,
-                from_email=None,
+                subject="Reset your password",
+                message=f"Click here to reset: {reset_link}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
+                html_message=f"""
+                    <p>Click the link below to reset your password:</p>
+                    <a href="{reset_link}">Reset Password</a>
+                """,
                 fail_silently=False,
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Error sending email: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         return JsonResponse(
             {
-                "detail": "If an account exists for that email, password instructions have been sent."
+                "detail": "If an account exists for that email, instructions have been sent."
             },
             status=200,
         )
@@ -265,39 +328,33 @@ class ForgotPasswordView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class ResetPasswordView(APIView):
+    """Decrypts incoming access strings to change a user's password securely."""
+
     permission_classes = [AllowAny]
 
     def post(self, request):
-        uid = request.data.get("uid") or ""
-        token = request.data.get("token") or ""
-        new_password = request.data.get("new_password") or ""
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if not uid or not token or not new_password:
-            return JsonResponse(
-                {"detail": "uid, token and new_password are required."},
-                status=400,
-            )
+        uid = serializer.validated_data["user_id"]
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
 
         try:
-            user_id = force_str(urlsafe_base64_decode(uid))
-            user = User.objects.get(pk=user_id)
+            target_pk = force_str(urlsafe_base64_decode(uid))
+            user = CustomUser.objects.get(pk=target_pk)
         except (
             BinasciiError,
             TypeError,
             ValueError,
             OverflowError,
             UnicodeDecodeError,
-            User.DoesNotExist,
+            CustomUser.DoesNotExist,
         ):
             return JsonResponse({"detail": "Invalid reset link."}, status=400)
 
         if not default_token_generator.check_token(user, token):
             return JsonResponse({"detail": "Invalid or expired token."}, status=400)
-
-        try:
-            validate_password(new_password, user=user)
-        except ValidationError as exc:
-            return JsonResponse({"detail": exc.messages}, status=400)
 
         user.set_password(new_password)
         user.save(update_fields=["password"])
