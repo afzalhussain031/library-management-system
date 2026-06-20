@@ -13,14 +13,14 @@ class CustomUserAuthBackend(ModelBackend):
     def authenticate(self, request, user_id=None, password=None, **kwargs):
         """
         user_id parameter contains Enrollment Number or Employee ID.
-        We also check kwargs for 'username' because Django's Admin panel 
+        We also check kwargs for 'username' because Django's Admin panel
         stubbornly passes the credentials using that keyword!
         """
         # --- THE FIX: Catch the admin panel data ---
         if user_id is None:
-            user_id = kwargs.get('username')
+            user_id = kwargs.get("username")
         # -------------------------------------------
-        
+
         if not user_id or not password:
             return None
 
