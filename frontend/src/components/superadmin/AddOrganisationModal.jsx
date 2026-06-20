@@ -1,36 +1,71 @@
-import React, { useState } from 'react';
-import { X, Building } from 'lucide-react';
+import React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { addOrganisationSchema } from '../../schemas/formSchemas'
+import { X, Building, AlertCircle } from 'lucide-react'
 
 const AddOrganisationModal = ({ onClose, onAdd }) => {
-  const [name, setName] = useState('');
-  const [users, setUsers] = useState('');
-  const [books, setBooks] = useState('');
-  const [plan, setPlan] = useState('Pro');
-  const [status, setStatus] = useState('Active');
-  const [expiryMonth, setExpiryMonth] = useState('Dec');
-  const [expiryYear, setExpiryYear] = useState('2026');
+  // ====== REACT HOOK FORM SETUP ======
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset
+  } = useForm({
+    resolver: zodResolver(addOrganisationSchema),
+    mode: 'onBlur'
+  })
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
+  // ====== FORM SUBMISSION ======
+  const onSubmit = (data) => {
+    try {
+      // Generate random 7-digit Org ID
+      const orgId = Math.floor(1000000 + Math.random() * 9000000)
 
-    // Generate random 7-digit Org ID
-    const orgId = Math.floor(1000000 + Math.random() * 9000000);
+      const newOrg = {
+        id: Date.now(),
+        name: data.name,
+        orgId: String(orgId),
+        users: Number(data.users) || 0,
+        books: data.books.toLowerCase().endsWith('k') 
+          ? data.books 
+          : `${Number(data.books) >= 1000 ? (Number(data.books)/1000).toFixed(0) + 'k' : data.books}`,
+        plan: 'Pro',
+        status: 'Active',
+        expiryDate: 'Dec 2026',
+        logo: ''
+      }
 
-    const newOrg = {
-      id: Date.now(),
-      name,
-      orgId: String(orgId),
-      users: Number(users) || 0,
-      books: books ? (books.toLowerCase().endsWith('k') ? books : `${Number(books) >= 1000 ? (Number(books)/1000).toFixed(0) + 'k' : books}`) : '0',
-      plan,
-      status,
-      expiryDate: `${expiryMonth} ${expiryYear}`,
-      logo: ''
-    };
+      onAdd(newOrg)
+      reset()
+      onClose()
+    } catch (err) {
+      console.error('Error:', err)
+    }
+  }
 
-    onAdd(newOrg);
-  };
+  // ====== HELPER: Render input ======
+  const renderInput = (fieldName, label) => (
+    <div>
+      <label className="block text-xs font-bold text-[#A0ABC0] uppercase tracking-wider mb-1.5">
+        {label}
+      </label>
+      <input 
+        type="text"
+        placeholder={`e.g. ${fieldName === 'name' ? 'Indemy Institute' : '500'}`}
+        {...register(fieldName)}
+        className={`w-full bg-slate-50 border rounded-[14px] px-4 py-2.5 text-sm font-semibold text-[#1C2434] outline-none transition ${
+          errors[fieldName]
+            ? 'border-red-500 bg-red-50'
+            : 'border-slate-200 focus:border-indigo-400 focus:bg-white'
+        }`}
+        disabled={isSubmitting}
+      />
+      {errors[fieldName] && (
+        <p className="text-xs text-red-600 mt-1">{errors[fieldName].message}</p>
+      )}
+    </div>
+  )
 
   return (
     <div 
@@ -60,113 +95,32 @@ const AddOrganisationModal = ({ onClose, onAdd }) => {
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-[#A0ABC0] uppercase tracking-wider mb-1.5">Organisation Name</label>
-            <input 
-              type="text" 
-              placeholder="e.g. Indemy Institute" 
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-[#1C2434] outline-none focus:border-indigo-400 focus:bg-white transition-all"
-            />
-          </div>
+        {/* ════════════════════════════════════════
+            FORM
+            ════════════════════════════════════════ */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          
+          {/* Organisation Name */}
+          {renderInput('name', 'Organisation Name')}
 
+          {/* Grid: Users and Books */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-[#A0ABC0] uppercase tracking-wider mb-1.5">Total Users</label>
-              <input 
-                type="number" 
-                placeholder="e.g. 1500" 
-                value={users}
-                onChange={(e) => setUsers(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-[#1C2434] outline-none focus:border-indigo-400 focus:bg-white transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#A0ABC0] uppercase tracking-wider mb-1.5">Books Count</label>
-              <input 
-                type="text" 
-                placeholder="e.g. 45k or 2500" 
-                value={books}
-                onChange={(e) => setBooks(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-[#1C2434] outline-none focus:border-indigo-400 focus:bg-white transition-all"
-              />
-            </div>
+            {renderInput('users', 'Total Users')}
+            {renderInput('books', 'Total Books')}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-[#A0ABC0] uppercase tracking-wider mb-1.5">Subscription Plan</label>
-              <select 
-                value={plan}
-                onChange={(e) => setPlan(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[14px] px-4 py-2.5 text-sm font-bold text-[#1C2434] outline-none focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer"
-              >
-                <option value="Basic">Basic</option>
-                <option value="Pro">Pro</option>
-                <option value="Enterprise">Enterprise</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[#A0ABC0] uppercase tracking-wider mb-1.5">Initial Status</label>
-              <select 
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[14px] px-4 py-2.5 text-sm font-bold text-[#1C2434] outline-none focus:border-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer"
-              >
-                <option value="Active">Active</option>
-                <option value="Expiring">Expiring</option>
-                <option value="Suspended">Suspended</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[#A0ABC0] uppercase tracking-wider mb-1.5">Subscription Expiry</label>
-            <div className="grid grid-cols-2 gap-4">
-              <select 
-                value={expiryMonth}
-                onChange={(e) => setExpiryMonth(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[14px] px-4 py-2.5 text-sm font-bold text-[#1C2434] outline-none focus:border-indigo-400 focus:bg-white transition-all cursor-pointer"
-              >
-                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <select 
-                value={expiryYear}
-                onChange={(e) => setExpiryYear(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[14px] px-4 py-2.5 text-sm font-bold text-[#1C2434] outline-none focus:border-indigo-400 focus:bg-white transition-all cursor-pointer"
-              >
-                {['2026', '2027', '2028', '2029', '2030'].map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
-            <button 
-              type="button" 
-              onClick={onClose}
-              className="px-6 py-2 bg-slate-100 hover:bg-slate-200 text-[#475569] font-bold text-xs rounded-full transition-all shadow-sm active:scale-95"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-full transition-all shadow-sm hover:shadow active:scale-95 animate-pulse"
-            >
-              Create
-            </button>
-          </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-2.5 rounded-[14px] transition-all text-sm"
+          >
+            {isSubmitting ? 'Adding...' : 'Add Organisation'}
+          </button>
         </form>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AddOrganisationModal;
+export default AddOrganisationModal
