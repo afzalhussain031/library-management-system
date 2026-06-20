@@ -1,144 +1,185 @@
+from apps.accounts.models import CustomUser, Membership
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import Membership, UserProfile
+CustomUser = get_user_model()
+
+# ===== REGISTRATION SERIALIZERS =====
 
 
-class BaseUserRegistrationSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
-    email = serializers.EmailField(required=False, allow_blank=True)
-    password = serializers.CharField(write_only=True)
-    password2 = serializers.CharField(write_only=True)
+class CustomUserRegistrationSerializer(serializers.ModelSerializer):
+    """Register new user (student or staff)"""
 
-    is_staff_user = False
+    password = serializers.CharField(write_only=True, min_length=6)
+    password2 = serializers.CharField(write_only=True, min_length=6)
 
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Username already taken")
+    class Meta:
+        model = CustomUser
+        fields = [
+            "user_id",
+            "role",
+            "email",
+            "password",
+            "password2",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "department",
+        ]
+        extra_kwargs = {
+            "first_name": {"required": False},
+            "last_name": {"required": False},
+            "email": {"required": True},
+        }
+
+    def validate_user_id(self, value):
+        """Validate user_id format and uniqueness"""
+        if CustomUser.objects.filter(user_id=value).exists():
+            raise serializers.ValidationError("This ID is already registered")
+        return value
+
+    def validate_email(self, value):
+        """Email must be unique"""
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already registered")
+        return value
+
+    def validate_password(self, value):
+        """Validate password strength"""
+        try:
+            validate_password(value)
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError(str(e))
         return value
 
     def validate(self, data):
-        if data.get("password") != data.get("password2"):
+        """Check passwords match"""
+        if data["password"] != data["password2"]:
             raise serializers.ValidationError({"password2": "Passwords do not match"})
         return data
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data["username"],
-            email=validated_data.get("email", ""),
-            password=validated_data["password"],
-        )
-        user.is_staff = self.is_staff_user
-        user.save(update_fields=["is_staff"])
+        """Create user without storing password2"""
+        password = validated_data.pop("password")
+        validated_data.pop("password2")
 
-        try:
-            UserProfile.objects.create(user=user)
-        except Exception:
-            pass
-
+        user = CustomUser.objects.create_user(**validated_data, password=password)
         return user
 
 
-class RegisterSerializer(BaseUserRegistrationSerializer):
-    """Public registration always creates non-staff users."""
+class StaffCreateSerializer(serializers.ModelSerializer):
+    """For protected staff creation endpoint"""
 
-    is_staff_user = False
-
-
-class StaffCreateSerializer(BaseUserRegistrationSerializer):
-    """Serializer for creating staff users via protected endpoints."""
-
-    is_staff_user = True
-
-
-class UserProfileReadSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source="user.id", read_only=True)
-    username = serializers.CharField(source="user.username", read_only=True)
-    email = serializers.EmailField(source="user.email", read_only=True)
-    first_name = serializers.CharField(source="user.first_name", read_only=True)
-    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    password = serializers.CharField(write_only=True, min_length=6)
+    password2 = serializers.CharField(write_only=True, min_length=6)
 
     class Meta:
-        model = UserProfile
+        model = CustomUser
+        fields = [
+            "user_id",
+            "email",
+            "password",
+            "password2",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "department",
+        ]
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError(str(e))
+        return value
+
+    def validate(self, data):
+        if data["password"] != data["password2"]:
+            raise serializers.ValidationError({"password2": "Passwords do not match"})
+        return data
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        validated_data.pop("password2")
+        validated_data["role"] = "staff"
+
+        user = CustomUser.objects.create_user(
+            **validated_data, password=password, is_staff=True
+        )
+        return user
+
+
+# ===== PROFILE SERIALIZERS =====
+
+
+class CustomUserProfileSerializer(serializers.ModelSerializer):
+    """Read user profile"""
+
+    class Meta:
+        model = CustomUser
         fields = [
             "id",
-            "username",
+            "user_id",
+            "role",
             "email",
             "first_name",
             "last_name",
-            "bio",
+            "phone_number",
+            "department",
             "student_name",
-            "enrollment_number",
             "father_name",
             "mother_name",
             "batch",
             "address",
-            "phone_number",
-            "department",
-            "student_id",
+            "bio",
+            "is_staff",
+            "is_superuser",
+            "date_joined",
+        ]
+        read_only_fields = [
+            "id",
+            "user_id",
             "role",
+            "date_joined",
+            "is_staff",
+            "is_superuser",
         ]
 
 
-class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source="user.id", read_only=True)
-    email = serializers.EmailField(
-        source="user.email", required=False, allow_blank=True
-    )
-    first_name = serializers.CharField(
-        source="user.first_name", required=False, allow_blank=True
-    )
-    last_name = serializers.CharField(
-        source="user.last_name", required=False, allow_blank=True
-    )
+class CustomUserUpdateSerializer(serializers.ModelSerializer):
+    """Update user profile (limited fields)"""
 
     class Meta:
-        model = UserProfile
-        fields = ["id", "email", "first_name", "last_name", "bio"]
-
-    def update(self, instance, validated_data):
-        user_data = validated_data.pop("user", {})
-
-        user_changed_fields = []
-        for field in ("email", "first_name", "last_name"):
-            if field in user_data:
-                setattr(instance.user, field, user_data[field])
-                user_changed_fields.append(field)
-
-        if user_changed_fields:
-            instance.user.save(update_fields=user_changed_fields)
-
-        profile_fields_to_update = [
+        model = CustomUser
+        fields = [
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "department",
             "bio",
+            "address",
             "student_name",
-            "enrollment_number",
             "father_name",
             "mother_name",
             "batch",
-            "address",
-            "phone_number",
-            "department",
-            "student_id",
-            "role",
         ]
+        extra_kwargs = {
+            "email": {"required": False},
+        }
 
-        profile_changed_fields = []
-        for field in profile_fields_to_update:
-            if field in validated_data:
-                setattr(instance, field, validated_data[field])
-                profile_changed_fields.append(field)
 
-        if profile_changed_fields:
-            instance.save(update_fields=profile_changed_fields)
-
-        return instance
+# ===== PASSWORD CHANGE SERIALIZER =====
 
 
 class PasswordChangeSerializer(serializers.Serializer):
-    old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True)
-    new_password2 = serializers.CharField(write_only=True)
+    """Change password for authenticated user"""
+
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True, min_length=6)
+    new_password2 = serializers.CharField(write_only=True, required=True, min_length=6)
 
     def validate_old_password(self, value):
         user = self.context["request"].user
@@ -146,24 +187,63 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError("Old password is incorrect")
         return value
 
+    def validate_new_password(self, value):
+        try:
+            validate_password(value)
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError(str(e))
+        return value
+
     def validate(self, data):
-        if data.get("new_password") != data.get("new_password2"):
+        if data["new_password"] != data["new_password2"]:
             raise serializers.ValidationError(
                 {"new_password2": "Passwords do not match"}
             )
-
-        validate_password(data["new_password"], user=self.context["request"].user)
+        if data["new_password"] == data["old_password"]:
+            raise serializers.ValidationError(
+                {"new_password": "New password must be different from old password"}
+            )
         return data
 
-    def save(self, **kwargs):
+    def save(self):
         user = self.context["request"].user
         user.set_password(self.validated_data["new_password"])
-        user.save(update_fields=["password"])
+        user.save()
         return user
 
 
-class MembershipSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Membership
-        fields = ["id", "membership_id", "valid_till", "created_at", "updated_at"]
-        read_only_fields = ["id", "created_at", "updated_at"]
+# ===== PASSWORD RESET SERIALIZERS =====
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    """Request password reset token"""
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email does not exist")
+        return value
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    """Reset password with token"""
+
+    user_id = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True, min_length=6)
+    new_password2 = serializers.CharField(write_only=True, min_length=6)
+
+    def validate_new_password(self, value):
+        try:
+            validate_password(value)
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError(str(e))
+        return value
+
+    def validate(self, data):
+        if data["new_password"] != data["new_password2"]:
+            raise serializers.ValidationError(
+                {"new_password2": "Passwords do not match"}
+            )
+        return data

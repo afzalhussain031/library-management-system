@@ -129,3 +129,11 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False
 
 STAFF_INVITE_CODE = os.getenv("STAFF_INVITE_CODE", "some-secret-code")
+
+# ===== CUSTOM USER MODEL =====
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# ===== AUTHENTICATION BACKENDS =====
+AUTHENTICATION_BACKENDS = [
+    'apps.accounts.backends.CustomUserAuthBackend',
+]

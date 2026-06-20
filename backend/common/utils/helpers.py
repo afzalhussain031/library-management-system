@@ -29,7 +29,9 @@ def get_user_initials(user):
         return f"{user.first_name[0]}{user.last_name[0]}".upper()
     if user.first_name:
         return user.first_name[0].upper()
-    return user.username[0].upper() if user.username else "U"
+
+    # FIX: Use user_id since username no longer exists
+    return user.user_id[0].upper() if getattr(user, "user_id", None) else "U"
 
 
 def validate_isbn(isbn: str) -> bool:

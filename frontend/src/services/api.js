@@ -3,21 +3,24 @@ import client from './httpClient'
 
 // ===================== AUTH =====================
 export const auth = {
-  login: async (username, password) => {
-    const response = await client.post('/token/', { username, password })
-
-    const token = response.data.access || response.data.token
-    if (token) {
+  login: async (userId, password) => {
+    // userId is Enrollment Number or Employee ID
+    const response = await client.post('/token/', { 
+      user_id: userId,  // Send as user_id, not username
+      password 
+    })
+    
+    if (response.data.access) {
       localStorage.setItem('access_token', response.data.access)
     }
     return response.data
   },
 
-  logout: () =>
-    client.post('/logout/', {}),
-  
   getCurrentUser: () =>
     client.get('/me/'),
+  
+  logout: () =>
+    client.post('/logout/', {}),
   
   refreshToken: () =>
     client.post('/token/refresh/', {})
