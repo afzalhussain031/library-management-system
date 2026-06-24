@@ -16,6 +16,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -81,7 +82,7 @@ class StaffCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         # Verify requester is admin/superuser
         if not self.request.user.is_staff and not self.request.user.is_superuser:
-            raise ValidationError("Only staff can create staff accounts")
+            raise PermissionDenied("Only staff can create staff accounts")
         serializer.save()
 
 

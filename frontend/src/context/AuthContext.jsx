@@ -42,9 +42,11 @@ export function AuthProvider({ children }) {
   async function logout() {
     try {
       await auth.logout()
-      setCurrentUser(null)
     } catch (err) {
       console.error('Logout error:', err)
+    } finally {
+      localStorage.removeItem('access_token')     
+      setCurrentUser(null)
     }
   }
 
