@@ -13,8 +13,8 @@ CustomUser = get_user_model()
 class CustomUserRegistrationSerializer(serializers.ModelSerializer):
     """Register new user (student or staff)"""
 
-    password = serializers.CharField(write_only=True, min_length=6)
-    password2 = serializers.CharField(write_only=True, min_length=6)
+    password = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = CustomUser
@@ -75,8 +75,8 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
 class StaffCreateSerializer(serializers.ModelSerializer):
     """For protected staff creation endpoint"""
 
-    password = serializers.CharField(write_only=True, min_length=6)
-    password2 = serializers.CharField(write_only=True, min_length=6)
+    password = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = CustomUser
@@ -181,8 +181,8 @@ class PasswordChangeSerializer(serializers.Serializer):
     """Change password for authenticated user"""
 
     old_password = serializers.CharField(write_only=True, required=True)
-    new_password = serializers.CharField(write_only=True, required=True, min_length=6)
-    new_password2 = serializers.CharField(write_only=True, required=True, min_length=6)
+    new_password = serializers.CharField(write_only=True, required=True, min_length=8)
+    new_password2 = serializers.CharField(write_only=True, required=True, min_length=8)
 
     def validate_old_password(self, value):
         user = self.context["request"].user
@@ -234,8 +234,8 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     user_id = serializers.CharField()
     token = serializers.CharField()
-    new_password = serializers.CharField(write_only=True, min_length=6)
-    new_password2 = serializers.CharField(write_only=True, min_length=6)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    new_password2 = serializers.CharField(write_only=True, min_length=8)
 
     def validate_new_password(self, value):
         try:
