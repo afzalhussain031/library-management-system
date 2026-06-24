@@ -8,9 +8,7 @@ import Dashboard from './pages/user/Dashboard';
 import UserProfile from "./pages/user/profile";
 import Wishlist from "./pages/user/wishlist";
 import Books from "./pages/user/books";
-
-// Dummy Admin components (Replace these imports with your actual admin page paths if they exist)
-const AdminDashboard = () => <div><h2>Admin Dashboard Panel</h2></div>;
+import AdminDashboard from "./pages/admin/admin_dashboard"
 
 function AppRoutes() {
   const { currentUser, loading } = useAuth();
