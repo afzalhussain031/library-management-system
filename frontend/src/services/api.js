@@ -22,8 +22,10 @@ export const auth = {
     return response.data
   },
 
-  getCurrentUser: () =>
-    client.get('/me/'),
+  getCurrentUser: async () => {
+    const response = await client.get('/me/')
+    return response.data
+  },
   
   logout: () =>
     client.post('/logout/', {}),
