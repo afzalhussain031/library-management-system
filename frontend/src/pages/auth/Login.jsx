@@ -39,7 +39,7 @@ export default function Login() {
       // Route based on user role
       if (user?.role === 'superadmin') {
         navigate('/superadmin/dashboard')
-      } else if (user?.role === 'admin') {
+      } else if (user?.role === 'staff' || user?.role === 'librarian') {
         navigate('/admin/dashboard')
       } else {
         navigate('/dashboard')
