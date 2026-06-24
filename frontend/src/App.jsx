@@ -42,7 +42,7 @@ function AppRoutes() {
 
       {/* ================= GROUP 2: STRICT ADMIN ROUTES ================= */}
       {/* Handing the guard an explicit list locks down this folder to admins ONLY */}
-      <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['staff', 'librarian', 'superadmin']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           {/* Add any other future administrator-only pages here */}
