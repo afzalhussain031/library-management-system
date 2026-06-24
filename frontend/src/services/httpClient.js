@@ -9,10 +9,14 @@ const client = axios.create({
   withCredentials: true, // Sends cookies automatically
 })
 
-// Request interceptor - adds auth header to every request
+// Request interceptor - adds auth header to every request (except public ones)
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
-  if (token) {
+  
+  // Don't send the token for public authentication routes
+  const isPublicAuthRoute = ['/token/', '/register/'].some(url => config.url?.includes(url))
+  
+  if (token && !isPublicAuthRoute) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -24,8 +28,12 @@ client.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
+    // Don't try to refresh on auth endpoints
+    const isAuthRequest = ['/token/', '/token/refresh/', '/register/'].some(url => originalRequest.url?.includes(url))
+
     // If token expired (401) and we haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const hasToken = !!localStorage.getItem('access_token')
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest && hasToken) {
       originalRequest._retry = true
       
       try {

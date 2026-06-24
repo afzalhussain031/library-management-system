@@ -94,11 +94,6 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        data = request.data.copy()
-        if "user_id" in data:
-            data["username"] = data.pop("user_id")  # Map user_id to username internally
-
-        request._full_data = data
         response = super().post(request, *args, **kwargs)
 
         refresh = response.data.pop("refresh", None)

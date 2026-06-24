@@ -19,59 +19,53 @@ export const loginSchema = z.object({
 
 // ===== SIGNUP FORM =====
 export const signupSchema = z.object({
-  fullName: z
+  student_name: z
     .string()
     .min(1, 'Full name is required')
     .min(2, 'Name must be at least 2 characters')
     .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
-  
-  fatherName: z
-    .string()
-    .min(1, "Father's name is required")
-    .min(2, 'Must be at least 2 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'Can only contain letters and spaces'),
-  
-  motherName: z
-    .string()
-    .min(1, "Mother's name is required")
-    .min(2, 'Must be at least 2 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'Can only contain letters and spaces'),
-  
-  enrollmentNumber: z
+
+  user_id: z
     .string()
     .min(1, 'Enrollment number is required')
     .min(4, 'Must be at least 4 characters')
     .max(10, 'Must be at most 10 characters')
     .regex(/^[a-zA-Z0-9]+$/, 'Only letters and numbers allowed'),
-  
-  phoneNumber: z
-    .string()
-    .min(1, 'Phone number is required')
-    .regex(/^[0-9]{10}$/, 'Phone must be exactly 10 digits'),
-  
+
   email: z
     .string()
     .min(1, 'Email is required')
     .email('Invalid email address'),
-  
+
+  phone_number: z
+    .string()
+    .min(1, 'Phone number is required')
+    .regex(/^[0-9]{10}$/, 'Phone must be exactly 10 digits'),
+
+  department: z
+    .string()
+    .optional()
+    .default(''),
+
   password: z
     .string()
     .min(1, 'Password is required')
-    .min(6, 'Password must be at least 6 characters'),
-  
-  confirmPassword: z
+    .min(8, 'Password must be at least 8 characters'),
+
+  password2: z
     .string()
     .min(1, 'Confirm password is required')
-    .min(6, 'Must be at least 6 characters'),
+    .min(8, 'Must be at least 8 characters'),
 })
 // Custom validation: Check if passwords match
 .refine(
-  (data) => data.password === data.confirmPassword,
+  (data) => data.password === data.password2,
   {
     message: 'Passwords do not match',
-    path: ['confirmPassword'] // Show error on this specific field
+    path: ['password2'] // Show error on this specific field
   }
 )
+
 
 // ===== LEND/RETURN MODAL FORM =====
 export const lendReturnSchema = z.object({

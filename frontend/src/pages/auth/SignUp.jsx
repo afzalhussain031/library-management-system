@@ -3,46 +3,114 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { signupSchema } from '../../schemas/formSchemas'
+import { auth } from '../../services/api'
 import {
-  User, Users, Baby, IdCard, Phone, Mail,
-  Lock, KeyRound, AlertCircle, Bell, CheckCircle
+  User, IdCard, Phone, Mail, Building2,
+  Lock, KeyRound, Eye, EyeOff,
+  AlertCircle, Bell, CheckCircle
 } from 'lucide-react'
 import signupImage from "../../assets/signup-image.jpg"
+
+// ====== PASSWORD STRENGTH CALCULATOR ======
+// Returns a score from 0 to 4 based on password complexity
+function getPasswordStrength(password) {
+  if (!password) return 0
+  let score = 0
+  if (password.length >= 6) score++   // Minimum length
+  if (password.length >= 10) score++  // Good length
+  if (/[A-Z]/.test(password)) score++ // Has uppercase
+  if (/[0-9]/.test(password)) score++ // Has numbers
+  if (/[^a-zA-Z0-9]/.test(password)) score++ // Has special chars
+  return Math.min(score, 4) // Cap at 4
+}
+
+// Maps score → label and color
+const strengthConfig = {
+  0: { label: '', color: '' },
+  1: { label: 'Weak', color: 'bg-red-500' },
+  2: { label: 'Fair', color: 'bg-orange-400' },
+  3: { label: 'Good', color: 'bg-yellow-400' },
+  4: { label: 'Strong', color: 'bg-green-500' },
+}
+
+// Department options for the dropdown
+const DEPARTMENTS = [
+  'Computer Science',
+  'Electronics',
+  'Mechanical',
+  'Civil',
+  'Electrical',
+  'Information Technology',
+  'Other',
+]
 
 export default function SignUp() {
   const navigate = useNavigate()
   const [showSuccess, setShowSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [serverError, setServerError] = useState('')
 
   // ====== REACT HOOK FORM SETUP ======
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    watch // Watch specific fields (like confirmPassword)
+    setError,  // ← Lets us add backend errors to specific fields
+    watch
   } = useForm({
     resolver: zodResolver(signupSchema),
-    mode: 'onBlur' // Validate when user leaves field
+    mode: 'onSubmit',
+    reValidateMode: 'onChange'
   })
+
+  // Watch password field for strength indicator
+  const passwordValue = watch('password', '')
+  const strength = getPasswordStrength(passwordValue)
 
   // ====== FORM SUBMISSION ======
   const onSubmit = async (data) => {
+    setServerError('')
+
     try {
-      // data is already validated by Zod
-      console.log('Registration data:', data)
-      
-      // TODO: Send to backend API
-      // const response = await registerUser(data)
-      
+      // Send directly — field names already match the backend!
+      await auth.register(data)
+
+      // Success! Show banner and redirect
       setShowSuccess(true)
       setTimeout(() => navigate('/login'), 2000)
     } catch (err) {
-      console.error('Registration error:', err)
+      // Handle backend validation errors
+      if (err.response?.data) {
+        const backendErrors = err.response.data
+
+        // Since field names are consistent, we can use them directly
+        let hasFieldError = false
+
+        Object.entries(backendErrors).forEach(([field, messages]) => {
+          const message = Array.isArray(messages) ? messages[0] : messages
+
+          // setError adds the error message directly under the matching input
+          // This works because our form field names = backend field names
+          setError(field, { type: 'server', message })
+          hasFieldError = true
+        })
+
+        // Handle non-field errors (e.g., {"detail": "..."})
+        if (!hasFieldError) {
+          const genericMsg = backendErrors.detail
+            || backendErrors.non_field_errors?.[0]
+            || 'Registration failed. Please try again.'
+          setServerError(genericMsg)
+        }
+      } else {
+        setServerError('Network error. Please check your connection.')
+      }
     }
   }
 
   // ====== HELPER: Render input with error ======
-  // This reduces code duplication (DRY principle)
-  const renderInput = (fieldName, label, type = 'text', icon = null) => (
+  const renderInput = (fieldName, label, type = 'text', icon = null, extra = {}) => (
     <div>
       <div className="relative">
         {icon}
@@ -54,9 +122,12 @@ export default function SignUp() {
             errors[fieldName]
               ? 'border-red-500 bg-red-50'
               : ''
-          }`}
+          } ${extra.className || ''}`}
           disabled={isSubmitting}
+          autoFocus={extra.autoFocus || false}
         />
+        {/* Password toggle button (only rendered if provided) */}
+        {extra.toggleButton}
       </div>
       {errors[fieldName] && (
         <p className="text-xs text-red-600 mt-1.5">{errors[fieldName].message}</p>
@@ -69,7 +140,7 @@ export default function SignUp() {
       <div className="w-full max-w-[1300px] bg-white rounded-[32px] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[700px]">
 
         {/* ══════════════════════════════════════════════════════════
-            LEFT PANEL: Image
+            LEFT PANEL: Image (unchanged from your original)
             ══════════════════════════════════════════════════════════ */}
         <div className="relative w-full lg:w-[52%] overflow-hidden min-h-[300px]">
           <img
@@ -130,66 +201,139 @@ export default function SignUp() {
               </div>
             )}
 
+            {/* Server-level error (non-field errors) */}
+            {serverError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-4 py-3 mb-5 text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {serverError}
+              </div>
+            )}
+
             {/* ============ FORM STARTS HERE ============ */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
               
-              {/* Full Name */}
-              {renderInput('fullName', 'Full Name', 'text', 
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              {/* Full Name — auto-focused */}
+              {renderInput('student_name', 'Full Name', 'text', 
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />,
+                { autoFocus: true }
               )}
 
-              <div className="flex gap-3">
-                {/* Father's Name */}
-                <div className="flex-1">
-                  {renderInput('fatherName', "Father's Name", 'text',
-                    <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  )}
-                </div>
-
-                {/* Mother's Name */}
-                <div className="flex-1">
-                  {renderInput('motherName', "Mother's Name", 'text',
-                    <Baby className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  )}
-                </div>
-              </div>
-
               {/* Enrollment Number */}
-              {renderInput('enrollmentNumber', 'Enrollment Number', 'text',
+              {renderInput('user_id', 'Enrollment Number', 'text',
                 <IdCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               )}
 
               <div className="flex gap-3">
-                {/* Phone Number */}
-                <div className="flex-1">
-                  {renderInput('phoneNumber', 'Phone Number', 'tel',
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  )}
-                </div>
-
                 {/* Email */}
                 <div className="flex-1">
                   {renderInput('email', 'Email', 'email',
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   )}
                 </div>
+
+                {/* Phone Number */}
+                <div className="flex-1">
+                  {renderInput('phone_number', 'Phone Number', 'tel',
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  )}
+                </div>
+              </div>
+
+              {/* Department Dropdown */}
+              <div>
+                <div className="relative">
+                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <select
+                    {...register('department')}
+                    className={`w-full rounded-full border border-gray-200 bg-gray-50 px-5 py-2.5 pl-10 text-sm outline-none transition focus:border-yellow-400 focus:ring-2 focus:ring-yellow-300/40 text-gray-800 appearance-none cursor-pointer ${
+                      errors.department ? 'border-red-500 bg-red-50' : ''
+                    }`}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Select Department (Optional)</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+                {errors.department && (
+                  <p className="text-xs text-red-600 mt-1.5">{errors.department.message}</p>
+                )}
               </div>
 
               <div className="flex gap-3">
-                {/* Password */}
+                {/* Password with show/hide toggle */}
                 <div className="flex-1">
-                  {renderInput('password', 'Password', 'password',
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  {renderInput('password', 'Password', showPassword ? 'text' : 'password',
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />,
+                    {
+                      className: 'pr-10',
+                      toggleButton: (
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                          tabIndex={-1}
+                        >
+                          {showPassword
+                            ? <EyeOff className="w-4 h-4" />
+                            : <Eye className="w-4 h-4" />
+                          }
+                        </button>
+                      )
+                    }
                   )}
                 </div>
 
-                {/* Confirm Password */}
+                {/* Confirm Password with show/hide toggle */}
                 <div className="flex-1">
-                  {renderInput('confirmPassword', 'Confirm Password', 'password',
-                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  {renderInput('password2', 'Confirm Password', showConfirmPassword ? 'text' : 'password',
+                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />,
+                    {
+                      className: 'pr-10',
+                      toggleButton: (
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                          tabIndex={-1}
+                        >
+                          {showConfirmPassword
+                            ? <EyeOff className="w-4 h-4" />
+                            : <Eye className="w-4 h-4" />
+                          }
+                        </button>
+                      )
+                    }
                   )}
                 </div>
               </div>
+
+              {/* Password Strength Bar */}
+              {passwordValue && (
+                <div className="px-1">
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 4].map((level) => (
+                      <div
+                        key={level}
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                          strength >= level
+                            ? strengthConfig[strength].color
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs mt-1 ${
+                    strength <= 1 ? 'text-red-500' :
+                    strength === 2 ? 'text-orange-400' :
+                    strength === 3 ? 'text-yellow-500' :
+                    'text-green-500'
+                  }`}>
+                    {strengthConfig[strength].label}
+                  </p>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button

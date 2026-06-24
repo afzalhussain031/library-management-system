@@ -2,6 +2,7 @@ from apps.accounts.models import CustomUser, Membership
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 CustomUser = get_user_model()
@@ -19,7 +20,6 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = [
             "user_id",
-            "role",
             "email",
             "password",
             "password2",
@@ -27,11 +27,14 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
             "last_name",
             "phone_number",
             "department",
+            "student_name",
         ]
         extra_kwargs = {
             "first_name": {"required": False},
             "last_name": {"required": False},
+            "student_name": {"required": False},
             "email": {"required": True},
+            "role": {"required": False},
         }
 
     def validate_user_id(self, value):
@@ -50,8 +53,8 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
         """Validate password strength"""
         try:
             validate_password(value)
-        except serializers.ValidationError as e:
-            raise serializers.ValidationError(str(e))
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.messages)
         return value
 
     def validate(self, data):
@@ -91,8 +94,8 @@ class StaffCreateSerializer(serializers.ModelSerializer):
     def validate_password(self, value):
         try:
             validate_password(value)
-        except serializers.ValidationError as e:
-            raise serializers.ValidationError(str(e))
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.messages)
         return value
 
     def validate(self, data):
@@ -190,8 +193,8 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         try:
             validate_password(value)
-        except serializers.ValidationError as e:
-            raise serializers.ValidationError(str(e))
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.messages)
         return value
 
     def validate(self, data):
@@ -237,7 +240,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         try:
             validate_password(value)
-        except serializers.ValidationError as e:
+        except DjangoValidationError as e:
             raise serializers.ValidationError(str(e))
         return value
 

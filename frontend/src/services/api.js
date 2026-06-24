@@ -16,6 +16,12 @@ export const auth = {
     return response.data
   },
 
+  // Register a new student account
+  register: async (formData) => {
+    const response = await client.post('/register/', formData)
+    return response.data
+  },
+
   getCurrentUser: () =>
     client.get('/me/'),
   

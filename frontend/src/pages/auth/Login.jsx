@@ -23,7 +23,8 @@ export default function Login() {
     setError         // Function to manually set field errors
   } = useForm({
     resolver: zodResolver(loginSchema), // Use Zod schema for validation
-    mode: 'onBlur'   // Validate when user leaves field (not on every keystroke)
+    mode: 'onSubmit', // Only validate for the first time when the user clicks submit
+    reValidateMode: 'onChange' // Clear errors instantly as the user types
   })
 
 
@@ -44,8 +45,8 @@ export default function Login() {
         navigate('/dashboard')
       }
     } catch (err) {
-      // If API call fails, show error on enrollmentNumber field
-      setError('enrollmentNumber', {
+      // If API call fails, show error as a general form error
+      setError('root', {
         message: 'Invalid enrollment number or password'
       })
     }
@@ -185,6 +186,14 @@ export default function Login() {
                   Forgot password?
                 </a>
               </div>
+
+              {/* Show root error message if login fails */}
+              {errors.root && (
+                <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-4 py-3 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {errors.root.message}
+                </div>
+              )}
 
               {/* ════════════════════════════════════════
                   SUBMIT BUTTON

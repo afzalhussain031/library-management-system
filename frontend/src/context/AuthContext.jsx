@@ -26,7 +26,6 @@ export function AuthProvider({ children }) {
 
   // Login function
   async function login(username, password) {
-    setLoading(true)
     setError(null)
     try {
       await auth.login(username, password)
@@ -36,8 +35,6 @@ export function AuthProvider({ children }) {
     } catch (err) {
       setError(err.message)
       throw err
-    } finally {
-      setLoading(false)
     }
   }
 
