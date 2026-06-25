@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { catalog } from "../../services/api";
+import { catalog } from "../../../services/api";
 
 export default function Recommended() {
   const [books, setBooks] = useState([]);

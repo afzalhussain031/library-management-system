@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { profile } from "../../services/api";
 
-import ProfileCard from "../../components/Profile/ProfileCard";
-import InfoSection from "../../components/Profile/InfoSection";
-import BookHistory from "../../components/Profile/BookHistory";
+import ProfileCard from "../../components/user/profile/ProfileCard";
+import InfoSection from "../../components/user/profile/InfoSection";
+import BookHistory from "../../components/user/profile/BookHistory";
 
 export default function UserProfile() {
   const { currentUser } = useAuth(); // Get current user from context

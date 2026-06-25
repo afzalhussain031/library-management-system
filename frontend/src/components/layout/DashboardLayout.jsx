@@ -15,19 +15,20 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-linear-to-r from-gray-100 to-yellow-100 overflow-hidden">
       {/* Sidebar */}
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onToggle={() => setSidebarOpen(prev => !prev)}
       />
 
       {/* Main area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden p-3 pl-0 gap-3">
         <Topbar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto no-scrollbar">
           <Suspense fallback={<PageLoader />}>
             <Outlet />
           </Suspense>

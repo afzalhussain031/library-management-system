@@ -5,10 +5,10 @@ export const loginSchema = z.object({
   // enrollmentNumber field
   enrollmentNumber: z
     .string()
-    .min(1, 'Enrollment number is required') // User must enter something
-    .min(4, 'Must be at least 4 characters') // Minimum length check
-    .max(10, 'Must be at most 10 characters') // Maximum length check
-    .regex(/^[a-zA-Z0-9]+$/, 'Only letters and numbers allowed'), // Only alphanumeric
+    .min(1, 'Enrollment number or Employee ID is required') 
+    .min(4, 'Must be at least 4 characters') 
+    .max(50, 'Must be at most 50 characters') 
+    .regex(/^[a-zA-Z0-9-_]+$/, 'Only letters, numbers, hyphens, and underscores allowed'),
   
   // password field
   password: z

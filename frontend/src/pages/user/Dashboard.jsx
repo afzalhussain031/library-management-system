@@ -1,8 +1,8 @@
-import StatCard from "../../components/Dashboard/StatCard";
-import BorrowedList from "../../components/Dashboard/BorrowedList";
-import Notifications from "../../components/Dashboard/Notifications";
-import Recommended from "../../components/Dashboard/Recommended";
-import FineCard from "../../components/Dashboard/FineCard";
+import StatCard from "../../components/user/dashboard/StatCard";
+import BorrowedList from "../../components/user/dashboard/BorrowedList";
+import Notifications from "../../components/user/dashboard/Notifications";
+import Recommended from "../../components/user/dashboard/Recommended";
+import FineCard from "../../components/user/dashboard/FineCard";
 import { useState, useEffect } from "react";
 import { dashboard } from "../../services/api";
 import { Pause,Wallet,Mail, Heart } from "lucide-react";

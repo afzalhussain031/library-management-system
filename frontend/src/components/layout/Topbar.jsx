@@ -1,54 +1,43 @@
-import { Bell, Menu, LogOut } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
-import { useRole } from '../../hook/useRole'
+import { Bell, SlidersHorizontal } from "lucide-react";
+import profileImg from "../../assets/profile.jpg";
 
-const ROLE_STYLES = {
-  user: { avatar: 'bg-green-100 text-green-700' },
-  admin: { avatar: 'bg-blue-100 text-blue-700' },
-  superadmin: { avatar: 'bg-orange-100 text-orange-700' },
-}
-
-export default function Topbar({ onMenuToggle }) {
-  const { currentUser, logout } = useAuth()
-  const { role } = useRole()
-  const styles = ROLE_STYLES[role] ?? ROLE_STYLES.user
-
+const Navbar = () => {
   return (
-    <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 shrink-0 z-10">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onMenuToggle}
-          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors lg:hidden"
-        >
-          <Menu size={18} />
-        </button>
-        <div className="items-center gap-2 hidden lg:flex">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <span className="text-white text-xs font-semibold">D</span>
+    <div className="bg-white shadow rounded-4xl px-4 md:px-8 py-3">
+      <div className="flex flex-col md:flex-row items-center gap-4 md:gap-0 md:justify-between">
+
+        {/* Search Bar */}
+        <div className="flex items-center bg-gray-100 rounded-full px-4 py-2 w-full md:w-100">
+          <input
+            type="text"
+            placeholder="Search books..."
+            className="bg-transparent outline-none flex-1 text-sm"
+          />
+          <SlidersHorizontal size={18} />
+        </div>
+
+        {/* Right Section */}
+        <div className="flex items-center justify-between w-full md:w-auto gap-4">
+          <button className="relative">
+            <Bell size={20} />
+          </button>
+
+          <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-2">
+            <img
+              src={profileImg}
+              alt="profile"
+              className="w-8 h-8 rounded-full"
+            />
+
+            {/* Hide username on very small screens */}
+            <span className="hidden sm:block text-sm font-medium">
+              User
+            </span>
           </div>
-          <span className="font-semibold text-gray-800 text-sm">DashApp</span>
         </div>
       </div>
+    </div>
+  );
+};
 
-      <div className="flex items-center gap-2">
-
-        <button className="relative p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-          <Bell size={16} />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full" />
-        </button>
-
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${styles.avatar}`}>
-          {currentUser?.avatar}
-        </div>
-
-        <button
-          onClick={logout}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-          title="Logout"
-        >
-          <LogOut size={15} />
-        </button>
-      </div>
-    </header>
-  )
-}
+export default Navbar;

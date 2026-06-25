@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { dashboard } from "../../services/api";
+import { dashboard } from "../../../services/api";
 
 export default function FineCard() {
   const [fines, setFines] = useState(null);
