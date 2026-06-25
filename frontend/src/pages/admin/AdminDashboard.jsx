@@ -13,12 +13,14 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const stats = [
-    { id: 1, title: 'Total Inventory', value: '210', weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
-    { id: 2, title: 'Total books overdue', value: '32', weeklyDelta: '-2% This month', monthlyDelta: '₹ 8,360 Fine this month' },
-    { id: 3, title: 'Total Books Borrowed', value: '120', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
-    { id: 4, title: 'Books Left', value: '90', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
-  ];
+  // 1. Replaced the static `const stats = [...]` with a React State Variable
+  //    This acts as a placeholder while the data is loading from the API.
+  const [stats, setStats] = useState([
+    { id: 1, title: 'Total Inventory', value: '...', weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
+    { id: 2, title: 'Total books overdue', value: '32', weeklyDelta: '-2% This month', monthlyDelta: 'Loading fines...' },
+    { id: 3, title: 'Total Books Borrowed', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
+    { id: 4, title: 'Books Left', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
+  ]);
 
   const overdueDetails = [
     { id: 1, userInitials: 'JS', userColor: 'bg-gray-200', userName: 'John Stone', bookInitial: 'B', bookColor: 'bg-red-400', bookTitle: 'Do Android...', bookAuthor: 'by Douglas A.', overdue: '1 Days', fine: '₹ 40' },
@@ -30,9 +32,21 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
-        const [reservationsRes, loansRes] = await Promise.all([
+        // 2. Added the analytics endpoint to the API calls array
+        const [reservationsRes, loansRes, statsRes] = await Promise.all([
           client.get('/reservations/'),
-          client.get('/loans/')
+          client.get('/loans/'),
+          client.get('/analytics/dashboard-stats/') // <-- New Call
+        ]);
+
+        // 3. Extracted the data and updated the Stats state
+        const analyticsData = statsRes.data;
+
+        setStats([
+          { id: 1, title: 'Total Inventory', value: analyticsData.total_inventory, weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
+          { id: 2, title: 'Total books overdue', value: '32', weeklyDelta: '-2% This month', monthlyDelta: `₹ ${analyticsData.total_fines} Fine this month` },
+          { id: 3, title: 'Total Books Borrowed', value: analyticsData.total_borrowed, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
+          { id: 4, title: 'Books Left', value: analyticsData.books_left, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
         ]);
 
         const formattedRequests = reservationsRes.data.map(res => ({
