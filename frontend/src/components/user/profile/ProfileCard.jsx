@@ -1,4 +1,4 @@
-import profileImg from "../../assets/profile.jpg";
+import profileImg from "../../../assets/profile.jpg";
 export default function ProfileCard({ userData }) {
 
   const userName = userData?.student_name || userData?.first_name || "User";

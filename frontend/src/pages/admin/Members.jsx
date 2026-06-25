@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ChevronDown, Plus, GraduationCap, Calendar } from 'lucide-react';
-import MemberCard from '../../components/admin/MemberCard';
-import MemberDetailsModal from '../../components/admin/MemberDetailsModal';
+import MemberCard from '../../components/admin/members/MemberCard';
+import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
 
 const MOCK_MEMBERS = [
   { id: 1, name: 'John Stone', enr: 'ENR-001', phone: '9876543210', branch: 'CSE', year: '3rd Year', borrowed: 6, fine: 450, img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150' },

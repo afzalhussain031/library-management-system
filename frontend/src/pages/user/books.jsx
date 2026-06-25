@@ -2,8 +2,8 @@ import React from "react"
 
 
 
-import BookList from "../../components/books/booklist.jsx";
-import Navbar1 from "../../components/books/navbar.jsx";
+import BookList from "../../components/user/catalog/BookList";
+import Navbar1 from "../../components/user/catalog/Navbar";
 
 
 
