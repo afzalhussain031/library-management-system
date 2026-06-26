@@ -22,10 +22,7 @@ const AdminDashboard = () => {
     { id: 4, title: 'Books Left', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
   ]);
 
-  const overdueDetails = [
-    { id: 1, userInitials: 'JS', userColor: 'bg-gray-200', userName: 'John Stone', bookInitial: 'B', bookColor: 'bg-red-400', bookTitle: 'Do Android...', bookAuthor: 'by Douglas A.', overdue: '1 Days', fine: '₹ 40' },
-    { id: 2, userInitials: 'PP', userColor: 'bg-yellow-200', userName: 'Ponnappa P...', bookInitial: 'B', bookColor: 'bg-orange-400', bookTitle: 'The Hitchh...', bookAuthor: 'by Ray Bradb...', overdue: '1 Days', fine: '₹ 40' },
-  ];
+  const [overdueDetails, setOverdueDetails] = useState([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -126,8 +123,48 @@ const AdminDashboard = () => {
           };
         });
 
+        // 1. Filter and process Overdue Loans
+        const formattedOverdueDetails = loansRes.data
+          .filter(loan => !loan.returned_at && new Date(loan.due_at) < new Date())
+          .map(loan => {
+            const userName = loan.user_name || 'Unknown User';
+            
+            // 2. Calculate overdue days exactly like the Python backend does
+            const dueDate = new Date(loan.due_at);
+            dueDate.setHours(0, 0, 0, 0); // Reset time to midnight to compare just dates
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const diffTime = today - dueDate;
+            // Convert milliseconds to days. Ensure at least 1 day overdue.
+            const overdueDays = Math.max(Math.round(diffTime / (1000 * 60 * 60 * 24)), 1);
+            
+            // 3. Calculate fine: ₹10 per day
+            const fineAmount = overdueDays * 10;
+
+            // 4. Generate deterministic UI colors based on loan ID
+            const bookColors = ['bg-red-400', 'bg-orange-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
+            const userColors = ['bg-gray-200', 'bg-yellow-200', 'bg-blue-200', 'bg-green-200', 'bg-pink-200'];
+
+            return {
+              id: loan.id,
+              userInitials: userName.substring(0, 2).toUpperCase(),
+              userColor: userColors[loan.id % userColors.length],
+              userName: userName,
+              bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
+              bookColor: bookColors[loan.id % bookColors.length],
+              bookTitle: loan.book_title,
+              bookAuthor: `by ${loan.book_author}`,
+              overdue: `${overdueDays} Days`,
+              fine: `₹ ${fineAmount}`
+            };
+          });
+
+        
+
         setBookRequests(formattedRequests);
         setBooksLended(formattedLoans);
+        setOverdueDetails(formattedOverdueDetails);
 
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
