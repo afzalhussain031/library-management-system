@@ -79,22 +79,25 @@ const AdminDashboard = () => {
           },
         ]);
 
-        const formattedRequests = reservationsRes.data.map(res => ({
-          id: res.id,
-          bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
-          bookColor: 'bg-blue-400', 
-          bookTitle: res.book_title,
-          bookAuthor: `by ${res.book_author}`,
-          userInitials: 'U', 
-          userColor: 'bg-gray-200',
-          userName: `User #${res.user}`, 
-          date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
-        }));
+        const formattedRequests = reservationsRes.data.map(res => {
+          const userName = res.user_name || `User #${res.user}`;
+          
+          return {
+            id: res.id,
+            bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
+            bookColor: 'bg-blue-400', 
+            bookTitle: res.book_title,
+            bookAuthor: `by ${res.book_author}`,
+            userInitials: userName.charAt(0).toUpperCase(), 
+            userColor: 'bg-gray-200',
+            userName: userName,
+            date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
+          };
+        });
 
         const formattedLoans = loansRes.data.map(loan => {
           let status = 'Borrowed';
           let statusColor = 'text-blue-500 bg-blue-50';
-
           if (loan.returned_at) {
             status = 'Returned';
             statusColor = 'text-green-500 bg-green-50';
@@ -106,15 +109,17 @@ const AdminDashboard = () => {
             statusColor = 'text-yellow-600 bg-yellow-50';
           }
 
+          const userName = loan.user_name || 'Unknown User';
+
           return {
             id: loan.id,
             bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
             bookColor: 'bg-green-400',
             bookTitle: loan.book_title,
             bookAuthor: `by ${loan.book_author}`,
-            userInitials: 'U', 
+            userInitials: userName.charAt(0).toUpperCase(), 
             userColor: 'bg-gray-200',
-            userName: `User`, 
+            userName: userName, 
             date: new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
             status: status,
             statusColor: statusColor
