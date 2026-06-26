@@ -42,11 +42,41 @@ const AdminDashboard = () => {
         // 3. Extracted the data and updated the Stats state
         const analyticsData = statsRes.data;
 
+        // A helper function to safely calculate a percentage growth
+        const calculatePercent = (part, total) => {
+            if (!total) return 0;
+            return Math.round((part / total) * 100);
+        };
+
         setStats([
-          { id: 1, title: 'Total Inventory', value: analyticsData.total_inventory, weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
-          { id: 2, title: 'Total books overdue', value: analyticsData.total_overdue, weeklyDelta: '-2% This month', monthlyDelta: `₹ ${analyticsData.total_fines} Fine this month` },
-          { id: 3, title: 'Total Books Borrowed', value: analyticsData.total_borrowed, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
-          { id: 4, title: 'Books Left', value: analyticsData.books_left, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
+          { 
+            id: 1, 
+            title: 'Total Inventory', 
+            value: analyticsData.total_inventory, 
+            weeklyDelta: `+${analyticsData.inventory_this_week} This week`, 
+            monthlyDelta: `+${calculatePercent(analyticsData.inventory_this_month, analyticsData.total_inventory)}% This month` 
+          },
+          { 
+            id: 2, 
+            title: 'Total books overdue', 
+            value: analyticsData.total_overdue, 
+            weeklyDelta: `+${analyticsData.overdue_this_week} This week`, 
+            monthlyDelta: `₹ ${analyticsData.fines_this_month} Fine this month` 
+          },
+          { 
+            id: 3, 
+            title: 'Total Books Borrowed', 
+            value: analyticsData.total_borrowed, 
+            weeklyDelta: `+${analyticsData.borrowed_this_week} This week`, 
+            monthlyDelta: `+${calculatePercent(analyticsData.borrowed_this_month, analyticsData.total_borrowed)}% This month` 
+          },
+          { 
+            id: 4, 
+            title: 'Books Left', 
+            value: analyticsData.books_left, 
+            weeklyDelta: `-`, // Books left is a fluctuating total, delta might not be as relevant here
+            monthlyDelta: `-` 
+          },
         ]);
 
         const formattedRequests = reservationsRes.data.map(res => ({
