@@ -22,7 +22,7 @@ class LoanViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.user.is_authenticated and self.request.user.is_staff:
+        if self.request.user.is_authenticated and (self.request.user.is_staff or self.request.user.is_librarian_staff):
             return queryset
         return queryset.filter(borrower=self.request.user)
 
@@ -96,7 +96,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.user.is_authenticated and self.request.user.is_staff:
+        if self.request.user.is_authenticated and (self.request.user.is_staff or self.request.user.is_librarian_staff):
             return queryset
         return queryset.filter(user=self.request.user)
 

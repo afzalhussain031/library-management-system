@@ -17,15 +17,12 @@ const AdminDashboard = () => {
   //    This acts as a placeholder while the data is loading from the API.
   const [stats, setStats] = useState([
     { id: 1, title: 'Total Inventory', value: '...', weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
-    { id: 2, title: 'Total books overdue', value: '32', weeklyDelta: '-2% This month', monthlyDelta: 'Loading fines...' },
+    { id: 2, title: 'Total books overdue', value: '...', weeklyDelta: '-2% This month', monthlyDelta: 'Loading fines...' }, 
     { id: 3, title: 'Total Books Borrowed', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
     { id: 4, title: 'Books Left', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
   ]);
 
-  const overdueDetails = [
-    { id: 1, userInitials: 'JS', userColor: 'bg-gray-200', userName: 'John Stone', bookInitial: 'B', bookColor: 'bg-red-400', bookTitle: 'Do Android...', bookAuthor: 'by Douglas A.', overdue: '1 Days', fine: '₹ 40' },
-    { id: 2, userInitials: 'PP', userColor: 'bg-yellow-200', userName: 'Ponnappa P...', bookInitial: 'B', bookColor: 'bg-orange-400', bookTitle: 'The Hitchh...', bookAuthor: 'by Ray Bradb...', overdue: '1 Days', fine: '₹ 40' },
-  ];
+  const [overdueDetails, setOverdueDetails] = useState([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -42,29 +39,62 @@ const AdminDashboard = () => {
         // 3. Extracted the data and updated the Stats state
         const analyticsData = statsRes.data;
 
+        // A helper function to safely calculate a percentage growth
+        const calculatePercent = (part, total) => {
+            if (!total) return 0;
+            return Math.round((part / total) * 100);
+        };
+
         setStats([
-          { id: 1, title: 'Total Inventory', value: analyticsData.total_inventory, weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
-          { id: 2, title: 'Total books overdue', value: '32', weeklyDelta: '-2% This month', monthlyDelta: `₹ ${analyticsData.total_fines} Fine this month` },
-          { id: 3, title: 'Total Books Borrowed', value: analyticsData.total_borrowed, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
-          { id: 4, title: 'Books Left', value: analyticsData.books_left, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
+          { 
+            id: 1, 
+            title: 'Total Inventory', 
+            value: analyticsData.total_inventory, 
+            weeklyDelta: `+${analyticsData.inventory_this_week} This week`, 
+            monthlyDelta: `+${calculatePercent(analyticsData.inventory_this_month, analyticsData.total_inventory)}% This month` 
+          },
+          { 
+            id: 2, 
+            title: 'Total books overdue', 
+            value: analyticsData.total_overdue, 
+            weeklyDelta: `+${analyticsData.overdue_this_week} This week`, 
+            monthlyDelta: `₹ ${analyticsData.fines_this_month} Fine this month` 
+          },
+          { 
+            id: 3, 
+            title: 'Total Books Borrowed', 
+            value: analyticsData.total_borrowed, 
+            weeklyDelta: `+${analyticsData.borrowed_this_week} This week`, 
+            monthlyDelta: `+${calculatePercent(analyticsData.borrowed_this_month, analyticsData.total_borrowed)}% This month` 
+          },
+          { 
+            id: 4, 
+            title: 'Books Left', 
+            value: analyticsData.books_left, 
+            weeklyDelta: `-`, // Books left is a fluctuating total, delta might not be as relevant here
+            monthlyDelta: `-` 
+          },
         ]);
 
-        const formattedRequests = reservationsRes.data.map(res => ({
-          id: res.id,
-          bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
-          bookColor: 'bg-blue-400', 
-          bookTitle: res.book_title,
-          bookAuthor: `by ${res.book_author}`,
-          userInitials: 'U', 
-          userColor: 'bg-gray-200',
-          userName: `User #${res.user}`, 
-          date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
-        }));
+        const formattedRequests = reservationsRes.data.map(res => {
+          const userName = res.user_name || `User #${res.user}`;
+          
+          return {
+            id: res.id,
+            bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
+            bookColor: 'bg-blue-400', 
+            bookTitle: res.book_title,
+            bookAuthor: `by ${res.book_author}`,
+            userInitials: userName.charAt(0).toUpperCase(), 
+            userColor: 'bg-gray-200',
+            userName: userName,
+            date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
+          };
+        });
 
         const formattedLoans = loansRes.data.map(loan => {
           let status = 'Borrowed';
           let statusColor = 'text-blue-500 bg-blue-50';
-
           if (loan.returned_at) {
             status = 'Returned';
             statusColor = 'text-green-500 bg-green-50';
@@ -76,23 +106,65 @@ const AdminDashboard = () => {
             statusColor = 'text-yellow-600 bg-yellow-50';
           }
 
+          const userName = loan.user_name || 'Unknown User';
+
           return {
             id: loan.id,
             bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
             bookColor: 'bg-green-400',
             bookTitle: loan.book_title,
             bookAuthor: `by ${loan.book_author}`,
-            userInitials: 'U', 
+            userInitials: userName.charAt(0).toUpperCase(), 
             userColor: 'bg-gray-200',
-            userName: `User`, 
+            userName: userName, 
             date: new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
             status: status,
             statusColor: statusColor
           };
         });
 
+        // 1. Filter and process Overdue Loans
+        const formattedOverdueDetails = loansRes.data
+          .filter(loan => !loan.returned_at && new Date(loan.due_at) < new Date())
+          .map(loan => {
+            const userName = loan.user_name || 'Unknown User';
+            
+            // 2. Calculate overdue days exactly like the Python backend does
+            const dueDate = new Date(loan.due_at);
+            dueDate.setHours(0, 0, 0, 0); // Reset time to midnight to compare just dates
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const diffTime = today - dueDate;
+            // Convert milliseconds to days. Ensure at least 1 day overdue.
+            const overdueDays = Math.max(Math.round(diffTime / (1000 * 60 * 60 * 24)), 1);
+            
+            // 3. Calculate fine: ₹10 per day
+            const fineAmount = overdueDays * 10;
+
+            // 4. Generate deterministic UI colors based on loan ID
+            const bookColors = ['bg-red-400', 'bg-orange-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
+            const userColors = ['bg-gray-200', 'bg-yellow-200', 'bg-blue-200', 'bg-green-200', 'bg-pink-200'];
+
+            return {
+              id: loan.id,
+              userInitials: userName.substring(0, 2).toUpperCase(),
+              userColor: userColors[loan.id % userColors.length],
+              userName: userName,
+              bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
+              bookColor: bookColors[loan.id % bookColors.length],
+              bookTitle: loan.book_title,
+              bookAuthor: `by ${loan.book_author}`,
+              overdue: `${overdueDays} Days`,
+              fine: `₹ ${fineAmount}`
+            };
+          });
+
+        
+
         setBookRequests(formattedRequests);
         setBooksLended(formattedLoans);
+        setOverdueDetails(formattedOverdueDetails);
 
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
