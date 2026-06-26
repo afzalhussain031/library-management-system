@@ -15,7 +15,8 @@ export function AuthProvider({ children }) {
 
   async function checkAuth() {
     try {
-      const user = await auth.getCurrentUser()
+      const response = await auth.getCurrentUser()
+      const user = response?.data || response
       setCurrentUser(user)
     } catch (err) {
       console.log('Not logged in')
@@ -29,11 +30,13 @@ export function AuthProvider({ children }) {
     setError(null)
     try {
       await auth.login(username, password)
-      const user = await auth.getCurrentUser()
+      const response = await auth.getCurrentUser()
+      const user = response?.data || response
       setCurrentUser(user)
       return user
     } catch (err) {
-      setError(err.message)
+      const errorMessage = err.response?.data?.detail || err.response?.data?.message || err.message
+      setError(errorMessage)
       throw err
     }
   }
@@ -45,7 +48,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
-      localStorage.removeItem('access_token')     
+      localStorage.removeItem('access_token')
       setCurrentUser(null)
     }
   }
