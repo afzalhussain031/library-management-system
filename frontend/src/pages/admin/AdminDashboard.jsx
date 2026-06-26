@@ -17,7 +17,7 @@ const AdminDashboard = () => {
   //    This acts as a placeholder while the data is loading from the API.
   const [stats, setStats] = useState([
     { id: 1, title: 'Total Inventory', value: '...', weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
-    { id: 2, title: 'Total books overdue', value: '32', weeklyDelta: '-2% This month', monthlyDelta: 'Loading fines...' },
+    { id: 2, title: 'Total books overdue', value: '...', weeklyDelta: '-2% This month', monthlyDelta: 'Loading fines...' }, 
     { id: 3, title: 'Total Books Borrowed', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
     { id: 4, title: 'Books Left', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
   ]);
@@ -44,7 +44,7 @@ const AdminDashboard = () => {
 
         setStats([
           { id: 1, title: 'Total Inventory', value: analyticsData.total_inventory, weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
-          { id: 2, title: 'Total books overdue', value: '32', weeklyDelta: '-2% This month', monthlyDelta: `₹ ${analyticsData.total_fines} Fine this month` },
+          { id: 2, title: 'Total books overdue', value: analyticsData.total_overdue, weeklyDelta: '-2% This month', monthlyDelta: `₹ ${analyticsData.total_fines} Fine this month` },
           { id: 3, title: 'Total Books Borrowed', value: analyticsData.total_borrowed, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
           { id: 4, title: 'Books Left', value: analyticsData.books_left, weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
         ]);
