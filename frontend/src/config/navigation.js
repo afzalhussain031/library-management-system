@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 
 export const ROLES = {
-  USER: 'user', 
+  USER: 'student', 
   STAFF: 'staff',
   ADMIN: 'superadmin',
   LIBRARIAN: 'librarian'

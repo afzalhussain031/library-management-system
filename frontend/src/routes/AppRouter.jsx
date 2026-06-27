@@ -14,6 +14,24 @@ import ManageBooks from '../pages/admin/ManageBooks';
 import Members from '../pages/admin/Members';
 import AdminDashboard from "../pages/admin/AdminDashboard";
 
+// ==========================================
+// SMART ROOT REDIRECT COMPONENT
+// ==========================================
+const RootRedirect = () => {
+  const { currentUser } = useAuth();
+  
+  // 1. If not logged in, go to login page
+  if (!currentUser) return <Navigate to="/login" replace />;
+  
+  // 2. If Staff, Admin, or Librarian, go to the Admin Dashboard
+  if (['staff', 'librarian', 'superadmin'].includes(currentUser?.role)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
+  // 3. Otherwise (Students/Users), go to the User Dashboard
+  return <Navigate to="/dashboard" replace />;
+};
+
 const AppRouter = () => {
   const { currentUser, loading } = useAuth();
 
