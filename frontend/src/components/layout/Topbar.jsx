@@ -1,7 +1,21 @@
-import { Bell, SlidersHorizontal } from "lucide-react";
+import { Bell, SlidersHorizontal, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import profileImg from "../../assets/profile.jpg";
 
 const Navbar = () => {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <div className="bg-white shadow rounded-4xl px-4 md:px-8 py-3">
       <div className="flex flex-col md:flex-row items-center gap-4 md:gap-0 md:justify-between">
@@ -31,9 +45,20 @@ const Navbar = () => {
 
             {/* Hide username on very small screens */}
             <span className="hidden sm:block text-sm font-medium">
-              User
+              {currentUser?.student_name ||
+                `${currentUser?.first_name || ""} ${currentUser?.last_name || ""}`.trim() ||
+                currentUser?.user_id ||
+                "User"}
             </span>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center p-2 rounded-full hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors cursor-pointer"
+            title="Logout"
+          >
+            <LogOut size={20} />
+          </button>
         </div>
       </div>
     </div>
