@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import ManageBooks from '../pages/admin/ManageBooks';
 import ProtectedRoute from '../components/layout/ProtectedRoute';
 
 // Pages
@@ -11,6 +10,8 @@ import Dashboard from '../pages/user/Dashboard';
 import UserProfile from "../pages/user/Profile";
 import Wishlist from "../pages/user/Wishlist";
 import Books from "../pages/user/Books";
+import ManageBooks from '../pages/admin/ManageBooks';
+import Members from '../pages/admin/Members';
 import AdminDashboard from "../pages/admin/AdminDashboard";
 
 const AppRouter = () => {
@@ -49,7 +50,7 @@ const AppRouter = () => {
           
           {/* Add these so the app doesn't crash when you click the new links */}
           <Route path="/admin/circulation" element={<ManageBooks />} /> {/* Placeholder */}
-          <Route path="/admin/members" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/members" element={<Members />} />
           <Route path="/admin/reservations" element={<ManageBooks />} /> {/* Placeholder */}
           <Route path="/admin/fines" element={<ManageBooks />} /> {/* Placeholder */}
           <Route path="/admin/reports" element={<ManageBooks />} /> {/* Placeholder */}
