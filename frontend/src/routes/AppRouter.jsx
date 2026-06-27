@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
+import ManageBooks from '../pages/admin/ManageBooks';
 import ProtectedRoute from '../components/layout/ProtectedRoute';
 
 // Pages
@@ -41,13 +42,20 @@ const AppRouter = () => {
       </Route>
 
       {/* ================= GROUP 2: STRICT ADMIN ROUTES ================= */}
-      {/* Handing the guard an explicit list locks down this folder to admins ONLY */}
       <Route element={<ProtectedRoute allowedRoles={['staff', 'librarian', 'superadmin']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          {/* Add any other future administrator-only pages here */}
+          <Route path="/admin/books" element={<ManageBooks />} />
+          
+          {/* Add these so the app doesn't crash when you click the new links */}
+          <Route path="/admin/circulation" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/members" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/reservations" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/fines" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/reports" element={<ManageBooks />} /> {/* Placeholder */}
         </Route>
       </Route>
+
 
       {/* ================= REDIRECTS & FALLBACKS ================= */}
       {/* Landings rule */}
