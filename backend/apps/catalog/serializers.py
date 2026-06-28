@@ -1,6 +1,7 @@
 from rest_framework import serializers
-
 from .models import Book, Category, Publisher, Wishlist
+from apps.inventory.models import BookCopy 
+
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -22,9 +23,20 @@ class BookSerializer(serializers.ModelSerializer):
     added_by = serializers.PrimaryKeyRelatedField(read_only=True)
     published_date = serializers.DateField(required=False)
 
+    # 2. Add two new custom fields
+    total_copies = serializers.SerializerMethodField()
+    available_copies = serializers.SerializerMethodField()
+
     class Meta:
         model = Book
         fields = "__all__"
+
+    # 3. Define how to calculate the fields
+    def get_total_copies(self, obj):
+        return obj.copies.count()
+        
+    def get_available_copies(self, obj):
+        return obj.copies.filter(status=BookCopy.AVAILABLE).count()
 
 
 class WishlistSerializer(serializers.ModelSerializer):

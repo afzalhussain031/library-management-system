@@ -10,7 +10,27 @@ import Dashboard from '../pages/user/Dashboard';
 import UserProfile from "../pages/user/Profile";
 import Wishlist from "../pages/user/Wishlist";
 import Books from "../pages/user/Books";
+import ManageBooks from '../pages/admin/ManageBooks';
+import Members from '../pages/admin/Members';
 import AdminDashboard from "../pages/admin/AdminDashboard";
+
+// ==========================================
+// SMART ROOT REDIRECT COMPONENT
+// ==========================================
+const RootRedirect = () => {
+  const { currentUser } = useAuth();
+  
+  // 1. If not logged in, go to login page
+  if (!currentUser) return <Navigate to="/login" replace />;
+  
+  // 2. If Staff, Admin, or Librarian, go to the Admin Dashboard
+  if (['staff', 'librarian', 'superadmin'].includes(currentUser?.role)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
+  // 3. Otherwise (Students/Users), go to the User Dashboard
+  return <Navigate to="/dashboard" replace />;
+};
 
 const AppRouter = () => {
   const { currentUser, loading } = useAuth();
@@ -41,26 +61,27 @@ const AppRouter = () => {
       </Route>
 
       {/* ================= GROUP 2: STRICT ADMIN ROUTES ================= */}
-      {/* Handing the guard an explicit list locks down this folder to admins ONLY */}
       <Route element={<ProtectedRoute allowedRoles={['staff', 'librarian', 'superadmin']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          {/* Add any other future administrator-only pages here */}
+          <Route path="/admin/books" element={<ManageBooks />} />
+          
+          {/* Add these so the app doesn't crash when you click the new links */}
+          <Route path="/admin/circulation" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/members" element={<Members />} />
+          <Route path="/admin/reservations" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/fines" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/reports" element={<ManageBooks />} /> {/* Placeholder */}
         </Route>
       </Route>
 
+
       {/* ================= REDIRECTS & FALLBACKS ================= */}
       {/* Landings rule */}
-      <Route
-        path="/"
-        element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />}
-      />
+       <Route path="/" element={<RootRedirect />} />
 
       {/* Catch-all 404 rule: Send stray paths back to safety */}
-      <Route
-        path="*"
-        element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />}
-      />
+       <Route path="*" element={<RootRedirect />} />
     </Routes>
   );
 };
