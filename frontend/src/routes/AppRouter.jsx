@@ -78,16 +78,10 @@ const AppRouter = () => {
 
       {/* ================= REDIRECTS & FALLBACKS ================= */}
       {/* Landings rule */}
-      <Route
-        path="/"
-        element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />}
-      />
+       <Route path="/" element={<RootRedirect />} />
 
       {/* Catch-all 404 rule: Send stray paths back to safety */}
-      <Route
-        path="*"
-        element={<Navigate to={currentUser ? '/dashboard' : '/login'} replace />}
-      />
+       <Route path="*" element={<RootRedirect />} />
     </Routes>
   );
 };
