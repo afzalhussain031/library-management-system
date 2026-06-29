@@ -208,6 +208,15 @@ class PasswordChangeView(APIView):
             {"detail": "Password updated successfully."}, status=status.HTTP_200_OK
         )
 
+class MemberListView(generics.ListAPIView):
+    """Returns a list of all registered users/members."""
+    
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserProfileSerializer
+    permission_classes = [IsAuthenticated] 
+    
+    def get_queryset(self):
+        return super().get_queryset()
 
 # =========================================================================
 # 📊 METRICS & DASHBOARD DATA VIEWS

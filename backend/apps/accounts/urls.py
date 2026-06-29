@@ -12,6 +12,7 @@ from .views import (
     ResetPasswordView,
     StaffCreateView,
     UserProfileView,
+    MemberListView,
 )
 
 urlpatterns = [
@@ -19,6 +20,7 @@ urlpatterns = [
     path("token/refresh/", CookieTokenRefreshView.as_view(), name="token_refresh"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", UserProfileView.as_view(), name="user-profile"),
+    path("members/", MemberListView.as_view(), name="member-list"),
     path("me/", CurrentUserView.as_view(), name="current-user"),
     path("me/password/", PasswordChangeView.as_view(), name="password-change"),
     path("me/dashboard/", DashboardView.as_view(), name="dashboard"),
