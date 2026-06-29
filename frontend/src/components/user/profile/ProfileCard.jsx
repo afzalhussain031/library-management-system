@@ -6,7 +6,7 @@ export default function ProfileCard({ userData }) {
   const role = userData?.role || "student";
 
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 relative">
+    <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 relative mx-2">
 
       {/* Print Icon */}
       <div className="absolute top-4 right-4 text-gray-500 cursor-pointer">
@@ -17,10 +17,10 @@ export default function ProfileCard({ userData }) {
 
         {/* Profile Image */}
         <img
-  src={profileImg}
-  alt="profile"
-  className="w-20 h-20 rounded-full border-4 border-yellow-400"
-/>
+          src={profileImg}
+          alt="profile"
+          className="w-20 h-20 rounded-full border-4 border-yellow-400"
+        />
 
         <h2 className="mt-4 text-xl font-semibold text-gray-900">
           {userName}

@@ -16,7 +16,7 @@ export default function Login() {
   const {
     register,        // Function to connect input fields
     handleSubmit,    // Wrapper function for form submission
-    formState: { 
+    formState: {
       errors,        // Object containing all field errors
       isSubmitting   // Boolean: true when submitting (loading state)
     },
@@ -33,9 +33,9 @@ export default function Login() {
     try {
       // data is ALREADY validated by Zod at this point
       // data = { enrollmentNumber: "...", password: "..." }
-      
+
       const user = await login(data.enrollmentNumber, data.password)
-      
+
       // Route based on user role
       if (user?.role === 'superadmin') {
         navigate('/superadmin/dashboard')
@@ -46,8 +46,9 @@ export default function Login() {
       }
     } catch (err) {
       // If API call fails, show error as a general form error
+      const errorMessage = err.response?.data?.detail || err.response?.data?.message || err.message || 'Invalid enrollment number or password'
       setError('root', {
-        message: 'Invalid enrollment number or password'
+        message: errorMessage
       })
     }
   }
@@ -124,7 +125,7 @@ export default function Login() {
 
             {/* ============ FORM STARTS HERE ============ */}
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-3">
-              
+
               {/* ════════════════════════════════════════
                   ENROLLMENT NUMBER FIELD
                   ════════════════════════════════════════ */}
@@ -137,11 +138,10 @@ export default function Login() {
                     {...register('enrollmentNumber')}
                     // ^^^ This connects the input to RHF
                     // RHF will automatically track changes and validate with Zod
-                    className={`${inputClass} ${
-                      errors.enrollmentNumber 
+                    className={`${inputClass} ${errors.enrollmentNumber
                         ? 'border-red-500 bg-red-50' // Red border if error
                         : ''
-                    }`}
+                      }`}
                     disabled={isSubmitting}
                   />
                 </div>
@@ -164,11 +164,10 @@ export default function Login() {
                     type="password"
                     placeholder="Password"
                     {...register('password')}
-                    className={`${inputClass} ${
-                      errors.password 
+                    className={`${inputClass} ${errors.password
                         ? 'border-red-500 bg-red-50'
                         : ''
-                    }`}
+                      }`}
                     disabled={isSubmitting}
                   />
                 </div>
