@@ -15,8 +15,7 @@ export function AuthProvider({ children }) {
 
   async function checkAuth() {
     try {
-      const response = await auth.getCurrentUser()
-      const user = response?.data || response
+      const user = await auth.getCurrentUser()
       setCurrentUser(user)
     } catch (err) {
       console.log('Not logged in')
@@ -30,8 +29,8 @@ export function AuthProvider({ children }) {
     setError(null)
     try {
       await auth.login(username, password)
-      const response = await auth.getCurrentUser()
-      const user = response?.data || response
+      
+      const user = await auth.getCurrentUser()
       setCurrentUser(user)
       return user
     } catch (err) {
