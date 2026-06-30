@@ -13,6 +13,8 @@ import Books from "../pages/user/Books";
 import ManageBooks from '../pages/admin/ManageBooks';
 import Members from '../pages/admin/Members';
 import AdminDashboard from "../pages/admin/AdminDashboard";
+import Circulation from "../pages/admin/Circulation"; // <-- ADD THIS LINE
+
 
 // ==========================================
 // SMART ROOT REDIRECT COMPONENT
@@ -67,7 +69,7 @@ const AppRouter = () => {
           <Route path="/admin/books" element={<ManageBooks />} />
           
           {/* Add these so the app doesn't crash when you click the new links */}
-          <Route path="/admin/circulation" element={<ManageBooks />} /> {/* Placeholder */}
+          <Route path="/admin/circulation" element={<Circulation />} />
           <Route path="/admin/members" element={<Members />} />
           <Route path="/admin/reservations" element={<ManageBooks />} /> {/* Placeholder */}
           <Route path="/admin/fines" element={<ManageBooks />} /> {/* Placeholder */}
