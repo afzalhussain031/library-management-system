@@ -49,13 +49,13 @@ export const dashboard = {
     client.get('/me/dashboard/'),
   
   getBorrowedBooks: () =>
-    client.get('/circulation/loans/'),
+    client.get('/loans/'),
   
   getFines: () =>
-    client.get('/billing/fines/'),
+    client.get('/fines/'),
   
   getNotifications: () =>
-    client.get('/notifications/notifications/')
+    client.get('/notifications/')
 }
 
 // ===================== CATALOG =====================
@@ -74,3 +74,14 @@ export const billing = {
   
   // Update a fine's status (PATCH request so we only update the fields we send)
   updateFine: (id, data) => client.patch(`/fines/${id}/`, data)}
+  
+
+// ===================== CIRCULATION =====================
+export const circulation = {
+  // Existing ones...
+  getReservations: () => client.get('/reservations/'),
+  
+  // New endpoints for Kanban
+  updateReservationStatus: (id, status) => client.patch(`/reservations/${id}/`, { status }),
+  fulfillReservation: (id) => client.post(`/reservations/${id}/fulfill/`)
+}

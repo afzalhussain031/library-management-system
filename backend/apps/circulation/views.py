@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 
 from common.permissions.base import IsStaffOrReadOnly
 from apps.billing.models import Fine
@@ -102,3 +103,39 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        # Automatically set ready_at when status changes to READY
+        instance = serializer.save()
+        if instance.status == Reservation.READY and not instance.ready_at:
+            instance.ready_at = timezone.now()
+            instance.save(update_fields=['ready_at'])
+
+    @action(detail=True, methods=["post"])
+    def fulfill(self, request, pk=None):
+        """Marks reservation as fulfilled and creates an active loan simultaneously."""
+        reservation = self.get_object()
+
+        if reservation.status != Reservation.READY:
+                return Response({"error": "Only READY reservations can be fulfilled."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Find an available copy of the book
+        available_copy = BookCopy.objects.filter(book=reservation.book, status=BookCopy.AVAILABLE).first()
+        if not available_copy:
+            return Response({"error": "No available copies to issue."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Create the loan
+        due_date = timezone.now() + timezone.timedelta(days=14)
+        Loan.objects.create(
+            copy=available_copy,
+            borrower=reservation.user,
+            due_at=due_date
+        )
+
+        # 3. Update copy status
+        available_copy.status = BookCopy.LOANED
+        available_copy.save(update_fields=['status'])
+        # 4. Mark reservation as fulfilled
+        reservation.status = Reservation.FULFILLED
+        reservation.save(update_fields=['status'])
+        return Response({"detail": "Book issued and reservation fulfilled!"}, status=status.HTTP_200_OK)
