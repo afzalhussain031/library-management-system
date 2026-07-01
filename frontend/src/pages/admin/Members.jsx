@@ -1,25 +1,8 @@
-import React, { useState } from 'react';
-import { Search, ChevronDown, Plus, GraduationCap, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
-
-const MOCK_MEMBERS = [
-  { id: 1, name: 'John Stone', enr: 'ENR-001', phone: '9876543210', branch: 'CSE', year: '3rd Year', borrowed: 6, fine: 450, img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150' },
-  { id: 2, name: 'Mia Wong', enr: 'ENR-002', phone: '9123456780', branch: 'IT', year: '2nd Year', borrowed: 3, fine: 0, img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150' },
-  { id: 3, name: 'Arjun Patel', enr: 'ENR-003', phone: '9988776655', branch: 'ECE', year: '4th Year', borrowed: 8, fine: 200, img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150' },
-  { id: 4, name: 'Sophia Lee', enr: 'ENR-004', phone: '9090909090', branch: 'CSE', year: '1st Year', borrowed: 2, fine: 0, img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150' },
-  { id: 5, name: 'David Kim', enr: 'ENR-005', phone: '9191919191', branch: 'ME', year: '3rd Year', borrowed: 5, fine: 0, img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150' },
-  { id: 6, name: 'Liam Smith', enr: 'ENR-007', phone: '9789789789', branch: 'Civil', year: '4th Year', borrowed: 4, fine: 0, img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150' },
-  { id: 7, name: 'Emma Wilson', enr: 'ENR-008', phone: '9676767676', branch: 'IT', year: '3rd Year', borrowed: 9, fine: 350, img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150' },
-  { id: 8, name: 'Noah Johnson', enr: 'ENR-009', phone: '9565656565', branch: 'CSE', year: '1st Year', borrowed: 1, fine: 0, img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150' },
-  { id: 9, name: 'Ava Martinez', enr: 'ENR-010', phone: '9454545454', branch: 'ECE', year: '2nd Year', borrowed: 6, fine: 150, img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150' },
-  { id: 10, name: 'William Davis', enr: 'ENR-011', phone: '9343434343', branch: 'ME', year: '4th Year', borrowed: 3, fine: 0, img: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=150' },
-  { id: 11, name: 'James Lewis', enr: 'ENR-013', phone: '9121212121', branch: 'IT', year: '1st Year', borrowed: 2, fine: 0, img: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=150' },
-  { id: 12, name: 'Charlotte Hall', enr: 'ENR-014', phone: '9010101010', branch: 'Civil', year: '3rd Year', borrowed: 7, fine: 0, img: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?auto=format&fit=crop&q=80&w=150' },
-  { id: 13, name: 'Benjamin Allen', enr: 'ENR-015', phone: '9891234567', branch: 'CSE', year: '2nd Year', borrowed: 5, fine: 50, img: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&q=80&w=150' },
-  { id: 14, name: 'Isabella Clark', enr: 'ENR-012', phone: '9232323232', branch: 'CSE', year: '4th Year', borrowed: 1, fine: 0, img: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&q=80&w=150' },
-  { id: 15, name: 'Olivia Brown', enr: 'ENR-006', phone: '9898989898', branch: 'CSE', year: '1st Year', borrowed: 0, fine: 0, img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150' },
-];
+import { membersApi } from '../../services/api';
 
 const FILTER_TAGS = ['All', 'CSE', 'IT', 'ECE', 'ME', 'Civil'];
 
@@ -27,10 +10,47 @@ const Members = () => {
   const [activeTab, setActiveTab] = useState('Students');
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [members, setMembers] = useState(MOCK_MEMBERS);
+  
+  // Start with an empty array for members
+  const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
+  
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Remove member action
+  // Fetch data on component mount
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        setIsLoading(true);
+        const response = await membersApi.getAll();
+        
+        // Map Django CustomUser data to match what the MemberCard expects
+        const formattedMembers = response.data.map(user => ({
+          id: user.id,
+          name: user.student_name || `${user.first_name} ${user.last_name}`.trim() || 'Unknown',
+          enr: user.user_id, // Map the backend user_id to 'enr'
+          phone: user.phone_number || 'N/A',
+          branch: user.department || 'N/A',
+          year: user.batch || 'N/A',
+          borrowed: 0, 
+          fine: 0,
+          img: `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random` 
+        }));
+
+        setMembers(formattedMembers);
+      } catch (error) {
+        console.error("Failed to fetch members:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMembers();
+  }, []);
+
+  // Remove member action (Note: This still only removes locally. 
+  // You would need an API call here later to actually delete from DB)
   const handleRemoveMember = (id) => {
     setMembers(prev => prev.filter(m => m.id !== id));
     setSelectedMember(null);
@@ -38,9 +58,10 @@ const Members = () => {
 
   // Filter members based on selected branch and search query
   const filteredMembers = members.filter(member => {
-    const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          member.enr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          member.phone.includes(searchQuery);
+    // Adding optional chaining (?) in case some fields are undefined
+    const matchesSearch = member.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          member.enr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          member.phone?.includes(searchQuery);
     
     const matchesBranch = activeFilter === 'All' || member.branch === activeFilter;
     
@@ -127,8 +148,13 @@ const Members = () => {
       </div>
 
       {/* Cards Container */}
-      <div className="bg-[#FFFFFF80] rounded-[40px] p-6 md:p-8 shadow-sm border border-white">
-        {filteredMembers.length > 0 ? (
+      <div className="bg-[#FFFFFF80] rounded-[40px] p-6 md:p-8 shadow-sm border border-white min-h-[400px]">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500 font-medium h-full">
+            <Loader size={40} className="text-[#F6BE0A] mb-4 animate-spin" />
+            <p>Loading members...</p>
+          </div>
+        ) : filteredMembers.length > 0 ? (
           /* Grid of Cards */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredMembers.map(member => (
