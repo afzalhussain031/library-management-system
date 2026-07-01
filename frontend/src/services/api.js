@@ -66,3 +66,11 @@ export const catalog = {
   getWishlist: () =>
     client.get('/catalog/wishlist/')
 }
+
+// ===================== BILLING =====================
+export const billing = {
+  // Fetch all fines (admins will get all, normal users get their own based on backend permissions)
+  getFines: () => client.get('/fines/'),
+  
+  // Update a fine's status (PATCH request so we only update the fields we send)
+  updateFine: (id, data) => client.patch(`/fines/${id}/`, data)}
