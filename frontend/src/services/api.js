@@ -37,34 +37,34 @@ export const auth = {
 // ===================== PROFILE =====================
 export const profile = {
   get: () =>
-    client.get('/profile/'),
+    client.get('/profile/').then(res => res.data),
   
   update: (data) =>
-    client.post('/profile/', data)
+    client.post('/profile/', data).then(res => res.data)
 }
 
 // ===================== DASHBOARD =====================
 export const dashboard = {
   getStats: () =>
-    client.get('/me/dashboard/'),
+    client.get('/me/dashboard/').then(res => res.data),
   
   getBorrowedBooks: () =>
-    client.get('/loans/'),
+    client.get('/loans/').then(res => res.data),
   
   getFines: () =>
-    client.get('/fines/'),
+    client.get('/fines/').then(res => res.data),
   
   getNotifications: () =>
-    client.get('/notifications/')
+    client.get('/notifications/').then(res => res.data)
 }
 
 // ===================== CATALOG =====================
 export const catalog = {
   getBooks: () =>
-    client.get('/catalog/books/'),
+    client.get('/books/').then(res => res.data),
   
   getWishlist: () =>
-    client.get('/catalog/wishlist/')
+    client.get('/wishlist/').then(res => res.data)
 }
 
 // ===================== BILLING =====================
