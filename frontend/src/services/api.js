@@ -43,6 +43,11 @@ export const profile = {
     client.post('/profile/', data).then(res => res.data)
 }
 
+// ===================== MEMBERS =====================
+export const membersApi = {
+  getAll: () => client.get('/members/'),
+}
+
 // ===================== DASHBOARD =====================
 export const dashboard = {
   getStats: () =>
