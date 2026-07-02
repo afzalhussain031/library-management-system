@@ -24,7 +24,7 @@ const OrangeDeviceIcon = () => (
   </svg>
 );
 
-export default function LMSSidebar({ open, onClose, onToggle }) {
+export default function LMSSidebar({ open, onClose, onToggle, onOpenLendModal }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -144,7 +144,10 @@ export default function LMSSidebar({ open, onClose, onToggle }) {
             </div>
             {/* NEW: Hide Lend/Return button from standard users */}
             {['staff', 'superadmin', 'librarian'].includes(userRole) && (
-              <button className="w-full bg-[#FCE49F] hover:bg-[#FAD980] text-[#332500] font-bold text-[11px] tracking-wider py-2 px-3 rounded-full flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] shadow-sm h-9 cursor-pointer">
+              <button 
+                onClick={onOpenLendModal} 
+                className="w-full bg-[#FCE49F] hover:bg-[#FAD980] text-[#332500] font-bold text-[11px] tracking-wider py-2 px-3 rounded-full flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] shadow-sm h-9 cursor-pointer"
+              >
                 <OrangeDeviceIcon />
                 LEND / RETURN
               </button>
