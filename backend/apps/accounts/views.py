@@ -71,6 +71,116 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = CustomUserRegistrationSerializer
     permission_classes = [AllowAny]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        frontend_url = getattr(
+            settings, "FRONTEND_URL", "http://localhost:5173"
+        ).rstrip("/")
+        verify_link = f"{frontend_url}/verify-email/{uid}/{token}/"
+
+        send_mail(
+            subject="Verify your account",
+            message=f"Hello {user.student_name or user.user_id},\n\nPlease verify your account by visiting:\n{verify_link}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {
+                "detail": "Account created successfully! Please check your email to verify your account."
+            },
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+        
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = CustomUser.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            return Response(
+                {"detail": "Invalid verification link."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if default_token_generator.check_token(user, token):
+            user.is_email_verified = True
+            user.save(update_fields=["is_email_verified"])
+            return Response(
+                {"detail": "Email verified successfully! You can now log in."},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {"detail": "Invalid or expired verification link."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class ResendVerificationEmailView(APIView):
+    """Resends the email verification link to an unverified user."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        email = request.data.get("email")
+
+        try:
+            if user_id:
+                user = CustomUser.objects.get(user_id=user_id)
+            elif email:
+                user = CustomUser.objects.get(email=email)
+            else:
+                return Response(
+                    {"detail": "Provide user_id or email."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except CustomUser.DoesNotExist:
+            # Don't reveal whether the account exists
+            return Response(
+                {"detail": "If an account exists, a verification email has been sent."},
+                status=status.HTTP_200_OK,
+            )
+
+        if user.is_email_verified:
+            return Response(
+                {"detail": "This email is already verified."},
+                status=status.HTTP_200_OK,
+            )
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        verify_link = f"{frontend_url}/verify-email/{uid}/{token}/"
+
+        send_mail(
+            subject="Verify your account",
+            message=(
+                f"Hello {user.student_name or user.user_id},\n\n"
+                f"Please verify your account by visiting:\n{verify_link}"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response(
+            {"detail": "Verification email sent. Please check your inbox."},
+            status=status.HTTP_200_OK,
+        )
+
 
 class StaffCreateView(generics.CreateAPIView):
     """Protected endpoint to create staff users (admin only)"""
@@ -95,11 +205,31 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
+        user_id = request.data.get("user_id")
+        password = request.data.get("password")
+
+        if user_id and password:
+            try:
+                user = CustomUser.objects.get(user_id=user_id)
+            except CustomUser.DoesNotExist:
+                user = None
+
+            if (
+                user
+                and not user.is_email_verified
+                and user.check_password(password)
+            ):
+                return Response(
+                    {"detail": "Please verify your email before logging in."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         response = super().post(request, *args, **kwargs)
 
         refresh = response.data.pop("refresh", None)
         if refresh:
             set_refresh_cookie(response, refresh)
+
         return response
 
 
@@ -162,6 +292,8 @@ class CurrentUserView(APIView):
             "id": user.id,
             "user_id": user.user_id,
             "email": user.email,
+            "email_verified": user.is_email_verified,
+            
             "first_name": user.first_name,
             "last_name": user.last_name,
             "is_staff": user.is_staff,
@@ -220,6 +352,7 @@ class DashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+      
         from apps.billing.models import Fine
         from apps.circulation.models import Loan
 
@@ -230,6 +363,7 @@ class DashboardView(APIView):
             borrower=user, returned_at__isnull=True
         ).count()
 
+        
         total_borrowed = Loan.objects.filter(borrower=user).count()
 
         pending_fines = (

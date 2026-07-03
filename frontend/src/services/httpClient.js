@@ -1,7 +1,7 @@
 // frontend/src/services/httpClient.js
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
 // Create axios instance
 const client = axios.create({
@@ -14,7 +14,7 @@ client.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   
   // Don't send the token for public authentication routes
-  const isPublicAuthRoute = ['/token/', '/register/'].some(url => config.url?.includes(url))
+  const isPublicAuthRoute = ['/token/', '/token/refresh/', '/register/', '/verify-email/'].some(url => config.url?.includes(url))
   
   if (token && !isPublicAuthRoute) {
     config.headers.Authorization = `Bearer ${token}`
@@ -51,6 +51,8 @@ client.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${refreshRes.data.access}`
         return client(originalRequest)
       } catch (refreshError) {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('auth_session')
         if (window.location.pathname !== '/login') {
           window.location.href = '/login'
         }

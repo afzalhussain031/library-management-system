@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 CustomUser = get_user_model()
 
@@ -127,6 +128,7 @@ class CustomUserProfileSerializer(serializers.ModelSerializer):
             "user_id",
             "role",
             "email",
+            "email_verified",
             "first_name",
             "last_name",
             "phone_number",
@@ -148,6 +150,7 @@ class CustomUserProfileSerializer(serializers.ModelSerializer):
             "date_joined",
             "is_staff",
             "is_superuser",
+            "email_verified",
         ]
 
 
@@ -172,6 +175,11 @@ class CustomUserUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "email": {"required": False},
         }
+
+    def update(self, instance, validated_data):
+        if "email" in validated_data and validated_data["email"] != instance.email:
+            instance.email_verified = False
+        return super().update(instance, validated_data)
 
 
 # ===== PASSWORD CHANGE SERIALIZER =====

@@ -1,6 +1,9 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
+
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -137,3 +140,8 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 AUTHENTICATION_BACKENDS = [
     'apps.accounts.backends.CustomUserAuthBackend',
 ]
+# ===== EMAIL BACKEND (Mailjet) =====
+EMAIL_BACKEND = 'django_mailjet.backends.MailjetBackend'
+MAILJET_API_KEY = os.getenv('MAILJET_API_KEY')       # ✅ variable name
+MAILJET_API_SECRET = os.getenv('MAILJET_API_SECRET') # ✅ variable name
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'h09685707@gmail.com')

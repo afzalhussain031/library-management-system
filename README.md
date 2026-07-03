@@ -37,6 +37,7 @@ python -m pip install --upgrade pip
 python -m pip install -r backend/requirements.txt
 python -m pip install "setuptools<70"   # Fix for Python 3.13
 
+
 # Run migrations
 python backend/manage.py migrate
 

@@ -84,6 +84,7 @@ class CustomUser(AbstractUser):
     bio = models.TextField(blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
     department = models.CharField(max_length=120, blank=True)
+    is_email_verified = models.BooleanField(default=False)
 
     # Student-specific fields
     student_name = models.CharField(max_length=255, blank=True)

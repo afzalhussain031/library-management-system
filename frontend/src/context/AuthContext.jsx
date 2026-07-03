@@ -1,64 +1,96 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { auth } from '../services/api'
+import { createContext, useContext, useState, useEffect } from "react";
+import { auth } from "../services/api";
 
-const AuthContext = createContext(null)
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Check if user is logged in on app load
   useEffect(() => {
-    checkAuth()
-  }, [])
+    checkAuth();
+  }, []);
 
   async function checkAuth() {
     try {
-      const user = await auth.getCurrentUser()
-      setCurrentUser(user)
+      let token = localStorage.getItem("access_token");
+
+      // Only try cookie refresh if this browser previously had a login session
+      if (!token) {
+        if (localStorage.getItem("auth_session") !== "1") {
+          setCurrentUser(null);
+          return;
+        }
+
+        try {
+          const refreshRes = await auth.refreshToken();
+          token = refreshRes.data?.access;
+          if (token) {
+            localStorage.setItem("access_token", token);
+          }
+        } catch {
+          localStorage.removeItem("auth_session");
+          setCurrentUser(null);
+          return;
+        }
+      }
+
+      const user = await auth.getCurrentUser();
+      setCurrentUser(user);
     } catch (err) {
-      console.log('Not logged in')
+      const status = err?.response?.status;
+      if (status === 401) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("auth_session");
+      } else if (status !== 403) {
+        console.error("Auth check failed:", err);
+      }
+      setCurrentUser(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   // Login function
   async function login(username, password) {
-    setError(null)
+    setError(null);
     try {
-      await auth.login(username, password)
-      const user = await auth.getCurrentUser()
-      setCurrentUser(user)
-      return user
+      await auth.login(username, password);
+      const user = await auth.getCurrentUser();
+      setCurrentUser(user);
+      return user;
     } catch (err) {
-      setError(err.message)
-      throw err
+      setError(err.message);
+      throw err;
     }
   }
 
   // Logout function
   async function logout() {
     try {
-      await auth.logout()
+      await auth.logout();
     } catch (err) {
-      console.error('Logout error:', err)
+      console.error("Logout error:", err);
     } finally {
-      localStorage.removeItem('access_token')     
-      setCurrentUser(null)
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("auth_session");
+      setCurrentUser(null);
     }
   }
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, loading, error }}>
+    <AuthContext.Provider
+      value={{ currentUser, login, logout, loading, error }}
+    >
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')
-  return ctx
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
 }
