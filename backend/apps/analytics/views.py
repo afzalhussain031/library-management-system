@@ -50,7 +50,7 @@ class DashboardStatsView(APIView):
 
         # 2. FETCH THE TOP 5 RECORDS
         # Get the 5 most recent reservations
-        recent_reservations = Reservation.objects.order_by('-reserved_at')[:5]
+        recent_reservations = Reservation.objects.filter(status=Reservation.PENDING).order_by('-reserved_at')[:5]        
         
         # Get the 5 most recent loans
         recent_loans = Loan.objects.order_by('-issued_at')[:5]

@@ -170,6 +170,25 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
 
+  const handleApproveRequest = async (id) => {
+    try {
+      await client.patch(`/reservations/${id}/`, { status: 'ready' });
+      setBookRequests(prev => prev.filter(req => req.id !== id));
+    } catch (err) {
+      console.error("Error approving request:", err);
+      alert("Failed to approve request.");
+    }
+  };
+  const handleDenyRequest = async (id) => {
+    try {
+      await client.patch(`/reservations/${id}/`, { status: 'cancelled' });
+      setBookRequests(prev => prev.filter(req => req.id !== id));
+    } catch (err) {
+      console.error("Error denying request:", err);
+      alert("Failed to deny request.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -194,7 +213,11 @@ const AdminDashboard = () => {
         <OverdueDetails data={overdueDetails} />
 
         <div className="space-y-6 xl:col-span-5">
-          <BookRequests data={bookRequests} />
+          <BookRequests 
+            data={bookRequests}
+            onApprove={handleApproveRequest}
+            onDeny={handleDenyRequest}
+          />
           <BooksLended data={booksLended} />
         </div>
       </div>
