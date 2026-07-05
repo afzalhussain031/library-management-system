@@ -33,10 +33,16 @@ const AdminDashboard = () => {
         const statsRes = await client.get('/analytics/dashboard-stats/');
         const analyticsData = statsRes.data;
 
-        // A helper function to safely calculate a percentage growth
-        const calculatePercent = (part, total) => {
-            if (!total) return 0;
-            return Math.round((part / total) * 100);
+        // Calculate Month-over-Month Growth
+        const calculateGrowth = (current, previous) => {
+          if (previous === 0) return current > 0 ? 100 : 0; // Prevent dividing by zero
+          return Math.round(((current - previous) / previous) * 100);
+        };
+
+        // Helper to format the output with + or - signs
+        const formatGrowth = (current, previous) => {
+          const growth = calculateGrowth(current, previous);
+          return growth >= 0 ? `+${growth}%` : `${growth}%`;
         };
 
         setStats([
@@ -45,7 +51,7 @@ const AdminDashboard = () => {
             title: 'Total Inventory', 
             value: analyticsData.total_inventory, 
             weeklyDelta: `+${analyticsData.inventory_this_week} This week`, 
-            monthlyDelta: `+${calculatePercent(analyticsData.inventory_this_month, analyticsData.total_inventory)}% This month` 
+            monthlyDelta: `${formatGrowth(analyticsData.inventory_this_month, analyticsData.inventory_last_month)} This month`
           },
           { 
             id: 2, 
@@ -59,7 +65,7 @@ const AdminDashboard = () => {
             title: 'Total Books Borrowed', 
             value: analyticsData.total_borrowed, 
             weeklyDelta: `+${analyticsData.borrowed_this_week} This week`, 
-            monthlyDelta: `+${calculatePercent(analyticsData.borrowed_this_month, analyticsData.total_borrowed)}% This month` 
+            monthlyDelta: `${formatGrowth(analyticsData.borrowed_this_month, analyticsData.borrowed_last_month)} This month`  
           },
           { 
             id: 4, 
