@@ -29,14 +29,8 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
-        // 2. Added the analytics endpoint to the API calls array
-        const [reservationsRes, loansRes, statsRes] = await Promise.all([
-          client.get('/reservations/'),
-          client.get('/loans/'),
-          client.get('/analytics/dashboard-stats/') // <-- New Call
-        ]);
-
-        // 3. Extracted the data and updated the Stats state
+         // 1. ONLY MAKE ONE API CALL NOW! (Massive performance boost)
+        const statsRes = await client.get('/analytics/dashboard-stats/');
         const analyticsData = statsRes.data;
 
         // A helper function to safely calculate a percentage growth
@@ -76,9 +70,9 @@ const AdminDashboard = () => {
           },
         ]);
 
-        const formattedRequests = reservationsRes.data.map(res => {
+        // 2. USE THE NEW 5-RECORD ARRAYS
+        const formattedRequests = analyticsData.recent_reservations.map(res => {
           const userName = res.user_name || `User #${res.user}`;
-          
           return {
             id: res.id,
             bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
@@ -92,7 +86,7 @@ const AdminDashboard = () => {
           };
         });
 
-        const formattedLoans = loansRes.data.map(loan => {
+        const formattedLoans = analyticsData.recent_loans.map(loan => {
           let status = 'Borrowed';
           let statusColor = 'text-blue-500 bg-blue-50';
           if (loan.returned_at) {
@@ -124,9 +118,8 @@ const AdminDashboard = () => {
         });
 
         // 1. Filter and process Overdue Loans
-        const formattedOverdueDetails = loansRes.data
-          .filter(loan => !loan.returned_at && new Date(loan.due_at) < new Date())
-          .map(loan => {
+            const formattedOverdueDetails = analyticsData.overdue_loans.map(loan => {
+
             const userName = loan.user_name || 'Unknown User';
             
             // 2. Calculate overdue days exactly like the Python backend does
