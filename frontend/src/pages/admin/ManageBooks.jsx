@@ -95,6 +95,13 @@ const Books = () => {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <button 
+              onClick={() => setActiveTopFilter("All books")}
+              className={getTopButtonStyle("All books")}
+            >
+              All books <span className={`${activeTopFilter === "All books" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{books.length}</span>
+            </button>
+
+            <button 
               onClick={() => setActiveTopFilter("Lent")}
               className={getTopButtonStyle("Lent")}
             >
