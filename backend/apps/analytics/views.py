@@ -34,7 +34,7 @@ class DashboardStatsView(APIView):
         fines_this_month = Fine.objects.filter(created_at__gte=one_month_ago).aggregate(Sum('amount'))['amount__sum'] or 0
         
         # 4. Books Left
-        books_left = total_inventory - total_borrowed
+        books_left = BookCopy.objects.filter(status=BookCopy.AVAILABLE).count()
         
         # 5. Total Overdue
         total_overdue = Loan.objects.filter(
