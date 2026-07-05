@@ -61,10 +61,16 @@ const Books = () => {
   });
 
   // Calculate badge counts (How many books fall into each category)
-  const lentCount = books.filter(b => (b.lent_copies || 0) > 0).length;
-  const returnedCount = books.filter(b => (b.returned_copies || 0) > 0).length;
-  const overdueCount = books.filter(b => (b.overdue_copies || 0) > 0).length;
-  const requestsCount = books.filter(b => (b.requests_count || 0) > 0).length;
+  const { lentCount, returnedCount, overdueCount, requestsCount } = books.reduce(
+    (acc, b) => {
+      if ((b.lent_copies || 0) > 0) acc.lentCount += 1;
+      if ((b.returned_copies || 0) > 0) acc.returnedCount += 1;
+      if ((b.overdue_copies || 0) > 0) acc.overdueCount += 1;
+      if ((b.requests_count || 0) > 0) acc.requestsCount += 1;
+      return acc;
+    },
+    { lentCount: 0, returnedCount: 0, overdueCount: 0, requestsCount: 0 }
+  );
 
 
   // Helper function for styling top buttons
