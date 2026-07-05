@@ -50,6 +50,14 @@ class Reservation(models.Model):
     reserved_at = models.DateTimeField(auto_now_add=True)
     ready_at = models.DateTimeField(null=True, blank=True) # NEW: For tracking expiration
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    allocated_copy = models.ForeignKey(
+        BookCopy, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name="allocated_reservations"
+    )
+
     class Meta:
         db_table = "library_reservation"
 
