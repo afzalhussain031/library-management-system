@@ -24,7 +24,7 @@ class DashboardStatsView(APIView):
         inventory_this_month = BookCopy.objects.filter(acquired_at__gte=one_month_ago.date()).count()
         
         # 2. Total Borrowed
-        total_borrowed = Loan.objects.filter(returned_at__isnull=True).count()
+        total_borrowed = BookCopy.objects.filter(status=BookCopy.LOANED).count()
         borrowed_this_week = Loan.objects.filter(issued_at__gte=one_week_ago).count()
         borrowed_this_month = Loan.objects.filter(issued_at__gte=one_month_ago).count()
         
@@ -39,13 +39,15 @@ class DashboardStatsView(APIView):
         # 5. Total Overdue
         total_overdue = Loan.objects.filter(
             returned_at__isnull=True, 
-            due_at__lt=now
+            due_at__lt=now,
+            copy__status=BookCopy.LOANED  # Added: Ensures the physical book is actually missing
         ).count()
         
         overdue_this_week = Loan.objects.filter(
             returned_at__isnull=True, 
             due_at__lt=now,
-            due_at__gte=one_week_ago
+            due_at__gte=one_week_ago,
+            copy__status=BookCopy.LOANED  # Added: Ensures the physical book is actually missing
         ).count()
 
         # 2. FETCH THE TOP 5 RECORDS
@@ -58,9 +60,9 @@ class DashboardStatsView(APIView):
         # Get the 5 most critical overdue loans (oldest due_at first)
         overdue_loans = Loan.objects.filter(
             returned_at__isnull=True, 
-            due_at__lt=now
-        ).order_by('due_at')[:5] 
-
+            due_at__lt=now,
+            copy__status=BookCopy.LOANED  # Added: Ensures the physical book is actually missing
+        ).order_by('due_at')[:5]
 
         return Response({
             "total_inventory": total_inventory,
