@@ -15,16 +15,19 @@ import {
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   
-  // 1. Setup new state variables
+  // Data States
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // NEW: Filter States
+  const [activeTopFilter, setActiveTopFilter] = useState("All books");
+  const [activeBottomFilter, setActiveBottomFilter] = useState("All");
 
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
   };
 
-  // 2. Fetch data from the backend when component mounts
   useEffect(() => {
     const fetchBooks = async () => {
       try {
@@ -41,6 +44,55 @@ const Books = () => {
     fetchBooks();
   }, []);
 
+  // NEW: Filtering Logic
+  const filteredBooks = books.filter((book) => {
+    // Bottom Filter Logic
+    if (activeBottomFilter === "Available" && book.available_copies === 0) return false;
+    // If available copies are equal to total copies, none are borrowed
+    if (activeBottomFilter === "Borrowed" && book.available_copies === book.total_copies) return false;
+
+    // Top Filter Logic
+    if (activeTopFilter === "Lent" && (book.lent_copies || 0) === 0) return false;
+    if (activeTopFilter === "Returned" && (book.returned_copies || 0) === 0) return false; 
+    if (activeTopFilter === "Overdue" && (book.overdue_copies || 0) === 0) return false; 
+    if (activeTopFilter === "Requests" && (book.requests_count || 0) === 0) return false; 
+
+    return true;
+  });
+
+  // Calculate badge counts (How many books fall into each category)
+  const { lentCount, returnedCount, overdueCount, requestsCount } = books.reduce(
+    (acc, b) => {
+      if ((b.lent_copies || 0) > 0) acc.lentCount += 1;
+      if ((b.returned_copies || 0) > 0) acc.returnedCount += 1;
+      if ((b.overdue_copies || 0) > 0) acc.overdueCount += 1;
+      if ((b.requests_count || 0) > 0) acc.requestsCount += 1;
+      return acc;
+    },
+    { lentCount: 0, returnedCount: 0, overdueCount: 0, requestsCount: 0 }
+  );
+
+
+  // Helper function for styling top buttons
+  const getTopButtonStyle = (filterName) => {
+    const isActive = activeTopFilter === filterName;
+    return `flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-[14px] shadow-sm transition-all ${
+      isActive
+        ? "bg-[#FEF6DD] text-[#E0B220] border border-transparent font-bold"
+        : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
+    }`;
+  };
+
+  // Helper function for styling bottom buttons
+  const getBottomButtonStyle = (filterName) => {
+    const isActive = activeBottomFilter === filterName;
+    return `px-5 py-1.5 rounded-full text-[13px] shadow-sm transition-all ${
+      isActive
+        ? "bg-[#FEF6DD] text-[#E0B220] border border-transparent font-bold"
+        : "bg-white text-gray-600 border border-gray-100 font-semibold hover:bg-gray-50"
+    }`;
+  };
+
   return (
     <div className="px-0 py-0 sm:p-0 md:p-0 space-y-6 w-full max-w-[1600px] mx-auto font-sans min-h-screen overflow-hidden">
       {/* Filter and Stats Dash */}
@@ -48,28 +100,41 @@ const Books = () => {
         {/* Top Row Stats */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <button className="flex items-center gap-2 bg-[#FEF6DD] text-[#E0B220] px-4 py-2 rounded-full font-bold text-[14px]">
-              All books{" "}
-              <span className="bg-white text-[#E0B220] px-2 py-0.5 rounded-full text-xs">
-                {books.length}
-              </span>
+            <button 
+              onClick={() => setActiveTopFilter("All books")}
+              className={getTopButtonStyle("All books")}
+            >
+              All books <span className={`${activeTopFilter === "All books" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{books.length}</span>
             </button>
-            <button className="flex items-center gap-2 bg-white text-gray-500 px-4 py-2 rounded-full font-semibold text-[14px] shadow-sm border border-gray-100">
-              Lent <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+
+            <button 
+              onClick={() => setActiveTopFilter("Lent")}
+              className={getTopButtonStyle("Lent")}
+            >
+              Lent <span className={`${activeTopFilter === "Lent" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{lentCount}</span>
             </button>
-            <button className="flex items-center gap-2 bg-white text-gray-500 px-4 py-2 rounded-full font-semibold text-[14px] shadow-sm border border-gray-100">
-              Returned <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+            <button 
+              onClick={() => setActiveTopFilter("Returned")}
+              className={getTopButtonStyle("Returned")}
+            >
+              Returned <span className={`${activeTopFilter === "Returned" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{returnedCount}</span>
             </button>
-            <button className="flex items-center gap-2 bg-white text-gray-500 px-4 py-2 rounded-full font-semibold text-[14px] shadow-sm border border-gray-100">
-              Overdue <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+            <button 
+              onClick={() => setActiveTopFilter("Overdue")}
+              className={getTopButtonStyle("Overdue")}
+            >
+              Overdue <span className={`${activeTopFilter === "Overdue" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{overdueCount}</span>
             </button>
-            <button className="flex items-center gap-2 bg-white text-gray-500 px-4 py-2 rounded-full font-semibold text-[14px] shadow-sm border border-gray-100">
-              Requests <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+            <button 
+              onClick={() => setActiveTopFilter("Requests")}
+              className={getTopButtonStyle("Requests")}
+            >
+              Requests <span className={`${activeTopFilter === "Requests" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{requestsCount}</span>
             </button>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
-            <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100">
+            <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
               <Calendar size={14} className="text-gray-400" /> This Month
             </button>
             <button className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
@@ -81,18 +146,34 @@ const Books = () => {
         {/* Bottom Row Filters */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-4">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <button className="bg-[#FEF6DD] text-[#E0B220] px-5 py-1.5 rounded-full font-bold text-[13px]">All</button>
-            <button className="bg-white text-gray-600 font-semibold px-5 py-1.5 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50">Available</button>
-            <button className="bg-white text-gray-600 font-semibold px-5 py-1.5 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50">Borrowed</button>
+            <button 
+              onClick={() => setActiveBottomFilter("All")}
+              className={getBottomButtonStyle("All")}
+            >
+              All
+            </button>
+            <button 
+              onClick={() => setActiveBottomFilter("Available")}
+              className={getBottomButtonStyle("Available")}
+            >
+              Available
+            </button>
+            <button 
+              onClick={() => setActiveBottomFilter("Borrowed")}
+              className={getBottomButtonStyle("Borrowed")}
+            >
+              Borrowed
+            </button>
           </div>
 
           <div className="flex items-center gap-3 text-[13px] text-gray-500 font-medium pr-4">
-            <span>{books.length} records</span>
+            {/* NEW: Show the count of filtered books instead of all books */}
+            <span>{filteredBooks.length} records</span>
             <div className="flex gap-1">
-              <button className="p-1 text-gray-400 hover:text-gray-700">
+              <button className="p-1 text-gray-400 hover:text-gray-700 transition-colors">
                 <ChevronLeft size={16} />
               </button>
-              <button className="p-1 text-gray-400 hover:text-gray-700">
+              <button className="p-1 text-gray-400 hover:text-gray-700 transition-colors">
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -123,9 +204,9 @@ const Books = () => {
               <div className="flex-1 min-w-[160px] text-right pr-4">Actions</div>
             </div>
 
-            {/* 3. Render fetched Books */}
+            {/* NEW: Render filteredBooks instead of books */}
             <div className="space-y-3">
-              {books.map((book, idx) => (
+              {filteredBooks.map((book, idx) => (
                 <div
                   key={book.id}
                   className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-200 overflow-hidden"
@@ -156,7 +237,7 @@ const Books = () => {
                     <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
                       {book.isbn}
                     </div>
-                                        <div className="w-[120px] shrink-0">
+                    <div className="w-[120px] shrink-0">
                       {book.total_copies === 0 ? (
                         <span className="px-3 py-1 rounded text-[11px] font-bold inline-block bg-gray-100 text-gray-500">
                           No Copies
@@ -223,9 +304,10 @@ const Books = () => {
               ))}
             </div>
             
-            {books.length === 0 && (
+            {/* NEW: Changed to check filteredBooks length */}
+            {filteredBooks.length === 0 && (
                 <div className="text-center py-10 text-gray-500 font-semibold">
-                    No books found in the inventory.
+                    No books found matching the selected filters.
                 </div>
             )}
           </div>
