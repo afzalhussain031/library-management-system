@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import UserAvatar from '../../common/UserAvatar';
 
 const BookRequests = ({ data, onApprove, onDeny }) => {
   return (
@@ -29,9 +30,7 @@ const BookRequests = ({ data, onApprove, onDeny }) => {
 
               {/* User Info & Date */}
               <div className="flex items-center gap-2 shrink-0 mx-2">
-                <div className={`w-7 h-7 rounded-full ${item.userColor} flex items-center justify-center text-[10px] font-bold text-gray-700`}>
-                  {item.userInitials}
-                </div>
+                <UserAvatar name={item.userName} size="xs" />
                 <div className="flex flex-col hidden sm:flex">
                     <span className="text-xs font-bold text-gray-700 truncate w-20">{item.userName}</span>
                     <span className="text-[10px] text-gray-400">Requested on {item.date}</span>

@@ -1,5 +1,5 @@
-import React from 'react';
 import { X } from 'lucide-react';
+import UserAvatar from '../../common/UserAvatar';
 
 const MemberDetailsModal = ({ member, onClose, onRemove }) => {
   if (!member) return null;
@@ -53,10 +53,10 @@ const MemberDetailsModal = ({ member, onClose, onRemove }) => {
           {/* Profile Column (5 cols) */}
           <div className="md:col-span-5 flex flex-col items-center text-center gap-3">
             <div className="relative">
-              <img 
-                src={member.img || 'https://i.pravatar.cc/150'} 
-                alt={member.name}
-                className="w-[132px] h-[132px] rounded-full object-cover border-[4px] border-[#DEB853] shadow-sm"
+              <UserAvatar 
+                name={member.name} 
+                size="2xl" 
+                className="border-[4px] border-[#DEB853] shadow-sm"
               />
             </div>
             <div>

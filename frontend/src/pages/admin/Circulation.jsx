@@ -7,6 +7,7 @@ import {
   RefreshCw,
   AlertCircle
 } from "lucide-react";
+import UserAvatar from "../../components/common/UserAvatar";
 
 const Circulation = () => {
   const [loans, setLoans] = useState([]);
@@ -127,7 +128,8 @@ const Circulation = () => {
                   <div className="w-[80px] shrink-0 text-[13px] font-medium text-gray-400">
                     #{loan.id}
                   </div>
-                  <div className="w-[200px] shrink-0 pr-4">
+                  <div className="w-[200px] shrink-0 pr-4 flex items-center gap-3">
+                    <UserAvatar name={loan.user_name || 'Unknown'} size="sm" />
                     <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.user_name}</p>
                   </div>
                   <div className="w-[200px] shrink-0 pr-4">

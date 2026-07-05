@@ -26,17 +26,22 @@ const Members = () => {
         const response = await membersApi.getAll();
         
         // Map Django CustomUser data to match what the MemberCard expects
-        const formattedMembers = response.data.map(user => ({
-          id: user.id,
-          name: user.student_name || `${user.first_name} ${user.last_name}`.trim() || 'Unknown',
-          enr: user.user_id, // Map the backend user_id to 'enr'
-          phone: user.phone_number || 'N/A',
-          branch: user.department || 'N/A',
-          year: user.batch || 'N/A',
-          borrowed: 0, 
-          fine: 0,
-          img: `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random` 
-        }));
+        const formattedMembers = response.data.map(user => {
+          // 1. Define the variable FIRST!
+          const resolvedName = user.student_name || `${user.first_name} ${user.last_name}`.trim() || 'Unknown';
+          
+          // 2. Then return the object using the "return" keyword
+          return {
+            id: user.id,
+            name: resolvedName,
+            enr: user.user_id,
+            phone: user.phone_number || 'N/A',
+            branch: user.department || 'N/A',
+            year: user.batch || 'N/A',
+            borrowed: 0, 
+            fine: 0
+          };
+        });
 
         setMembers(formattedMembers);
       } catch (error) {

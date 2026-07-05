@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, CheckCircle, XCircle, DollarSign, Clock, Check } from "lucide-react";
 import { billing } from "../../services/api";
+import UserAvatar from "../../components/common/UserAvatar";
 
 export default function FinesAndPayments() {
   const [fines, setFines] = useState([]);
@@ -143,8 +144,13 @@ export default function FinesAndPayments() {
                 filteredFines.map((fine) => (
                   <tr key={fine.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
-                      <p className="font-semibold text-slate-800">{fine.borrower_name || 'Unknown'}</p>
-                      <p className="text-xs text-slate-400">{fine.borrower_email}</p>
+                      <div className="flex items-center gap-3">
+                        <UserAvatar name={fine.borrower_name || 'Unknown'} size="md" />
+                        <div>
+                          <p className="font-semibold text-slate-800">{fine.borrower_name || 'Unknown'}</p>
+                          <p className="text-xs text-slate-400">{fine.borrower_email}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-slate-700 font-medium">{fine.loan_book_title}</p>

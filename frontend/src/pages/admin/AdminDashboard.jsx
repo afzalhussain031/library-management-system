@@ -85,8 +85,6 @@ const AdminDashboard = () => {
             bookColor: 'bg-blue-400', 
             bookTitle: res.book_title,
             bookAuthor: `by ${res.book_author}`,
-            userInitials: userName.charAt(0).toUpperCase(), 
-            userColor: 'bg-gray-200',
             userName: userName,
             date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
           };
@@ -114,8 +112,6 @@ const AdminDashboard = () => {
             bookColor: 'bg-green-400',
             bookTitle: loan.book_title,
             bookAuthor: `by ${loan.book_author}`,
-            userInitials: userName.charAt(0).toUpperCase(), 
-            userColor: 'bg-gray-200',
             userName: userName, 
             date: new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
             status: status,
@@ -135,12 +131,9 @@ const AdminDashboard = () => {
 
             // 4. Generate deterministic UI colors based on loan ID
             const bookColors = ['bg-red-400', 'bg-orange-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
-            const userColors = ['bg-gray-200', 'bg-yellow-200', 'bg-blue-200', 'bg-green-200', 'bg-pink-200'];
 
             return {
               id: loan.id,
-              userInitials: userName.substring(0, 2).toUpperCase(),
-              userColor: userColors[loan.id % userColors.length],
               userName: userName,
               bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
               bookColor: bookColors[loan.id % bookColors.length],
