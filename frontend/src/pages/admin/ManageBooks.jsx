@@ -51,14 +51,21 @@ const Books = () => {
     // If available copies are equal to total copies, none are borrowed
     if (activeBottomFilter === "Borrowed" && book.available_copies === book.total_copies) return false;
 
-    // Top Filter Logic (Expand these as you add backend status fields)
-    if (activeTopFilter === "Lent") return false; // Example: book.status !== 'lent'
-    if (activeTopFilter === "Returned") return false; 
-    if (activeTopFilter === "Overdue") return false; 
-    if (activeTopFilter === "Requests") return false; 
+    // Top Filter Logic
+    if (activeTopFilter === "Lent" && (book.lent_copies || 0) === 0) return false;
+    if (activeTopFilter === "Returned" && (book.returned_copies || 0) === 0) return false; 
+    if (activeTopFilter === "Overdue" && (book.overdue_copies || 0) === 0) return false; 
+    if (activeTopFilter === "Requests" && (book.requests_count || 0) === 0) return false; 
 
     return true;
   });
+
+  // Calculate badge counts (How many books fall into each category)
+  const lentCount = books.filter(b => (b.lent_copies || 0) > 0).length;
+  const returnedCount = books.filter(b => (b.returned_copies || 0) > 0).length;
+  const overdueCount = books.filter(b => (b.overdue_copies || 0) > 0).length;
+  const requestsCount = books.filter(b => (b.requests_count || 0) > 0).length;
+
 
   // Helper function for styling top buttons
   const getTopButtonStyle = (filterName) => {
@@ -88,37 +95,28 @@ const Books = () => {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <button 
-              onClick={() => setActiveTopFilter("All books")}
-              className={getTopButtonStyle("All books")}
-            >
-              All books{" "}
-              <span className={`${activeTopFilter === "All books" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>
-                {books.length}
-              </span>
-            </button>
-            <button 
               onClick={() => setActiveTopFilter("Lent")}
               className={getTopButtonStyle("Lent")}
             >
-              Lent <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+              Lent <span className={`${activeTopFilter === "Lent" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{lentCount}</span>
             </button>
             <button 
               onClick={() => setActiveTopFilter("Returned")}
               className={getTopButtonStyle("Returned")}
             >
-              Returned <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+              Returned <span className={`${activeTopFilter === "Returned" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{returnedCount}</span>
             </button>
             <button 
               onClick={() => setActiveTopFilter("Overdue")}
               className={getTopButtonStyle("Overdue")}
             >
-              Overdue <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+              Overdue <span className={`${activeTopFilter === "Overdue" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{overdueCount}</span>
             </button>
             <button 
               onClick={() => setActiveTopFilter("Requests")}
               className={getTopButtonStyle("Requests")}
             >
-              Requests <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs">...</span>
+              Requests <span className={`${activeTopFilter === "Requests" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{requestsCount}</span>
             </button>
           </div>
 
