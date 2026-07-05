@@ -117,23 +117,15 @@ const AdminDashboard = () => {
           };
         });
 
-        // 1. Filter and process Overdue Loans
-            const formattedOverdueDetails = analyticsData.overdue_loans.map(loan => {
-
+          // 1. Filter and process Overdue Loans
+          const formattedOverdueDetails = analyticsData.overdue_loans.map(loan => {
+            
             const userName = loan.user_name || 'Unknown User';
             
-            // 2. Calculate overdue days exactly like the Python backend does
-            const dueDate = new Date(loan.due_at);
-            dueDate.setHours(0, 0, 0, 0); // Reset time to midnight to compare just dates
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const diffTime = today - dueDate;
-            // Convert milliseconds to days. Ensure at least 1 day overdue.
-            const overdueDays = Math.max(Math.round(diffTime / (1000 * 60 * 60 * 24)), 1);
-            
-            // 3. Calculate fine: ₹10 per day
-            const fineAmount = overdueDays * 10;
+            // NEW: Directly consume the server-calculated values!
+            // Fallback to 0 in case the API ever fails to return them.
+            const overdueDays = loan.overdue_days || 0;
+            const fineAmount = loan.current_fine_estimate || 0;
 
             // 4. Generate deterministic UI colors based on loan ID
             const bookColors = ['bg-red-400', 'bg-orange-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
@@ -152,8 +144,6 @@ const AdminDashboard = () => {
               fine: `₹ ${fineAmount}`
             };
           });
-
-        
 
         setBookRequests(formattedRequests);
         setBooksLended(formattedLoans);
