@@ -1,19 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronRight, MoreVertical } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const OverdueDetails = ({ data }) => {
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  const toggleMenu = (id) => {
+    if (openMenuId === id) {
+      setOpenMenuId(null); 
+    } else {
+      setOpenMenuId(id); 
+    }
+  };
+
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col xl:col-span-7">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
         <h2 className="text-lg font-bold text-gray-800">Overdue details</h2>
-        <button className="text-sm font-semibold text-gray-400 hover:text-gray-600 flex items-center">
+        {/* FIXED: Path updated to match AppRouter.jsx */}
+        <Link to="/admin/circulation" className="text-sm font-semibold text-gray-400 hover:text-gray-600 flex items-center">
           See All <ChevronRight size={16} className="ml-1" />
-        </button>
+        </Link>
       </div>
       <div className="p-3 flex-1 overflow-x-auto">
         <div className="min-w-[600px]">
           {data.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-3 hover:bg-orange-50/50 rounded-xl transition-colors mb-1">
+            <div key={item.id} className="flex items-center justify-between p-3 hover:bg-orange-50/50 rounded-xl transition-colors mb-1 relative">
               {/* User Info */}
               <div className="flex items-center gap-3 w-1/4">
                 <div className={`w-9 h-9 rounded-full ${item.userColor} flex items-center justify-center text-xs font-bold text-gray-700`}>
@@ -45,10 +57,33 @@ const OverdueDetails = ({ data }) => {
                   <span className="text-sm font-bold text-gray-800">{item.fine}</span>
               </div>
 
-              {/* Actions */}
-              <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
-                <MoreVertical size={18} />
-              </button>
+              {/* Dropdown Actions */}
+              <div className="relative flex justify-end w-8">
+                <button 
+                  onClick={() => toggleMenu(item.id)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                >
+                  <MoreVertical size={18} />
+                </button>
+
+                {/* The Dropdown Menu (only shows if openMenuId matches this item) */}
+                {openMenuId === item.id && (
+                  <div className="absolute right-0 top-8 w-40 bg-white shadow-md border border-gray-100 rounded-lg z-10 py-1 text-sm overflow-hidden flex flex-col">
+                    <button 
+                      className="px-4 py-2 text-left hover:bg-orange-50 text-gray-700 transition-colors"
+                      onClick={() => { alert('Send reminder logic here!'); setOpenMenuId(null); }}
+                    >
+                      Send Reminder
+                    </button>
+                    <button 
+                      className="px-4 py-2 text-left hover:bg-orange-50 text-green-600 transition-colors"
+                      onClick={() => { alert('Mark returned logic here!'); setOpenMenuId(null); }}
+                    >
+                      Mark Returned
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
