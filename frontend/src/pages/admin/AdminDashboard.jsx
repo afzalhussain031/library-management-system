@@ -29,14 +29,8 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
-        // 2. Added the analytics endpoint to the API calls array
-        const [reservationsRes, loansRes, statsRes] = await Promise.all([
-          client.get('/reservations/'),
-          client.get('/loans/'),
-          client.get('/analytics/dashboard-stats/') // <-- New Call
-        ]);
-
-        // 3. Extracted the data and updated the Stats state
+         // 1. ONLY MAKE ONE API CALL NOW! (Massive performance boost)
+        const statsRes = await client.get('/analytics/dashboard-stats/');
         const analyticsData = statsRes.data;
 
         // A helper function to safely calculate a percentage growth
@@ -76,9 +70,9 @@ const AdminDashboard = () => {
           },
         ]);
 
-        const formattedRequests = reservationsRes.data.map(res => {
+        // 2. USE THE NEW 5-RECORD ARRAYS
+        const formattedRequests = analyticsData.recent_reservations.map(res => {
           const userName = res.user_name || `User #${res.user}`;
-          
           return {
             id: res.id,
             bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
@@ -92,7 +86,7 @@ const AdminDashboard = () => {
           };
         });
 
-        const formattedLoans = loansRes.data.map(loan => {
+        const formattedLoans = analyticsData.recent_loans.map(loan => {
           let status = 'Borrowed';
           let statusColor = 'text-blue-500 bg-blue-50';
           if (loan.returned_at) {
@@ -123,24 +117,15 @@ const AdminDashboard = () => {
           };
         });
 
-        // 1. Filter and process Overdue Loans
-        const formattedOverdueDetails = loansRes.data
-          .filter(loan => !loan.returned_at && new Date(loan.due_at) < new Date())
-          .map(loan => {
+          // 1. Filter and process Overdue Loans
+          const formattedOverdueDetails = analyticsData.overdue_loans.map(loan => {
+            
             const userName = loan.user_name || 'Unknown User';
             
-            // 2. Calculate overdue days exactly like the Python backend does
-            const dueDate = new Date(loan.due_at);
-            dueDate.setHours(0, 0, 0, 0); // Reset time to midnight to compare just dates
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const diffTime = today - dueDate;
-            // Convert milliseconds to days. Ensure at least 1 day overdue.
-            const overdueDays = Math.max(Math.round(diffTime / (1000 * 60 * 60 * 24)), 1);
-            
-            // 3. Calculate fine: ₹10 per day
-            const fineAmount = overdueDays * 10;
+            // NEW: Directly consume the server-calculated values!
+            // Fallback to 0 in case the API ever fails to return them.
+            const overdueDays = loan.overdue_days || 0;
+            const fineAmount = loan.current_fine_estimate || 0;
 
             // 4. Generate deterministic UI colors based on loan ID
             const bookColors = ['bg-red-400', 'bg-orange-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
@@ -160,8 +145,6 @@ const AdminDashboard = () => {
             };
           });
 
-        
-
         setBookRequests(formattedRequests);
         setBooksLended(formattedLoans);
         setOverdueDetails(formattedOverdueDetails);
@@ -176,6 +159,25 @@ const AdminDashboard = () => {
 
     fetchDashboardData();
   }, []);
+
+  const handleApproveRequest = async (id) => {
+    try {
+      await client.patch(`/reservations/${id}/`, { status: 'ready' });
+      setBookRequests(prev => prev.filter(req => req.id !== id));
+    } catch (err) {
+      console.error("Error approving request:", err);
+      alert("Failed to approve request.");
+    }
+  };
+  const handleDenyRequest = async (id) => {
+    try {
+      await client.patch(`/reservations/${id}/`, { status: 'cancelled' });
+      setBookRequests(prev => prev.filter(req => req.id !== id));
+    } catch (err) {
+      console.error("Error denying request:", err);
+      alert("Failed to deny request.");
+    }
+  };
 
   if (loading) {
     return (
@@ -201,7 +203,11 @@ const AdminDashboard = () => {
         <OverdueDetails data={overdueDetails} />
 
         <div className="space-y-6 xl:col-span-5">
-          <BookRequests data={bookRequests} />
+          <BookRequests 
+            data={bookRequests}
+            onApprove={handleApproveRequest}
+            onDeny={handleDenyRequest}
+          />
           <BooksLended data={booksLended} />
         </div>
       </div>

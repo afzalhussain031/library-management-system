@@ -1,14 +1,16 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const BookRequests = ({ data }) => {
+const BookRequests = ({ data, onApprove, onDeny }) => {
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
         <h2 className="text-lg font-bold text-gray-800">Book requests</h2>
-        <button className="text-gray-400 hover:text-gray-600">
-          <ChevronRight size={18} />
-        </button>
+        {/* FIXED: Path updated to match AppRouter.jsx */}
+        <Link to="/admin/reservations" className="text-gray-400 hover:text-gray-600 flex items-center text-sm font-semibold">
+          See All <ChevronRight size={16} className="ml-1" />
+        </Link>
       </div>
       <div className="p-3">
         <div className="space-y-1">
@@ -38,10 +40,16 @@ const BookRequests = ({ data }) => {
 
               {/* Actions */}
               <div className="flex flex-col gap-1 shrink-0">
-                <button className="px-2 py-0.5 rounded border border-green-200 text-[10px] font-bold text-green-600 hover:bg-green-50 transition-colors uppercase">
+                <button 
+                  onClick={() => onApprove(item.id)}
+                  className="px-2 py-0.5 rounded border border-green-200 text-[10px] font-bold text-green-600 hover:bg-green-50 transition-colors uppercase"
+                >
                   Approve
                 </button>
-                <button className="px-2 py-0.5 rounded border border-red-200 text-[10px] font-bold text-red-600 hover:bg-red-50 transition-colors uppercase">
+                <button 
+                  onClick={() => onDeny(item.id)}
+                  className="px-2 py-0.5 rounded border border-red-200 text-[10px] font-bold text-red-600 hover:bg-red-50 transition-colors uppercase"
+                >
                   Deny
                 </button>
               </div>

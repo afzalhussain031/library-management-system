@@ -1,14 +1,16 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const BooksLended = ({ data }) => {
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
         <h2 className="text-lg font-bold text-gray-800">Books Lended</h2>
-        <button className="text-gray-400 hover:text-gray-600">
-          <ChevronRight size={18} />
-        </button>
+        {/* FIXED: Path updated to match AppRouter.jsx */}
+        <Link to="/admin/circulation" className="text-gray-400 hover:text-gray-600 flex items-center text-sm font-semibold">
+          See All <ChevronRight size={16} className="ml-1" />
+        </Link>
       </div>
       <div className="p-3">
         <div className="space-y-1">

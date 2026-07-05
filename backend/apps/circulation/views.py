@@ -105,11 +105,40 @@ class ReservationViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
-        # Automatically set ready_at when status changes to READY
+        # Remember the old status before saving
+        old_status = serializer.instance.status
         instance = serializer.save()
-        if instance.status == Reservation.READY and not instance.ready_at:
-            instance.ready_at = timezone.now()
-            instance.save(update_fields=['ready_at'])
+        # 1. Handling Approval (Pending -> Ready)
+        if instance.status == Reservation.READY and old_status != Reservation.READY:
+            # Set the timestamp
+            if not instance.ready_at:
+                instance.ready_at = timezone.now()
+                instance.save(update_fields=['ready_at'])
+            
+            # Lock a physical copy!
+            if not instance.allocated_copy:
+                available_copy = BookCopy.objects.filter(book=instance.book, status=BookCopy.AVAILABLE).first()
+                
+                if not available_copy:
+                    raise ValidationError({"detail": "No available copies to lock for this reservation."})
+                
+                # Link the specific copy to this reservation
+                instance.allocated_copy = available_copy
+                instance.save(update_fields=['allocated_copy'])
+                
+                # Change the physical copy's status to prevent theft
+                available_copy.status = BookCopy.RESERVED
+                available_copy.save(update_fields=['status'])
+        # 2. Handling Cancellation/Denial
+        elif instance.status == Reservation.CANCELLED and instance.allocated_copy:
+            # Release the locked copy back to the library
+            released_copy = instance.allocated_copy
+            released_copy.status = BookCopy.AVAILABLE
+            released_copy.save(update_fields=['status'])
+            
+            # Unlink it from the reservation
+            instance.allocated_copy = None
+            instance.save(update_fields=['allocated_copy'])
 
     @action(detail=True, methods=["post"])
     def fulfill(self, request, pk=None):
@@ -117,25 +146,31 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservation = self.get_object()
 
         if reservation.status != Reservation.READY:
-                return Response({"error": "Only READY reservations can be fulfilled."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Only READY reservations can be fulfilled."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Find an available copy of the book
-        available_copy = BookCopy.objects.filter(book=reservation.book, status=BookCopy.AVAILABLE).first()
-        if not available_copy:
-            return Response({"error": "No available copies to issue."}, status=status.HTTP_400_BAD_REQUEST)
+        # 1. Get the copy we pre-locked for them during Approval
+        locked_copy = reservation.allocated_copy
+        
+        # (Fallback just in case it's an old reservation from before we added this feature)
+        if not locked_copy:
+            locked_copy = BookCopy.objects.filter(book=reservation.book, status=BookCopy.AVAILABLE).first()
+            if not locked_copy:
+                return Response({"error": "No copies available to issue."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Create the loan
+        # 2. Create the loan using the specific locked copy
         due_date = timezone.now() + timezone.timedelta(days=14)
         Loan.objects.create(
-            copy=available_copy,
+            copy=locked_copy,
             borrower=reservation.user,
             due_at=due_date
         )
 
-        # 3. Update copy status
-        available_copy.status = BookCopy.LOANED
-        available_copy.save(update_fields=['status'])
+        # 3. Update copy status to LOANED
+        locked_copy.status = BookCopy.LOANED
+        locked_copy.save(update_fields=['status'])
+        
         # 4. Mark reservation as fulfilled
         reservation.status = Reservation.FULFILLED
         reservation.save(update_fields=['status'])
+        
         return Response({"detail": "Book issued and reservation fulfilled!"}, status=status.HTTP_200_OK)
