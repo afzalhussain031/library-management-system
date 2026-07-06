@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 
-from common.permissions.base import IsStaffOrReadOnly
+from common.permissions.base import IsEmailVerified, IsStaffOrReadOnly
 
 from .models import Fine
 from .serializers import FineSerializer
@@ -9,7 +9,7 @@ from .serializers import FineSerializer
 class FineViewSet(viewsets.ModelViewSet):
     queryset = Fine.objects.select_related("loan").all()
     serializer_class = FineSerializer
-    permission_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly, IsEmailVerified]
 
     def get_queryset(self):
         queryset = super().get_queryset()

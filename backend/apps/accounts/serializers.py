@@ -173,12 +173,12 @@ class CustomUserUpdateSerializer(serializers.ModelSerializer):
             "batch",
         ]
         extra_kwargs = {
-            "email": {"required": False},
+            "email": {"required": True},
         }
 
     def update(self, instance, validated_data):
         if "email" in validated_data and validated_data["email"] != instance.email:
-            instance.email_verified = False
+            instance.is_email_verified = False
         return super().update(instance, validated_data)
 
 

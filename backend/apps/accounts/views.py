@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import Membership
@@ -130,6 +131,10 @@ class VerifyEmailView(APIView):
 
 class ResendVerificationEmailView(APIView):
     """Resends the email verification link to an unverified user."""
+    
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]  # Added throttling
+    throttle_scope = "resend_verification"
 
     permission_classes = [AllowAny]
 
@@ -218,6 +223,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 user
                 and not user.is_email_verified
                 and user.check_password(password)
+                and not (user.is_staff or user.is_superuser) 
             ):
                 return Response(
                     {"detail": "Please verify your email before logging in."},

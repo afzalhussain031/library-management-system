@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from common.permissions.base import IsStaffOrReadOnly
+from common.permissions.base import IsEmailVerified, IsStaffOrReadOnly
 from apps.billing.models import Fine
 from apps.inventory.models import BookCopy
 
@@ -18,7 +18,7 @@ from .serializers import LoanSerializer, ReservationSerializer
 class LoanViewSet(viewsets.ModelViewSet):
     queryset = Loan.objects.select_related("copy", "borrower").all()
     serializer_class = LoanSerializer
-    permission_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsStaffOrReadOnly, IsEmailVerified]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -92,7 +92,7 @@ class LoanViewSet(viewsets.ModelViewSet):
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.select_related("book", "user").all()
     serializer_class = ReservationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsEmailVerified]
 
     def get_queryset(self):
         queryset = super().get_queryset()
