@@ -1,39 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Search, CheckCircle, XCircle, DollarSign, Clock, Check } from "lucide-react";
 import { billing } from "../../services/api";
 import UserAvatar from "../../components/common/UserAvatar";
+import { useApi } from "../../hook/useApi";
+import ErrorMessage from "../../components/common/ErrorMessage";
+import toast from "react-hot-toast";
 
 export default function FinesAndPayments() {
-  const [fines, setFines] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending"); // Default to pending
+  const [statusFilter, setStatusFilter] = useState("pending");
 
-  // Fetch fines on mount
-  useEffect(() => {
-    fetchFines();
-  }, []);
-  const fetchFines = async () => {
-    setLoading(true);
-    try {
-      const response = await billing.getFines();
-      setFines(response.data);
-    } catch (error) {
-      console.error("Failed to fetch fines:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: rawFines, setData: setFines, isLoading: loading, error } = useApi(billing.getFines, []);
+  const fines = rawFines || [];
 
   // Handle updating a fine's status
   const handleUpdateStatus = async (id, newStatus) => {
+    const toastId = toast.loading(`Updating status to ${newStatus}...`);
     try {
       await billing.updateFine(id, { status: newStatus });
-      // Update local state to reflect the change immediately without refetching
       setFines(fines.map(fine => fine.id === id ? { ...fine, status: newStatus } : fine));
+      toast.success(`Fine marked as ${newStatus}!`, { id: toastId });
     } catch (error) {
       console.error("Failed to update fine:", error);
-      alert("Failed to update fine. Please try again.");
+      toast.error("Failed to update fine. Please try again.", { id: toastId });
     }
   };
 
@@ -138,6 +127,8 @@ export default function FinesAndPayments() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr><td colSpan="6" className="text-center py-10">Loading fines...</td></tr>
+              ) : error ? (
+                <tr><td colSpan="6" className="py-4"><ErrorMessage message={error} /></td></tr>
               ) : filteredFines.length === 0 ? (
                 <tr><td colSpan="6" className="text-center py-10 text-slate-400">No fines found.</td></tr>
               ) : (

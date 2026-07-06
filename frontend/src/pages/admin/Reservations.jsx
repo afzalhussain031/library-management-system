@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { circulation } from '../../services/api';
 import { Clock, CheckCircle, AlertCircle, BookOpen, User, MoreVertical } from 'lucide-react';
+import { useApi } from '../../hook/useApi';
+import ErrorMessage from '../../components/common/ErrorMessage';
+import toast from 'react-hot-toast';
 
 const COLUMNS = [
   { id: 'pending', title: 'Pending (Waitlist)', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' },
@@ -9,29 +12,8 @@ const COLUMNS = [
 ];
 
 export default function Reservations() {
-  const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null); // For our "Automated Notification" reassurance
-
-  useEffect(() => {
-    fetchReservations();
-  }, []);
-
-  const fetchReservations = async () => {
-    try {
-      const res = await circulation.getReservations();
-      setReservations(res.data);
-    } catch (error) {
-      console.error("Failed to fetch reservations", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const { data: rawReservations, setData: setReservations, isLoading: loading, error, refetch: fetchReservations } = useApi(circulation.getReservations, []);
+  const reservations = rawReservations || [];
 
   // --- DRAG AND DROP HANDLERS ---
   const handleDragStart = (e, id) => {
@@ -45,32 +27,37 @@ export default function Reservations() {
     const id = e.dataTransfer.getData("reservation_id");
     const reservation = reservations.find(r => r.id.toString() === id);
     if (!reservation || reservation.status === newStatus) return;
+    
     // Optimistic UI Update
+    const previousReservations = [...reservations];
     setReservations(prev => prev.map(r => 
       r.id.toString() === id ? { ...r, status: newStatus } : r
     ));
+    
+    const toastId = toast.loading("Updating status...");
     try {
       await circulation.updateReservationStatus(id, newStatus);
-      
-      // UX: Reassurance that system is working
       if (newStatus === 'ready') {
-        showToast(`Status updated. An automated email has been sent to ${reservation.user_name}.`);
+        toast.success(`Status updated. An automated email has been sent to ${reservation.user_name}.`, { id: toastId });
+      } else {
+        toast.success("Status updated.", { id: toastId });
       }
     } catch (error) {
       console.error("Failed to update status", error);
-      showToast("Error updating status.", "error");
-      fetchReservations(); // Revert on failure
+      toast.error("Error updating status.", { id: toastId });
+      setReservations(previousReservations); // Revert on failure
     }
   };
 
   // --- ACTIONS ---
   const handleFulfill = async (id) => {
+    const toastId = toast.loading("Fulfilling reservation...");
     try {
       await circulation.fulfillReservation(id);
-      showToast("Book fulfilled and loan issued automatically!");
+      toast.success("Book fulfilled and loan issued automatically!", { id: toastId });
       fetchReservations(); // Refresh to move it to fulfilled
     } catch (error) {
-      showToast("Failed to fulfill reservation.", "error");
+      toast.error("Failed to fulfill reservation.", { id: toastId });
     }
   };
 
@@ -96,21 +83,10 @@ export default function Reservations() {
     }, {});
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading Kanban Board...</div>;
+    if (error) return <div className="p-8"><ErrorMessage message={error} /></div>;
 
      return (
     <div className="p-6 h-full flex flex-col relative">
-      
-      {/* Toast Notification */}
-      {toast && (
-        <div className="absolute top-4 right-4 z-50 animate-fade-in-down">
-          <div className={`px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 text-white ${
-            toast.type === 'success' ? 'bg-slate-800' : 'bg-red-600'
-          }`}>
-            {toast.type === 'success' ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : <AlertCircle className="w-5 h-5" />}
-            <span className="font-medium text-sm">{toast.message}</span>
-          </div>
-        </div>
-      )}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Reservations Workflow</h1>
         <p className="text-slate-500 mt-2">Drag and drop cards to update their status and trigger automated user notifications.</p>

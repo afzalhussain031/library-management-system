@@ -1,40 +1,34 @@
-import { useState, useEffect } from "react";
 import { dashboard } from "../../../services/api";
+import { useApi } from "../../../hook/useApi";
+import ErrorMessage from "../../common/ErrorMessage";
 
 export default function FineCard() {
-  const [fines, setFines] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading, error } = useApi(dashboard.getFines, []);
+  
+  const finesList = Array.isArray(data) ? data : data?.results || [];
+  const pendingFines = finesList.filter(fine => fine.status === "pending");
+  const totalAmount = pendingFines.reduce((sum, fine) => sum + (fine.amount || 0), 0);
+  
+  const fines = {
+    total: totalAmount,
+    count: pendingFines.length,
+    list: pendingFines
+  };
 
-  useEffect(() => {
-    async function fetchFines() {
-      try {
-        const response = await dashboard.getFines();
-        const finesList = Array.isArray(response) ? response : response.results || [];
-        
-        // Get pending fines only
-        const pendingFines = finesList.filter(fine => fine.status === "pending");
-        const totalAmount = pendingFines.reduce((sum, fine) => sum + (fine.amount || 0), 0);
-        
-        setFines({
-          total: totalAmount,
-          count: pendingFines.length,
-          list: pendingFines
-        });
-      } catch (err) {
-        console.error("Failed to fetch fines:", err);
-        setFines({ total: 0, count: 0, list: [] });
-      } finally {
-        setLoading(false);
-      }
-    }
 
-    fetchFines();
-  }, []);
 
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-4xl shadow-md border border-gray-100 flex items-center justify-center h-32">
         <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-4xl shadow-md border border-gray-100 h-32">
+        <ErrorMessage message={error} />
       </div>
     );
   }

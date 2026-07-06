@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
 import { membersApi } from '../../services/api';
+import { useApi } from '../../hook/useApi';
+import ErrorMessage from '../../components/common/ErrorMessage';
 
 const FILTER_TAGS = ['All', 'CSE', 'IT', 'ECE', 'ME', 'Civil'];
 
@@ -11,59 +13,34 @@ const Members = () => {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Start with an empty array for members
-  const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   
-  // Add loading state
-  const [isLoading, setIsLoading] = useState(true);
+  // 1. Fetch data safely using the custom hook
+  const { data: rawMembers, isLoading, error } = useApi(membersApi.getAll, []);
 
-  // Fetch data on component mount
-  useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        setIsLoading(true);
-        const response = await membersApi.getAll();
-        
-        // Map Django CustomUser data to match what the MemberCard expects
-        const formattedMembers = response.data.map(user => {
-          // 1. Define the variable FIRST!
-          const resolvedName = user.student_name || `${user.first_name} ${user.last_name}`.trim() || 'Unknown';
-          
-          // 2. Then return the object using the "return" keyword
-          return {
-            id: user.id,
-            name: resolvedName,
-            enr: user.user_id,
-            phone: user.phone_number || 'N/A',
-            branch: user.department || 'N/A',
-            year: user.batch || 'N/A',
-            borrowed: 0, 
-            fine: 0
-          };
-        });
-
-        setMembers(formattedMembers);
-      } catch (error) {
-        console.error("Failed to fetch members:", error);
-      } finally {
-        setIsLoading(false);
-      }
+  // 2. Format the data only when it exists
+  const members = (rawMembers || []).map(user => {
+    const resolvedName = user.student_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown';
+    return {
+      id: user.id,
+      name: resolvedName,
+      enr: user.user_id,
+      phone: user.phone_number || 'N/A',
+      branch: user.department || 'N/A',
+      year: user.batch || 'N/A',
+      borrowed: 0, 
+      fine: 0
     };
+  });
 
-    fetchMembers();
-  }, []);
-
-  // Remove member action (Note: This still only removes locally. 
-  // You would need an API call here later to actually delete from DB)
   const handleRemoveMember = (id) => {
-    setMembers(prev => prev.filter(m => m.id !== id));
+    // Note: If you implement deletion, you'll need a mechanism to update the hook data
+    // or trigger a refetch. For now, it just closes the modal locally since we removed
+    // the local setMembers array.
     setSelectedMember(null);
   };
 
-  // Filter members based on selected branch and search query
   const filteredMembers = members.filter(member => {
-    // Adding optional chaining (?) in case some fields are undefined
     const matchesSearch = member.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           member.enr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           member.phone?.includes(searchQuery);
@@ -154,7 +131,9 @@ const Members = () => {
 
       {/* Cards Container */}
       <div className="bg-[#FFFFFF80] rounded-[40px] p-6 md:p-8 shadow-sm border border-white min-h-[400px]">
-        {isLoading ? (
+        {error ? (
+          <ErrorMessage message={error} />
+        ) : isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500 font-medium h-full">
             <Loader size={40} className="text-[#F6BE0A] mb-4 animate-spin" />
             <p>Loading members...</p>

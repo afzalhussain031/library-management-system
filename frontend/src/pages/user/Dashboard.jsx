@@ -3,32 +3,17 @@ import BorrowedList from "../../components/user/dashboard/BorrowedList";
 import Notifications from "../../components/user/dashboard/Notifications";
 import Recommended from "../../components/user/dashboard/Recommended";
 import FineCard from "../../components/user/dashboard/FineCard";
-import { useState, useEffect } from "react";
 import { dashboard } from "../../services/api";
+import { useApi } from "../../hook/useApi";
+import ErrorMessage from "../../components/common/ErrorMessage";
 import { Pause,Wallet,Mail, Heart } from "lucide-react";
 
 
 export default function Dashboard() {
-  const [dashboardData, setDashboardData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        const data = await dashboard.getStats()
-        setDashboardData(data)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchDashboard()
-  }, [])
+  const { data: dashboardData, isLoading: loading, error } = useApi(dashboard.getStats, null);
 
   if (loading) return <div className="p-6">Loading...</div>
-  if (error) return <div className="p-6 text-red-500">Error: {error}</div>
+  if (error) return <div className="p-6"><ErrorMessage message={error} /></div>
 
   const libInfo = dashboardData?.library_information || {}
 

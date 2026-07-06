@@ -1,38 +1,31 @@
-import { useState, useEffect } from "react";
 import { catalog } from "../../../services/api";
+import { useApi } from "../../../hook/useApi";
+import ErrorMessage from "../../common/ErrorMessage";
 
 export default function Recommended() {
-  const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading, error } = useApi(catalog.getBooks, []);
+  
+  const bookList = Array.isArray(data) ? data : data?.results || [];
+  const recommendedBooks = bookList.slice(0, 4).map(book => ({
+    id: book.id,
+    title: book.title || "Unknown Title",
+    cover: book.cover_image || null
+  }));
 
-  useEffect(() => {
-    async function fetchBooks() {
-      try {
-        const response = await catalog.getBooks();
-        const bookList = Array.isArray(response) ? response : response.results || [];
-        
-        // Get first 4 books
-        const recommendedBooks = bookList.slice(0, 4).map(book => ({
-          id: book.id,
-          title: book.title || "Unknown Title",
-          cover: book.cover_image || null
-        }));
-        
-        setBooks(recommendedBooks);
-      } catch (err) {
-        console.error("Failed to fetch books:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
 
-    fetchBooks();
-  }, []);
 
   if (loading) {
     return (
       <div className="bg-white p-5 rounded-4xl shadow-md border border-gray-100 h-full flex items-center justify-center">
         <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-5 rounded-4xl shadow-md border border-gray-100 h-full">
+        <ErrorMessage message={error} />
       </div>
     );
   }
@@ -47,7 +40,7 @@ export default function Recommended() {
       </div>
 
       <div className="flex gap-4 items-center overflow-x-auto">
-        {books.map((book) => (
+        {recommendedBooks.map((book) => (
           <div
             key={book.id}
             className="w-25 min-w-20 h-29 bg-gray-200 rounded-md flex items-center justify-center text-[10px] text-center text-gray-600 cursor-pointer shrink-0 transition-all duration-200 hover:bg-yellow-400 hover:text-black hover:shadow-md p-2"
