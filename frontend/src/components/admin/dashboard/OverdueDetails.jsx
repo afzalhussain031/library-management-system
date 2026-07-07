@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronRight, MoreVertical } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
@@ -111,13 +112,13 @@ const OverdueDetails = ({ data, isLoading }) => {
                     <div className="absolute right-0 top-8 w-40 bg-white shadow-md border border-gray-100 rounded-lg z-10 py-1 text-sm overflow-hidden flex flex-col">
                       <button 
                         className="px-4 py-2 text-left hover:bg-orange-50 text-gray-700 transition-colors"
-                        onClick={() => { alert('Send reminder logic here!'); setOpenMenuId(null); }}
+                        onClick={() => { toast('Reminder feature coming soon!', { icon: '🚧' }); setOpenMenuId(null); }}
                       >
                         Send Reminder
                       </button>
                       <button 
                         className="px-4 py-2 text-left hover:bg-orange-50 text-green-600 transition-colors"
-                        onClick={() => { alert('Mark returned logic here!'); setOpenMenuId(null); }}
+                        onClick={() => { toast('Mark returned feature coming soon!', { icon: '🚧' }); setOpenMenuId(null); }}
                       >
                         Mark Returned
                       </button>

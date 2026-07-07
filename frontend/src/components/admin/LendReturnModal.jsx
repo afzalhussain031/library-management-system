@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { lendReturnSchema } from '../../schemas/formSchemas'
 import { Calendar, X, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function LendReturnModal({ open, onClose }) {
   const [activeTab, setActiveTab] = useState('lend')
@@ -37,7 +38,13 @@ export default function LendReturnModal({ open, onClose }) {
         ? `Lend Confirmed!\nEnrollment ID: ${data.enrollmentId}\nISBN: ${data.isbn}\nBook ID: ${data.bookId}\nIssue Date: ${data.issueDate}\nDue Date: ${data.dueDate}`
         : `Return Confirmed!\nEnrollment ID: ${data.enrollmentId}\nISBN: ${data.isbn}\nBook ID: ${data.bookId}\nReturn Date: ${data.returnDate}`
       
-      alert(message)
+      toast.success(message, {
+        duration: 5000,
+        style: {
+          whiteSpace: 'pre-line',
+          textAlign: 'left'
+        }
+      })
       
       // Clear form and close modal
       reset()
