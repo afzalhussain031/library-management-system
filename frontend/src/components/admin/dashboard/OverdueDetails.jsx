@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, MoreVertical } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import UserAvatar from '../../common/UserAvatar';
 
 const OverdueDetails = ({ data }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -28,9 +29,7 @@ const OverdueDetails = ({ data }) => {
             <div key={item.id} className="flex items-center justify-between p-3 hover:bg-orange-50/50 rounded-xl transition-colors mb-1 relative">
               {/* User Info */}
               <div className="flex items-center gap-3 w-1/4">
-                <div className={`w-9 h-9 rounded-full ${item.userColor} flex items-center justify-center text-xs font-bold text-gray-700`}>
-                  {item.userInitials}
-                </div>
+                <UserAvatar name={item.userName} size="sm" />
                 <span className="text-sm font-bold text-gray-700 truncate">{item.userName}</span>
               </div>
               

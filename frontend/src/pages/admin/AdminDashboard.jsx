@@ -1,196 +1,167 @@
 import React, { useState, useEffect } from "react";
 import { MoreVertical, ChevronRight, Check, X } from "lucide-react";
 import client from "../../services/httpClient";
+import toast from "react-hot-toast";
 
 import DashboardStats from "../../components/admin/dashboard/DashboardStats";
 import OverdueDetails from "../../components/admin/dashboard/OverdueDetails";
 import BookRequests from "../../components/admin/dashboard/BookRequests";
 import BooksLended from "../../components/admin/dashboard/BooksLended";
 
-const AdminDashboard = () => {
-  const [bookRequests, setBookRequests] = useState([]);
-  const [booksLended, setBooksLended] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+import { useApi } from "../../hook/useApi";
+import { dashboard } from "../../services/api";
+import ErrorMessage from "../../components/common/ErrorMessage";
 
-  // 1. Replaced the static `const stats = [...]` with a React State Variable
-  //    This acts as a placeholder while the data is loading from the API.
-  const [stats, setStats] = useState([
+const AdminDashboard = () => {
+  const { data: analyticsData, isLoading, error } = useApi(dashboard.getAdminStats);
+  
+  const [bookRequests, setBookRequests] = useState([]);
+
+  // Calculate Month-over-Month Growth
+  const calculateGrowth = (current, previous) => {
+    if (previous === 0) return current > 0 ? 100 : 0; 
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const formatGrowth = (current, previous) => {
+    const growth = calculateGrowth(current, previous);
+    return growth >= 0 ? `+${growth}%` : `${growth}%`;
+  };
+
+  // 1. Calculate stats dynamically
+  let stats = [
     { id: 1, title: 'Total Inventory', value: '...', weeklyDelta: '+12 This week', monthlyDelta: '+5% This month' },
     { id: 2, title: 'Total books overdue', value: '...', weeklyDelta: '-2% This month', monthlyDelta: 'Loading fines...' }, 
     { id: 3, title: 'Total Books Borrowed', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
     { id: 4, title: 'Books Left', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
-  ]);
+  ];
 
-  const [overdueDetails, setOverdueDetails] = useState([]);
+  let booksLended = [];
+  let overdueDetails = [];
 
+  // Update states once data is loaded
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
+    if (analyticsData?.recent_reservations) {
+      const formattedRequests = analyticsData.recent_reservations.map(res => ({
+        id: res.id,
+        bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
+        bookColor: 'bg-blue-400', 
+        bookTitle: res.book_title,
+        bookAuthor: `by ${res.book_author}`,
+        userName: res.user_name || `User #${res.user}`,
+        date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
+      }));
+      setBookRequests(formattedRequests);
+    }
+  }, [analyticsData]);
 
-         // 1. ONLY MAKE ONE API CALL NOW! (Massive performance boost)
-        const statsRes = await client.get('/analytics/dashboard-stats/');
-        const analyticsData = statsRes.data;
+  if (analyticsData) {
+    stats = [
+      { 
+        id: 1, 
+        title: 'Total Inventory', 
+        value: analyticsData.total_inventory, 
+        weeklyDelta: `+${analyticsData.inventory_this_week || 0} This week`, 
+        monthlyDelta: `${formatGrowth(analyticsData.inventory_this_month || 0, analyticsData.inventory_last_month || 0)} This month`
+      },
+      { 
+        id: 2, 
+        title: 'Total books overdue', 
+        value: analyticsData.total_overdue, 
+        weeklyDelta: `+${analyticsData.overdue_this_week || 0} This week`, 
+        monthlyDelta: `₹ ${analyticsData.fines_this_month || 0} Fine this month` 
+      },
+      { 
+        id: 3, 
+        title: 'Total Books Borrowed', 
+        value: analyticsData.total_borrowed, 
+        weeklyDelta: `+${analyticsData.borrowed_this_week || 0} This week`, 
+        monthlyDelta: `${formatGrowth(analyticsData.borrowed_this_month || 0, analyticsData.borrowed_last_month || 0)} This month`  
+      },
+      { 
+        id: 4, 
+        title: 'Books Left', 
+        value: analyticsData.books_left, 
+        weeklyDelta: `-`, 
+        monthlyDelta: `-` 
+      },
+    ];
 
-        // A helper function to safely calculate a percentage growth
-        const calculatePercent = (part, total) => {
-            if (!total) return 0;
-            return Math.round((part / total) * 100);
-        };
-
-        setStats([
-          { 
-            id: 1, 
-            title: 'Total Inventory', 
-            value: analyticsData.total_inventory, 
-            weeklyDelta: `+${analyticsData.inventory_this_week} This week`, 
-            monthlyDelta: `+${calculatePercent(analyticsData.inventory_this_month, analyticsData.total_inventory)}% This month` 
-          },
-          { 
-            id: 2, 
-            title: 'Total books overdue', 
-            value: analyticsData.total_overdue, 
-            weeklyDelta: `+${analyticsData.overdue_this_week} This week`, 
-            monthlyDelta: `₹ ${analyticsData.fines_this_month} Fine this month` 
-          },
-          { 
-            id: 3, 
-            title: 'Total Books Borrowed', 
-            value: analyticsData.total_borrowed, 
-            weeklyDelta: `+${analyticsData.borrowed_this_week} This week`, 
-            monthlyDelta: `+${calculatePercent(analyticsData.borrowed_this_month, analyticsData.total_borrowed)}% This month` 
-          },
-          { 
-            id: 4, 
-            title: 'Books Left', 
-            value: analyticsData.books_left, 
-            weeklyDelta: `-`, // Books left is a fluctuating total, delta might not be as relevant here
-            monthlyDelta: `-` 
-          },
-        ]);
-
-        // 2. USE THE NEW 5-RECORD ARRAYS
-        const formattedRequests = analyticsData.recent_reservations.map(res => {
-          const userName = res.user_name || `User #${res.user}`;
-          return {
-            id: res.id,
-            bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
-            bookColor: 'bg-blue-400', 
-            bookTitle: res.book_title,
-            bookAuthor: `by ${res.book_author}`,
-            userInitials: userName.charAt(0).toUpperCase(), 
-            userColor: 'bg-gray-200',
-            userName: userName,
-            date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
-          };
-        });
-
-        const formattedLoans = analyticsData.recent_loans.map(loan => {
-          let status = 'Borrowed';
-          let statusColor = 'text-blue-500 bg-blue-50';
-          if (loan.returned_at) {
-            status = 'Returned';
-            statusColor = 'text-green-500 bg-green-50';
-          } else if (new Date(loan.due_at) < new Date()) {
-            status = 'Overdue';
-            statusColor = 'text-red-500 bg-red-50';
-          } else if (loan.renewed_count > 0) {
-            status = 'Renewed';
-            statusColor = 'text-yellow-600 bg-yellow-50';
-          }
-
-          const userName = loan.user_name || 'Unknown User';
-
-          return {
-            id: loan.id,
-            bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
-            bookColor: 'bg-green-400',
-            bookTitle: loan.book_title,
-            bookAuthor: `by ${loan.book_author}`,
-            userInitials: userName.charAt(0).toUpperCase(), 
-            userColor: 'bg-gray-200',
-            userName: userName, 
-            date: new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
-            status: status,
-            statusColor: statusColor
-          };
-        });
-
-          // 1. Filter and process Overdue Loans
-          const formattedOverdueDetails = analyticsData.overdue_loans.map(loan => {
-            
-            const userName = loan.user_name || 'Unknown User';
-            
-            // NEW: Directly consume the server-calculated values!
-            // Fallback to 0 in case the API ever fails to return them.
-            const overdueDays = loan.overdue_days || 0;
-            const fineAmount = loan.current_fine_estimate || 0;
-
-            // 4. Generate deterministic UI colors based on loan ID
-            const bookColors = ['bg-red-400', 'bg-orange-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
-            const userColors = ['bg-gray-200', 'bg-yellow-200', 'bg-blue-200', 'bg-green-200', 'bg-pink-200'];
-
-            return {
-              id: loan.id,
-              userInitials: userName.substring(0, 2).toUpperCase(),
-              userColor: userColors[loan.id % userColors.length],
-              userName: userName,
-              bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
-              bookColor: bookColors[loan.id % bookColors.length],
-              bookTitle: loan.book_title,
-              bookAuthor: `by ${loan.book_author}`,
-              overdue: `${overdueDays} Days`,
-              fine: `₹ ${fineAmount}`
-            };
-          });
-
-        setBookRequests(formattedRequests);
-        setBooksLended(formattedLoans);
-        setOverdueDetails(formattedOverdueDetails);
-
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-        setError("Failed to load dashboard data. Please try again.");
-      } finally {
-        setLoading(false);
+    booksLended = (analyticsData.recent_loans || []).map(loan => {
+      let status = 'Borrowed';
+      let statusColor = 'text-blue-500 bg-blue-50';
+      if (loan.returned_at) {
+        status = 'Returned';
+        statusColor = 'text-green-500 bg-green-50';
+      } else if (new Date(loan.due_at) < new Date()) {
+        status = 'Overdue';
+        statusColor = 'text-red-500 bg-red-50';
+      } else if (loan.renewed_count > 0) {
+        status = 'Renewed';
+        statusColor = 'text-yellow-600 bg-yellow-50';
       }
-    };
+      return {
+        id: loan.id,
+        bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
+        bookColor: 'bg-green-400',
+        bookTitle: loan.book_title,
+        bookAuthor: `by ${loan.book_author}`,
+        userName: loan.user_name || 'Unknown User', 
+        date: new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
+        status: status,
+        statusColor: statusColor
+      };
+    });
 
-    fetchDashboardData();
-  }, []);
+    const bookColors = ['bg-red-400', 'bg-orange-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400'];
+    overdueDetails = (analyticsData.overdue_loans || []).map(loan => ({
+      id: loan.id,
+      userName: loan.user_name || 'Unknown User',
+      bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
+      bookColor: bookColors[loan.id % bookColors.length],
+      bookTitle: loan.book_title,
+      bookAuthor: `by ${loan.book_author}`,
+      overdue: `${loan.overdue_days || 0} Days`,
+      fine: `₹ ${loan.current_fine_estimate || 0}`
+    }));
+  }
 
   const handleApproveRequest = async (id) => {
+    const toastId = toast.loading("Approving request...");
     try {
       await client.patch(`/reservations/${id}/`, { status: 'ready' });
       setBookRequests(prev => prev.filter(req => req.id !== id));
+      toast.success("Request approved!", { id: toastId });
     } catch (err) {
       console.error("Error approving request:", err);
-      alert("Failed to approve request.");
-    }
-  };
-  const handleDenyRequest = async (id) => {
-    try {
-      await client.patch(`/reservations/${id}/`, { status: 'cancelled' });
-      setBookRequests(prev => prev.filter(req => req.id !== id));
-    } catch (err) {
-      console.error("Error denying request:", err);
-      alert("Failed to deny request.");
+      toast.error("Failed to approve request.", { id: toastId });
     }
   };
 
-  if (loading) {
+  const handleDenyRequest = async (id) => {
+    const toastId = toast.loading("Denying request...");
+    try {
+      await client.patch(`/reservations/${id}/`, { status: 'cancelled' });
+      setBookRequests(prev => prev.filter(req => req.id !== id));
+      toast.success("Request denied.", { id: toastId });
+    } catch (err) {
+      console.error("Error denying request:", err);
+      toast.error("Failed to deny request.", { id: toastId });
+    }
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg font-semibold text-gray-600 animate-pulse">Loading dashboard data from database...</div>
+        <div className="text-lg font-semibold text-gray-600 animate-pulse">Loading dashboard data...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-red-500 font-semibold">
-        {error}
+      <div className="p-8">
+        <ErrorMessage message={error} />
       </div>
     );
   }

@@ -7,53 +7,39 @@ import {
   RefreshCw,
   AlertCircle
 } from "lucide-react";
+import UserAvatar from "../../components/common/UserAvatar";
+import { useApi } from "../../hook/useApi";
+import { dashboard } from "../../services/api";
+import ErrorMessage from "../../components/common/ErrorMessage";
+import toast from "react-hot-toast";
 
 const Circulation = () => {
-  const [loans, setLoans] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("active"); // "active", "overdue", "returned"
+  const [activeTab, setActiveTab] = useState("active");
 
-  // 1. Fetch Loans from Backend
-  const fetchLoans = async () => {
-    try {
-      setLoading(true);
-      // Fetches data from LoanViewSet in circulation/views.py
-      const response = await client.get('/loans/');
-      setLoans(response.data);
-    } catch (err) {
-      console.error("Error fetching loans:", err);
-      setError("Failed to load circulation data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLoans();
-  }, []);
+  const { data: rawLoans, isLoading: loading, error, refetch: fetchLoans } = useApi(dashboard.getBorrowedBooks, []);
+  const loans = rawLoans || [];
 
   // 2. Handle Book Return
   const handleReturn = async (loanId) => {
+    const toastId = toast.loading("Returning book...");
     try {
-      // Hits the @action return_loan endpoint in LoanViewSet
       const response = await client.post(`/loans/${loanId}/return_loan/`);
-      alert(response.data.detail || "Book returned successfully!");
-      fetchLoans(); // Refresh the list
+      toast.success(response.data.detail || "Book returned successfully!", { id: toastId });
+      fetchLoans();
     } catch (err) {
-      alert(err.response?.data?.detail || "Error returning book.");
+      toast.error(err.response?.data?.detail || "Error returning book.", { id: toastId });
     }
   };
 
   // 3. Handle Book Renewal
   const handleRenew = async (loanId) => {
+    const toastId = toast.loading("Renewing book...");
     try {
-      // Hits the @action renew endpoint in LoanViewSet
       const response = await client.post(`/loans/${loanId}/renew/`);
-      alert(`Loan renewed. New Due Date: ${new Date(response.data.due_at).toLocaleDateString()}`);
-      fetchLoans(); // Refresh the list
+      toast.success(`Loan renewed. New Due Date: ${new Date(response.data.due_at).toLocaleDateString()}`, { id: toastId });
+      fetchLoans();
     } catch (err) {
-      alert(err.response?.data?.detail || "Error renewing book.");
+      toast.error(err.response?.data?.detail || "Error renewing book.", { id: toastId });
     }
   };
 
@@ -105,7 +91,7 @@ const Circulation = () => {
         </div>
       </div>
       {loading && <div className="text-center py-8 text-gray-500">Loading circulation data...</div>}
-      {error && <div className="text-center py-8 text-red-500">{error}</div>}
+      {error && <div className="py-8"><ErrorMessage message={error} /></div>}
       {/* Data Table */}
       {!loading && !error && (
         <div className="w-full overflow-x-auto pb-4">
@@ -127,7 +113,8 @@ const Circulation = () => {
                   <div className="w-[80px] shrink-0 text-[13px] font-medium text-gray-400">
                     #{loan.id}
                   </div>
-                  <div className="w-[200px] shrink-0 pr-4">
+                  <div className="w-[200px] shrink-0 pr-4 flex items-center gap-3">
+                    <UserAvatar name={loan.user_name || 'Unknown'} size="sm" />
                     <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.user_name}</p>
                   </div>
                   <div className="w-[200px] shrink-0 pr-4">

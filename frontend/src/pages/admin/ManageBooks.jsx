@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import client from "../../services/httpClient";
+import React, { useState } from "react";
 import {
   Calendar,
   Plus,
@@ -11,15 +10,13 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { catalog } from "../../services/api";
+import { useApi } from "../../hook/useApi";
+import ErrorMessage from "../../components/common/ErrorMessage";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   
-  // Data States
-  const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   // NEW: Filter States
   const [activeTopFilter, setActiveTopFilter] = useState("All books");
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
@@ -28,21 +25,8 @@ const Books = () => {
     setExpandedRow(expandedRow === id ? null : id);
   };
 
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        setLoading(true);
-        const response = await client.get('/books/');
-        setBooks(response.data);
-      } catch (err) {
-        console.error("Error fetching books:", err);
-        setError("Failed to load inventory data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBooks();
-  }, []);
+  const { data: rawBooks, isLoading: loading, error } = useApi(catalog.getBooks, []);
+  const books = rawBooks || [];
 
   // NEW: Filtering Logic
   const filteredBooks = books.filter((book) => {
@@ -183,7 +167,7 @@ const Books = () => {
 
       {/* Show Loading/Error States */}
       {loading && <div className="text-center py-8 text-gray-500 font-semibold">Loading books...</div>}
-      {error && <div className="text-center py-8 text-red-500 font-semibold">{error}</div>}
+      {error && <div className="py-8"><ErrorMessage message={error} /></div>}
 
       {/* Responsive Table Container */}
       {!loading && !error && (

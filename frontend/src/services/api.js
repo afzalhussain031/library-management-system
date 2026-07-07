@@ -53,6 +53,9 @@ export const dashboard = {
   getStats: () =>
     client.get('/me/dashboard/'),
   
+  getAdminStats: () =>
+    client.get('/analytics/dashboard-stats/'),
+  
   getBorrowedBooks: () =>
     client.get('/loans/'),
   
@@ -66,10 +69,10 @@ export const dashboard = {
 // ===================== CATALOG =====================
 export const catalog = {
   getBooks: () =>
-    client.get('/catalog/books/'),
+    client.get('/books/'),
   
   getWishlist: () =>
-    client.get('/catalog/wishlist/')
+    client.get('/wishlist/')
 }
 
 // ===================== BILLING =====================

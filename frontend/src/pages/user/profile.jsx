@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { profile } from "../../services/api";
+import { useApi } from "../../hook/useApi";
+import ErrorMessage from "../../components/common/ErrorMessage";
 
 import ProfileCard from "../../components/user/profile/ProfileCard";
 import InfoSection from "../../components/user/profile/InfoSection";
@@ -8,28 +9,10 @@ import BookHistory from "../../components/user/profile/BookHistory";
 
 export default function UserProfile() {
   const { currentUser } = useAuth(); // Get current user from context
-  const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch profile data from backend
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const data = await profile.get();
-        setProfileData(data);
-      } catch (error) {
-        console.error("Failed to fetch profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (currentUser) {
-      fetchProfile();
-    }
-  }, [currentUser]);
+  const { data: profileData, isLoading: loading, error } = useApi(profile.get, null);
 
   if (loading) return <div>Loading...</div>;
+  if (error) return <ErrorMessage message={error} />;
   if (!profileData) return <div>No profile Data found</div>
 
   return (

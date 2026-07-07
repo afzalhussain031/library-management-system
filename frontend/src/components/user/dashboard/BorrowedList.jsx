@@ -1,46 +1,40 @@
-import { useState, useEffect } from "react";
 import { dashboard } from "../../../services/api";
 import { ArrowRight } from "lucide-react";
+import { useApi } from "../../../hook/useApi";
+import ErrorMessage from "../../common/ErrorMessage";
 
 export default function BorrowedList() {
-  const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading, error } = useApi(dashboard.getBorrowedBooks, []);
+  const loansList = Array.isArray(data) ? data : data?.results || [];
+  
+  // Filter only active loans (not returned)
+  const borrowedBooks = loansList
+    .filter(loan => !loan.returned_at)
+    .slice(0, 3) // Show only first 3
+    .map(loan => ({
+      title: loan.copy?.book?.title || "Unknown Title",
+      author: loan.copy?.book?.author || "Unknown Author",
+      date: new Date(loan.borrowed_at).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      })
+    }));
 
-  useEffect(() => {
-    async function fetchBooks() {
-      try {
-        const response = await dashboard.getBorrowedBooks();
-        const loansList = Array.isArray(response) ? response : response.results || [];
-        
-        // Filter only active loans (not returned)
-        const borrowedBooks = loansList
-          .filter(loan => !loan.returned_at)
-          .slice(0, 3) // Show only first 3
-          .map(loan => ({
-            title: loan.copy?.book?.title || "Unknown Title",
-            author: loan.copy?.book?.author || "Unknown Author",
-            date: new Date(loan.borrowed_at).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric"
-            })
-          }));
-        
-        setBooks(borrowedBooks);
-      } catch (err) {
-        console.error("Failed to fetch books:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
 
-    fetchBooks();
-  }, []);
 
   if (loading) {
     return (
       <div className="bg-white p-4 rounded-4xl shadow-sm text-gray-900 h-full flex items-center justify-center">
         <p className="text-gray-500">Loading borrowed books...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-4 rounded-4xl shadow-sm text-gray-900 h-full">
+        <ErrorMessage message={error} />
       </div>
     );
   }
@@ -54,10 +48,10 @@ export default function BorrowedList() {
         </button>
       </div>
 
-      {books.length === 0 ? (
+      {borrowedBooks.length === 0 ? (
         <p className="text-gray-500 text-sm">No borrowed books</p>
       ) : (
-        books.map((book, i) => (
+        borrowedBooks.map((book, i) => (
           <div key={i} className="flex justify-between items-center mb-4">
             <div>
               <h3 className="font-medium">{book.title}</h3>

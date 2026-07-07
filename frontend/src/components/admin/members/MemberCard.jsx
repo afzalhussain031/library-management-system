@@ -1,4 +1,5 @@
 import React from 'react';
+import UserAvatar from '../../common/UserAvatar';
 
 const MemberCard = ({ member, onClick }) => {
   return (
@@ -11,10 +12,10 @@ const MemberCard = ({ member, onClick }) => {
     >
       {/* Avatar Row */}
       <div className="flex items-center gap-3">
-        <img 
-          src={member.img || 'https://i.pravatar.cc/150'} 
-          alt={member.name}
-          className="w-[42px] h-[42px] rounded-full object-cover border-[2px] border-[#DEB853] shadow-sm group-hover:border-[#F6BE0A] transition-all duration-300"
+        <UserAvatar 
+          name={member.name} 
+          size="md" 
+          className="border-[2px] border-[#DEB853] shadow-sm group-hover:border-[#F6BE0A] transition-all duration-300" 
         />
         <div>
           <h3 className="font-bold text-[#1C2434] text-[15px] leading-tight group-hover:text-[#F6BE0A] transition-colors duration-300">{member.name}</h3>
