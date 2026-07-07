@@ -5,6 +5,7 @@ import UserAvatar from "../../components/common/UserAvatar";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import toast from "react-hot-toast";
+import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 
 export default function FinesAndPayments() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -126,7 +127,34 @@ export default function FinesAndPayments() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan="6" className="text-center py-10">Loading fines...</td></tr>
+                [1, 2, 3, 4, 5].map((key) => (
+                  <tr key={key}>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <SkeletonAvatar className="w-10 h-10 rounded-full shrink-0" />
+                        <div className="space-y-2">
+                          <SkeletonText className="h-4 w-32" />
+                          <SkeletonText className="h-3 w-40" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <SkeletonText className="h-4 w-48" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <SkeletonText className="h-4 w-24" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <SkeletonText className="h-5 w-16" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <SkeletonText className="h-6 w-20 rounded-full" />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <SkeletonText className="h-4 w-12 ml-auto" />
+                    </td>
+                  </tr>
+                ))
               ) : error ? (
                 <tr><td colSpan="6" className="py-4"><ErrorMessage message={error} /></td></tr>
               ) : filteredFines.length === 0 ? (

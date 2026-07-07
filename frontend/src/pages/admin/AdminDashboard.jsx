@@ -42,7 +42,7 @@ const AdminDashboard = () => {
   // Update states once data is loaded
   useEffect(() => {
     if (analyticsData?.recent_reservations) {
-      const formattedRequests = analyticsData.recent_reservations.map(res => ({
+      const formattedRequests = (analyticsData?.recent_reservations || []).map(res => ({
         id: res.id,
         bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
         bookColor: 'bg-blue-400', 
@@ -150,14 +150,6 @@ const AdminDashboard = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg font-semibold text-gray-600 animate-pulse">Loading dashboard data...</div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="p-8">
@@ -168,18 +160,19 @@ const AdminDashboard = () => {
 
   return (
     <div className="px-0 py-4 sm:p-6 md:p-8 space-y-6 w-full max-w-[1600px] mx-auto font-sans">
-      <DashboardStats data={stats} />
+      <DashboardStats data={stats} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
-        <OverdueDetails data={overdueDetails} />
+        <OverdueDetails data={overdueDetails} isLoading={isLoading} />
 
         <div className="space-y-6 xl:col-span-5">
           <BookRequests 
             data={bookRequests}
+            isLoading={isLoading}
             onApprove={handleApproveRequest}
             onDeny={handleDenyRequest}
           />
-          <BooksLended data={booksLended} />
+          <BooksLended data={booksLended} isLoading={isLoading} />
         </div>
       </div>
     </div>

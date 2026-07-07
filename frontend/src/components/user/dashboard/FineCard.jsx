@@ -1,6 +1,7 @@
 import { dashboard } from "../../../services/api";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
+import { SkeletonAvatar, SkeletonText } from "../../common/Skeleton";
 
 export default function FineCard() {
   const { data, isLoading: loading, error } = useApi(dashboard.getFines, []);
@@ -17,13 +18,7 @@ export default function FineCard() {
 
 
 
-  if (loading) {
-    return (
-      <div className="bg-white p-6 rounded-4xl shadow-md border border-gray-100 flex items-center justify-center h-32">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
-  }
+  // Remove early loading return
 
   if (error) {
     return (
@@ -51,13 +46,15 @@ export default function FineCard() {
           </div>
 
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 py-5">₹ {Math.round(amount)}</h1>
+            <div className="py-5">
+              {loading ? <SkeletonText className="h-9 w-24" /> : <h1 className="text-3xl font-semibold text-gray-900">₹ {Math.round(amount)}</h1>}
+            </div>
 
             <div className="flex items-center gap-2 mt-2 text-gray-600">
               <span className="text-yellow-500 text-lg">👤</span>
               <div>
                 <p className="text-sm font-medium text-gray-800">Pay Fine</p>
-                <p className="text-sm text-gray-500">{fines?.count || 0} pending</p>
+                {loading ? <SkeletonText className="h-4 w-20 mt-1" /> : <p className="text-sm text-gray-500">{fines?.count || 0} pending</p>}
               </div>
             </div>
           </div>

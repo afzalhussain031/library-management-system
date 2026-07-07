@@ -1,5 +1,7 @@
 import profileImg from "../../../assets/profile.jpg";
-export default function ProfileCard({ userData }) {
+import { SkeletonAvatar, SkeletonText } from "../../common/Skeleton";
+
+export default function ProfileCard({ userData, isLoading }) {
 
   const userName = userData?.student_name || userData?.first_name || "User";
   const department = userData?.department || "Department";
@@ -16,18 +18,22 @@ export default function ProfileCard({ userData }) {
       <div className="flex flex-col items-center">
 
         {/* Profile Image */}
-        <img
-          src={profileImg}
-          alt="profile"
-          className="w-20 h-20 rounded-full border-4 border-yellow-400"
-        />
+        {isLoading ? (
+          <SkeletonAvatar className="w-20 h-20 rounded-full border-4 border-yellow-400" />
+        ) : (
+          <img
+            src={profileImg}
+            alt="profile"
+            className="w-20 h-20 rounded-full border-4 border-yellow-400"
+          />
+        )}
 
-        <h2 className="mt-4 text-xl font-semibold text-gray-900">
-          {userName}
+        <h2 className="mt-4 text-xl font-semibold text-gray-900 flex justify-center">
+          {isLoading ? <SkeletonText className="h-6 w-32" /> : userName}
         </h2>
 
-        <p className="text-sm text-gray-500">
-          {role} • {department}
+        <p className="text-sm text-gray-500 mt-1 flex justify-center">
+          {isLoading ? <SkeletonText className="h-4 w-40" /> : `${role} • ${department}`}
         </p>
 
         <button className="mt-4 bg-yellow-400 px-4 py-1.5 rounded-full text-sm font-medium text-gray-900 contrast-more:text-black cursor-pointer transition hover:bg-gray-10 hover:scale-[1.01]">

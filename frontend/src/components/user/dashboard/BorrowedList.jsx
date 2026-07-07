@@ -2,6 +2,7 @@ import { dashboard } from "../../../services/api";
 import { ArrowRight } from "lucide-react";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
+import { SkeletonText } from "../../common/Skeleton";
 
 export default function BorrowedList() {
   const { data, isLoading: loading, error } = useApi(dashboard.getBorrowedBooks, []);
@@ -23,13 +24,7 @@ export default function BorrowedList() {
 
 
 
-  if (loading) {
-    return (
-      <div className="bg-white p-4 rounded-4xl shadow-sm text-gray-900 h-full flex items-center justify-center">
-        <p className="text-gray-500">Loading borrowed books...</p>
-      </div>
-    );
-  }
+  // Remove early loading return
 
   if (error) {
     return (
@@ -48,7 +43,20 @@ export default function BorrowedList() {
         </button>
       </div>
 
-      {borrowedBooks.length === 0 ? (
+      {loading ? (
+        [1, 2, 3].map(key => (
+          <div key={key} className="flex justify-between items-center mb-4">
+            <div className="space-y-2">
+              <SkeletonText className="h-4 w-32" />
+              <SkeletonText className="h-3 w-24" />
+            </div>
+            <div className="text-right space-y-2 flex flex-col items-end">
+              <SkeletonText className="h-3 w-16" />
+              <SkeletonText className="h-6 w-16 rounded-full" />
+            </div>
+          </div>
+        ))
+      ) : borrowedBooks.length === 0 ? (
         <p className="text-gray-500 text-sm">No borrowed books</p>
       ) : (
         borrowedBooks.map((book, i) => (

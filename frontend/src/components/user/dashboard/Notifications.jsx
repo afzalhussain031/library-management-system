@@ -1,6 +1,7 @@
 import { dashboard } from "../../../services/api";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
+import { SkeletonAvatar, SkeletonText } from "../../common/Skeleton";
 
 export default function Notifications() {
   const { data, isLoading: loading, error } = useApi(dashboard.getNotifications, []);
@@ -10,13 +11,7 @@ export default function Notifications() {
 
 
 
-  if (loading) {
-    return (
-      <div className="bg-white p-2 rounded-3xl shadow-md border border-gray-100 flex items-center justify-center h-32">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
-  }
+  // Remove early loading return
 
   if (error) {
     return (
@@ -36,7 +31,19 @@ export default function Notifications() {
       </div>
 
       <div className="space-y-5">
-        {notifications.length === 0 ? (
+        {loading ? (
+          [1, 2, 3].map(key => (
+            <div key={key} className="flex items-center justify-between px-2">
+              <div className="flex items-start gap-4">
+                <SkeletonAvatar className="w-12 h-12 rounded-lg" />
+                <div className="space-y-2 mt-1">
+                  <SkeletonText className="h-4 w-32" />
+                  <SkeletonText className="h-3 w-48" />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : notifications.length === 0 ? (
           <p className="text-gray-500 text-sm p-4">No notifications</p>
         ) : (
           notifications.map((notif, idx) => (

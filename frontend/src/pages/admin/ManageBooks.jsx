@@ -13,6 +13,7 @@ import {
 import { catalog } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
+import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
@@ -165,12 +166,11 @@ const Books = () => {
         </div>
       </div>
 
-      {/* Show Loading/Error States */}
-      {loading && <div className="text-center py-8 text-gray-500 font-semibold">Loading books...</div>}
+      {/* Show Error State */}
       {error && <div className="py-8"><ErrorMessage message={error} /></div>}
 
       {/* Responsive Table Container */}
-      {!loading && !error && (
+      {!error && (
         <div className="w-full overflow-x-auto pb-4">
           <div className="min-w-[1220px]">
             {/* Books List Header */}
@@ -190,8 +190,44 @@ const Books = () => {
 
             {/* NEW: Render filteredBooks instead of books */}
             <div className="space-y-3">
-              {filteredBooks.map((book, idx) => (
-                <div
+              {loading ? (
+                // Render 5 Skeleton Rows
+                [1, 2, 3, 4, 5].map(key => (
+                  <div key={key} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4">
+                     <div className="w-[50px] shrink-0">
+                       <div className="w-4 h-4 rounded bg-gray-200 animate-pulse" />
+                     </div>
+                     <div className="w-[80px] shrink-0">
+                       <SkeletonCard className="w-[40px] h-[50px] rounded-sm" />
+                     </div>
+                     <div className="w-[240px] shrink-0 pr-4 space-y-2">
+                       <SkeletonText className="h-4 w-3/4" />
+                       <SkeletonText className="h-3 w-1/2" />
+                     </div>
+                     <div className="w-[160px] shrink-0 pr-2">
+                       <SkeletonText className="h-4 w-2/3" />
+                     </div>
+                     <div className="w-[120px] shrink-0">
+                       <SkeletonText className="h-4 w-1/2" />
+                     </div>
+                     <div className="w-[160px] shrink-0">
+                       <SkeletonText className="h-4 w-2/3" />
+                     </div>
+                     <div className="w-[120px] shrink-0">
+                       <SkeletonText className="h-6 w-3/4 rounded" />
+                     </div>
+                     <div className="w-[90px] shrink-0 text-center">
+                       <SkeletonText className="h-4 w-1/3 mx-auto" />
+                     </div>
+                     <div className="flex-1 min-w-[160px] flex justify-end gap-3 pr-2">
+                       <SkeletonText className="h-4 w-4 rounded-full" />
+                       <SkeletonText className="h-4 w-4 rounded-full" />
+                     </div>
+                  </div>
+                ))
+              ) : (
+                filteredBooks.map((book, idx) => (
+                  <div
                   key={book.id}
                   className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-200 overflow-hidden"
                 >
@@ -285,7 +321,7 @@ const Books = () => {
                     </div>
                   )}
                 </div>
-              ))}
+              )))}
             </div>
             
             {/* NEW: Changed to check filteredBooks length */}
