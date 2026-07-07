@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { lendReturnSchema } from '../../schemas/formSchemas'
 import { Calendar, X, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Button from '../common/Button'
 
 export default function LendReturnModal({ open, onClose }) {
   const [activeTab, setActiveTab] = useState('lend')
@@ -148,13 +149,13 @@ export default function LendReturnModal({ open, onClose }) {
           )}
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-200 text-slate-900 font-bold text-sm py-2.5 rounded-lg transition-all mt-2"
+            isLoading={isSubmitting}
+            className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-200 disabled:text-gray-400 text-slate-900 font-bold text-sm py-2.5 rounded-lg transition-all mt-2"
           >
-            {isSubmitting ? 'Processing...' : `${activeTab === 'lend' ? 'Lend' : 'Return'} Book`}
-          </button>
+            {`${activeTab === 'lend' ? 'Lend' : 'Return'} Book`}
+          </Button>
         </form>
       </div>
     </div>

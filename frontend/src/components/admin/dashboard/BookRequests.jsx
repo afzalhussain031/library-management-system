@@ -1,10 +1,10 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
 
-const BookRequests = ({ data, isLoading, onApprove, onDeny }) => {
+const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) => {
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
@@ -61,15 +61,17 @@ const BookRequests = ({ data, isLoading, onApprove, onDeny }) => {
                 <div className="flex flex-col gap-1 shrink-0">
                   <button 
                     onClick={() => onApprove(item.id)}
-                    className="px-2 py-0.5 rounded border border-green-200 text-[10px] font-bold text-green-600 hover:bg-green-50 transition-colors uppercase"
+                    disabled={actionLoadingId === item.id}
+                    className="px-2 py-0.5 rounded border border-green-200 text-[10px] font-bold text-green-600 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase flex justify-center items-center h-[22px] min-w-[50px]"
                   >
-                    Approve
+                    {actionLoadingId === item.id ? <Loader2 size={12} className="animate-spin" /> : 'Approve'}
                   </button>
                   <button 
                     onClick={() => onDeny(item.id)}
-                    className="px-2 py-0.5 rounded border border-red-200 text-[10px] font-bold text-red-600 hover:bg-red-50 transition-colors uppercase"
+                    disabled={actionLoadingId === item.id}
+                    className="px-2 py-0.5 rounded border border-red-200 text-[10px] font-bold text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase flex justify-center items-center h-[22px] min-w-[50px]"
                   >
-                    Deny
+                    {actionLoadingId === item.id ? <Loader2 size={12} className="animate-spin" /> : 'Deny'}
                   </button>
                 </div>
               </div>

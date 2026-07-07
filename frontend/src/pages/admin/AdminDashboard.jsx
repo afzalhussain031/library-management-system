@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const { data: analyticsData, isLoading, error } = useApi(dashboard.getAdminStats);
   
   const [bookRequests, setBookRequests] = useState([]);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   // Calculate Month-over-Month Growth
   const calculateGrowth = (current, previous) => {
@@ -127,6 +128,7 @@ const AdminDashboard = () => {
   }
 
   const handleApproveRequest = async (id) => {
+    setActionLoadingId(id);
     const toastId = toast.loading("Approving request...");
     try {
       await client.patch(`/reservations/${id}/`, { status: 'ready' });
@@ -135,10 +137,13 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error("Error approving request:", err);
       toast.error("Failed to approve request.", { id: toastId });
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   const handleDenyRequest = async (id) => {
+    setActionLoadingId(id);
     const toastId = toast.loading("Denying request...");
     try {
       await client.patch(`/reservations/${id}/`, { status: 'cancelled' });
@@ -147,6 +152,8 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error("Error denying request:", err);
       toast.error("Failed to deny request.", { id: toastId });
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -169,6 +176,7 @@ const AdminDashboard = () => {
           <BookRequests 
             data={bookRequests}
             isLoading={isLoading}
+            actionLoadingId={actionLoadingId}
             onApprove={handleApproveRequest}
             onDeny={handleDenyRequest}
           />

@@ -6,6 +6,7 @@ import { loginSchema } from '../../schemas/formSchemas'
 import { useAuth } from '../../context/AuthContext'
 import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap } from 'lucide-react'
 import loginImage from "../../assets/signup-image.jpg"
+import Button from '../../components/common/Button'
 
 export default function Login() {
   const { login } = useAuth()
@@ -197,16 +198,16 @@ export default function Login() {
               {/* ════════════════════════════════════════
                   SUBMIT BUTTON
                   ════════════════════════════════════════ */}
-              <button
+              <Button
                 type="submit"
-                disabled={isSubmitting}
+                isLoading={isSubmitting}
                 // handleSubmit validates form before calling handleFormSubmit
                 // If validation fails, nothing happens (onSubmit not called)
                 // If validation passes, handleFormSubmit is called
                 className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-200 disabled:text-gray-400 disabled:scale-100 active:scale-[0.98] transition-all duration-200 py-3 rounded-full text-sm font-semibold text-gray-900"
               >
-                {isSubmitting ? 'Signing in...' : 'Login'}
-              </button>
+                Login
+              </Button>
             </form>
 
             {/* Footer */}

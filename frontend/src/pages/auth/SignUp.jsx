@@ -10,6 +10,7 @@ import {
   AlertCircle, Bell, CheckCircle
 } from 'lucide-react'
 import signupImage from "../../assets/signup-image.jpg"
+import Button from '../../components/common/Button'
 
 // ====== PASSWORD STRENGTH CALCULATOR ======
 // Returns a score from 0 to 4 based on password complexity
@@ -336,13 +337,13 @@ export default function SignUp() {
               )}
 
               {/* Submit Button */}
-              <button
+              <Button
                 type="submit"
-                disabled={isSubmitting}
+                isLoading={isSubmitting}
                 className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-200 disabled:text-gray-400 active:scale-[0.98] transition-all duration-200 py-3 rounded-full text-sm font-semibold text-gray-900"
               >
-                {isSubmitting ? 'Creating Account...' : 'Register'}
-              </button>
+                Register
+              </Button>
             </form>
 
             {/* Footer */}
