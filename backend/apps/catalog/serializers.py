@@ -19,9 +19,16 @@ class PublisherSerializer(serializers.ModelSerializer):
 
 
 class BookSerializer(serializers.ModelSerializer):
-    # Return full category and publisher objects instead of just IDs
     category = CategorySerializer(read_only=True)
     publisher = PublisherSerializer(read_only=True)
+    
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), source="category", write_only=True, required=False, allow_null=True
+    )
+    publisher_id = serializers.PrimaryKeyRelatedField(
+        queryset=Publisher.objects.all(), source="publisher", write_only=True, required=False, allow_null=True
+    )
+    
     added_by = serializers.PrimaryKeyRelatedField(read_only=True)
     published_date = serializers.DateField(required=False)
 

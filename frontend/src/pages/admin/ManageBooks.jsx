@@ -14,9 +14,11 @@ import { catalog } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
+import AddBookModal from "../../components/admin/dashboard/AddBookModal";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   // NEW: Filter States
   const [activeTopFilter, setActiveTopFilter] = useState("All books");
@@ -26,7 +28,7 @@ const Books = () => {
     setExpandedRow(expandedRow === id ? null : id);
   };
 
-  const { data: rawBooks, isLoading: loading, error } = useApi(catalog.getBooks, []);
+  const { data: rawBooks, isLoading: loading, error, refetch: fetchBooks } = useApi(catalog.getBooks, []);
   const books = rawBooks || [];
 
   // NEW: Filtering Logic
@@ -122,7 +124,10 @@ const Books = () => {
             <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
               <Calendar size={14} className="text-gray-400" /> This Month
             </button>
-            <button className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
+            <button 
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors"
+            >
               <Plus size={14} /> Add Book
             </button>
           </div>
@@ -333,6 +338,13 @@ const Books = () => {
           </div>
         </div>
       )}
+
+      {/* Add Book Modal */}
+      <AddBookModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={fetchBooks} 
+      />
     </div>
   );
 };

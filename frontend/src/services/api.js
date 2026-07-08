@@ -71,8 +71,29 @@ export const catalog = {
   getBooks: () =>
     client.get('/books/'),
   
+  addBook: (data) =>
+    client.post('/books/', data),
+    
+  getCategories: () =>
+    client.get('/categories/'),
+    
+  createCategory: (data) =>
+    client.post('/categories/', data),
+    
+  getPublishers: () =>
+    client.get('/publishers/'),
+    
+  createPublisher: (data) =>
+    client.post('/publishers/', data),
+  
   getWishlist: () =>
     client.get('/wishlist/')
+}
+
+// ===================== INVENTORY =====================
+export const inventory = {
+  addBookCopy: (data) =>
+    client.post('/copies/', data),
 }
 
 // ===================== BILLING =====================
