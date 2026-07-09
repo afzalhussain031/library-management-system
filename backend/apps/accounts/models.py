@@ -125,6 +125,18 @@ class CustomUser(AbstractUser):
     def is_librarian_staff(self):
         return self.role in ["staff", "librarian"]
 
+    def save(self, *args, **kwargs):
+        # Automatically sync the Django is_staff boolean with our custom role
+        if self.role in ['staff', 'librarian', 'superadmin']:
+            self.is_staff = True
+        else:
+            self.is_staff = False
+            
+        if self.role == 'superadmin':
+            self.is_superuser = True
+            
+        super().save(*args, **kwargs)
+
 
 class Membership(models.Model):
     """One-to-one relationship with CustomUser for membership details"""

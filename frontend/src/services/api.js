@@ -105,7 +105,7 @@ export const inventory = {
     client.get(`/copies/?book=${bookId}`),
 
   updateCopy: (id, data) => 
-    client.put(`/copies/${id}/`, data),
+    client.patch(`/copies/${id}/`, data),
 
   deleteCopy: (id) => 
     client.delete(`/copies/${id}/`),

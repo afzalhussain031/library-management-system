@@ -18,6 +18,7 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 import { toast } from "react-hot-toast";
 import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
 import AddBookModal from "../../components/admin/dashboard/AddBookModal";
+import PhysicalCopiesTable from "../../components/admin/dashboard/PhysicalCopiesTable";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
@@ -363,21 +364,8 @@ const Books = () => {
                         </p>
                       </div>
 
-                      {/* Right: Grid Details */}
-                      <div className="flex-1 grid grid-cols-3 gap-y-4 gap-x-4 min-w-[500px]">
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 mb-1">Publish date</p>
-                          <p className="text-[13px] font-bold text-[#1C2434]">{book.published_date || "N/A"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 mb-1">Language</p>
-                          <p className="text-[13px] font-bold text-[#1C2434]">N/A</p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 mb-1">Cost</p>
-                          <p className="text-[13px] font-bold text-[#1C2434]">N/A</p>
-                        </div>
-                      </div>
+                      {/* Right: Physical Copies Mini-Table */}
+                      <PhysicalCopiesTable bookId={book.id} />
                     </div>
                   )}
                 </div>
