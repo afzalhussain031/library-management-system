@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import client from "../../services/httpClient";
 import {
   Calendar,
@@ -13,9 +14,11 @@ import { dashboard } from "../../services/api";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 import toast from "react-hot-toast";
+import LendReturnModal from "../../components/admin/LendReturnModal";
 
 const Circulation = () => {
   const [activeTab, setActiveTab] = useState("active");
+  const [isLendModalOpen, setIsLendModalOpen] = useState(false);
 
   const { data: rawLoans, isLoading: loading, error, refetch: fetchLoans } = useApi(dashboard.getBorrowedBooks, []);
   const loans = rawLoans || [];
@@ -85,7 +88,7 @@ const Circulation = () => {
             <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100">
               <Calendar size={14} className="text-gray-400" /> Today
             </button>
-            <button className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
+            <button onClick={() => setIsLendModalOpen(true)} className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
               Issue Book
             </button>
           </div>
@@ -199,6 +202,13 @@ const Circulation = () => {
           </div>
         </div>
       )}
+      
+      {/* 4. RENDER THE MODAL COMPONENT */}
+      <LendReturnModal 
+        open={isLendModalOpen} 
+        onClose={() => setIsLendModalOpen(false)}
+        onSuccess={fetchLoans}
+      />
     </div>
   );
 };

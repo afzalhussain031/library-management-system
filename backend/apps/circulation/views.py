@@ -23,7 +23,13 @@ class LoanViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.user.is_authenticated and (self.request.user.is_staff or self.request.user.is_librarian_staff):
+        
+        # Allow filtering by user_id
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            queryset = queryset.filter(borrower_id=user_id)
+            
+        if self.request.user.is_authenticated and (self.request.user.is_staff or getattr(self.request.user, 'is_librarian_staff', False)):
             return queryset
         return queryset.filter(borrower=self.request.user)
 

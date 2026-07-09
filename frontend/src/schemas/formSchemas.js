@@ -76,32 +76,17 @@ export const lendReturnSchema = z.object({
     .max(10, 'Must be at most 10 characters')
     .regex(/^[a-zA-Z0-9]+$/, 'Only letters and numbers allowed'),
   
-  isbn: z
-    .string()
-    .min(1, 'ISBN is required'),
+  copyId: z.string().optional(),
   
-  bookId: z
-    .string()
-    .min(1, 'Book ID is required')
-    .regex(/^[0-9]+$/, 'Book ID must contain only numbers'),
-  
-  authorName: z
-    .string()
-    .optional() // This field is optional
-    .default(''), // Default empty string if not provided
+  loanId: z.string().optional(),
   
   issueDate: z
     .string()
-    .min(1, 'Issue date is required'),
+    .optional(),
   
   dueDate: z
     .string()
-    .min(1, 'Due date is required'),
-  
-  returnDate: z
-    .string()
-    .optional()
-    .default('')
+    .optional(),
 })
 
 // ===== ADD ORGANISATION MODAL FORM =====
