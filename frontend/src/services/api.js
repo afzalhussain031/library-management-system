@@ -73,6 +73,12 @@ export const catalog = {
   
   addBook: (data) =>
     client.post('/books/', data),
+
+  updateBook: (id, data) => 
+    client.put(`/books/${id}/`, data),
+
+  deleteBook: (id) => 
+    client.delete(`/books/${id}/`),
     
   getCategories: () =>
     client.get('/categories/'),
@@ -94,6 +100,15 @@ export const catalog = {
 export const inventory = {
   addBookCopy: (data) =>
     client.post('/copies/', data),
+
+  getCopiesByBook: (bookId) => 
+    client.get(`/copies/?book=${bookId}`),
+
+  updateCopy: (id, data) => 
+    client.put(`/copies/${id}/`, data),
+
+  deleteCopy: (id) => 
+    client.delete(`/copies/${id}/`),
 }
 
 // ===================== BILLING =====================

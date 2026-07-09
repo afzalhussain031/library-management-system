@@ -9,16 +9,21 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  Check,
+  X as CloseIcon,
 } from "lucide-react";
 import { catalog } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
+import { toast } from "react-hot-toast";
 import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
 import AddBookModal from "../../components/admin/dashboard/AddBookModal";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [bookToEdit, setBookToEdit] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
   
   // NEW: Filter States
   const [activeTopFilter, setActiveTopFilter] = useState("All books");
@@ -80,6 +85,17 @@ const Books = () => {
     }`;
   };
 
+  const handleDeleteConfirm = async (id) => {
+    try {
+      await catalog.deleteBook(id);
+      toast.success("Book deleted successfully!");
+      setPendingDeleteId(null);
+      fetchBooks(); // Refresh table
+    } catch (error) {
+      toast.error("Failed to delete book.");
+    }
+  };
+
   return (
     <div className="px-0 py-0 sm:p-0 md:p-0 space-y-6 w-full max-w-[1600px] mx-auto font-sans min-h-screen overflow-hidden">
       {/* Filter and Stats Dash */}
@@ -125,7 +141,10 @@ const Books = () => {
               <Calendar size={14} className="text-gray-400" /> This Month
             </button>
             <button 
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setBookToEdit(null); // Ensure it's in Add Mode
+                setIsAddModalOpen(true);
+              }}
               className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors"
             >
               <Plus size={14} /> Add Book
@@ -282,15 +301,51 @@ const Books = () => {
                       0
                     </div>
                     <div className="flex-1 min-w-[160px] flex items-center justify-end gap-3 text-gray-400 pr-2">
-                      <button className="hover:text-blue-500 transition-colors" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        className={`hover:text-blue-500 transition-all ${pendingDeleteId === book.id ? 'opacity-30 pointer-events-none' : ''}`} 
+                        onClick={(e) => { e.stopPropagation(); setBookToEdit(book); setIsAddModalOpen(true); }}
+                        title="Edit Book"
+                      >
                         <Edit2 size={16} className="text-[#4386F5]" />
                       </button>
-                      <button className="hover:text-red-500 transition-colors" onClick={(e) => e.stopPropagation()}>
-                        <Trash2 size={16} className="text-[#1C2434]" />
-                      </button>
-                      <button className="hover:text-gray-700 transition-colors" onClick={(e) => e.stopPropagation()}>
+
+                      {pendingDeleteId === book.id ? (
+                        // INLINE DEFENSIVE DELETE UI
+                        <div className="flex items-center gap-1.5 animate-in zoom-in-95 duration-200 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.08)] rounded-full px-1.5 py-1 border border-red-50 -my-2 relative z-10">
+                          <span className="text-[10px] font-extrabold text-[#F64E60] tracking-wider uppercase pl-2 pr-1">Delete?</span>
+                          <button 
+                            className="p-1 rounded-full bg-[#FFE2E5] text-[#F64E60] hover:bg-[#F64E60] hover:text-white transition-all duration-200"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteConfirm(book.id); }}
+                            title="Confirm Delete"
+                          >
+                            <Check size={14} strokeWidth={3} />
+                          </button>
+                          <button 
+                            className="p-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-all duration-200"
+                            onClick={(e) => { e.stopPropagation(); setPendingDeleteId(null); }}
+                            title="Cancel"
+                          >
+                            <CloseIcon size={14} strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          className="hover:text-red-500 transition-colors" 
+                          onClick={(e) => { e.stopPropagation(); setPendingDeleteId(book.id); }}
+                          title="Delete Book"
+                        >
+                          <Trash2 size={16} className="text-[#1C2434]" />
+                        </button>
+                      )}
+
+                      <button 
+                        className={`hover:text-gray-700 transition-all ${pendingDeleteId === book.id ? 'opacity-30 pointer-events-none' : ''}`} 
+                        onClick={(e) => e.stopPropagation()}
+                        title="Print Label"
+                      >
                         <Printer size={16} className="text-[#1C2434]" />
                       </button>
+
                       <button className="hover:text-gray-700 transition-colors ml-1">
                         {expandedRow === book.id ? <ChevronUp size={18} className="text-[#1C2434]" /> : <ChevronDown size={18} className="text-[#1C2434]" />}
                       </button>
@@ -344,6 +399,7 @@ const Books = () => {
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         onSuccess={fetchBooks} 
+        bookToEdit={bookToEdit}
       />
     </div>
   );
