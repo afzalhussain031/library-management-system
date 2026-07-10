@@ -20,6 +20,8 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
   
   const [activeLoans, setActiveLoans] = useState([]);
   const [loadingLoans, setLoadingLoans] = useState(false);
+  const [fineDetails, setFineDetails] = useState({ isOverdue: false, amount: 0, loading: false });
+  const [paidNow, setPaidNow] = useState(false);
 
   // ====== REACT HOOK FORM SETUP ======
   const {
@@ -128,6 +130,28 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     }
   }, [selectedUserId, activeTab]);
 
+  // Fetch Fine Details if overdue
+  useEffect(() => {
+    if (activeTab === 'return' && selectedLoanId) {
+      const loan = activeLoans.find(l => l.id.toString() === selectedLoanId);
+      if (loan) {
+        const isOverdue = new Date(loan.due_at) < new Date();
+        if (isOverdue) {
+          setFineDetails({ isOverdue: true, amount: 0, loading: true });
+          circulation.calculateFine(loan.id)
+            .then(res => setFineDetails({ isOverdue: true, amount: res.data.fine_amount, loading: false }))
+            .catch(() => setFineDetails({ isOverdue: true, amount: 0, loading: false }));
+        } else {
+          setFineDetails({ isOverdue: false, amount: 0, loading: false });
+          setPaidNow(false);
+        }
+      }
+    } else {
+      setFineDetails({ isOverdue: false, amount: 0, loading: false });
+      setPaidNow(false);
+    }
+  }, [selectedLoanId, activeTab, activeLoans]);
+
   if (!open) return null;
 
   // ====== FORM SUBMISSION ======
@@ -150,7 +174,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
           toast.error("Please select an active loan to return.");
           return;
         }
-        await circulation.returnBook(data.loanId);
+        await circulation.returnBook(data.loanId, paidNow);
         toast.success("Book returned successfully!");
       }
       
@@ -314,21 +338,74 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     );
   };
 
+  // ====== HELPER: Render Fine Options ======
+  const renderFineOptions = () => {
+    if (activeTab !== 'return' || !selectedLoanId || !fineDetails.isOverdue) return null;
+    
+    return (
+      <div className="bg-[#FFE2E5]/50 border border-[#F64E60]/20 p-5 rounded-xl mb-4">
+        {fineDetails.loading ? (
+          <p className="text-sm text-[#F64E60]">Calculating fine...</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-extrabold text-[#F64E60] text-base">This book is overdue!</p>
+            </div>
+            <p className="text-[#F64E60]/90 font-medium text-[13px] mb-3">A fine of <span className="font-extrabold text-[#F64E60] text-[15px]">Rs. {fineDetails.amount}</span> has been generated.</p>
+            
+            <div className="flex flex-col gap-2.5">
+              <p className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-0.5">Select Payment Option</p>
+              
+              <label className={`flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition-all ${paidNow ? 'bg-white border-[#1BC5BD]' : 'bg-white/60 border-slate-200 hover:border-slate-300'}`}>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="radio" 
+                    name="modalPaymentOption"
+                    checked={paidNow === true}
+                    onChange={() => setPaidNow(true)}
+                    className="w-4 h-4 text-[#1BC5BD] focus:ring-[#1BC5BD]"
+                  />
+                  <span className={`text-[14px] font-bold ${paidNow ? 'text-[#1BC5BD]' : 'text-slate-600'}`}>Pay Fine Now</span>
+                </div>
+              </label>
+
+              <label className={`flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition-all ${!paidNow ? 'bg-white border-[#F64E60]' : 'bg-white/60 border-slate-200 hover:border-slate-300'}`}>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="radio" 
+                    name="modalPaymentOption"
+                    checked={paidNow === false}
+                    onChange={() => setPaidNow(false)}
+                    className="w-4 h-4 text-[#F64E60] focus:ring-[#F64E60]"
+                  />
+                  <span className={`text-[14px] font-bold ${!paidNow ? 'text-[#F64E60]' : 'text-slate-600'}`}>Add to Account Dues</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] transition-opacity animate-[fadeIn_0.15s_ease-out]" onClick={onClose} />
       
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
-        <div className="w-full max-w-[460px] bg-white rounded-[26px] shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto max-h-[92vh] overflow-hidden transform scale-100 transition-all duration-150 animate-[scaleUp_0.2s_ease-out]">
+        <div className="w-full max-w-[460px] bg-white rounded-[26px] p-6 shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto max-h-[92vh] overflow-hidden transform scale-100 transition-all duration-150 animate-[scaleUp_0.2s_ease-out]">
           
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-slate-50/50">
-            <h2 className="text-lg font-extrabold text-slate-800 tracking-tight">Circulation Desk</h2>
-            <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+          <div className="flex items-start justify-between mb-5 mt-1 shrink-0">
+            <div>
+              <h2 className="text-[18px] font-extrabold text-slate-800 tracking-tight">Circulation Desk</h2>
+              <p className="text-[12px] font-medium text-slate-500 mt-1 tracking-wide">Lend or return books directly from the desk.</p>
+            </div>
+            <button type="button" onClick={onClose} className="flex-shrink-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-2">
               <X size={18} />
             </button>
           </div>
 
-          <div className="px-6 pt-5 pb-2 shrink-0">
+          <div className="pb-4 shrink-0">
             <div className="flex p-1 bg-slate-100/80 rounded-xl gap-1">
               <button
                 type="button"
@@ -351,7 +428,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <form id="circulation-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
               {renderAutocomplete('enrollmentId', 'Student / Member', users, 'Search by Name or ID...')}
               
@@ -367,17 +444,25 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
               ) : (
                 <>
                   {renderActiveLoans()}
+                  {renderFineOptions()}
                 </>
               )}
             </form>
           </div>
 
-          <div className="p-6 border-t border-gray-100 bg-white shrink-0">
+          <div className="flex items-center justify-end gap-3 pt-5 mt-4 border-t border-slate-100 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
+            >
+              Cancel
+            </button>
             <Button
               form="circulation-form"
               type="submit"
               isLoading={isSubmitting}
-              className="w-full bg-[#E0B220] hover:bg-[#D1A61D] text-white shadow-md shadow-yellow-500/20 disabled:bg-gray-200 disabled:text-gray-400 font-bold text-sm py-3.5 rounded-xl transition-all"
+              className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
             >
               {activeTab === 'lend' ? 'Confirm Issue' : 'Confirm Return'}
             </Button>

@@ -131,6 +131,7 @@ export const circulation = {
   
   // New endpoints for manual Lend/Return
   issueBook: (data) => client.post('/loans/', data),
-  returnBook: (loanId) => client.post(`/loans/${loanId}/return_loan/`),
+  returnBook: (loanId, paidNow = false) => client.post(`/loans/${loanId}/return_loan/`, { paid_now: paidNow }),
+  calculateFine: (loanId) => client.get(`/loans/${loanId}/calculate_fine/`),
   getUserLoans: (userId) => client.get(`/loans/?user_id=${userId}`)
 }

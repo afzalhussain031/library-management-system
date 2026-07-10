@@ -58,6 +58,19 @@ class LoanViewSet(viewsets.ModelViewSet):
                     reason="Overdue return",
                 )
 
+    @action(detail=True, methods=["get"])
+    def calculate_fine(self, request, pk=None):
+        loan = self.get_object()
+        if loan.returned_at:
+            return Response({"detail": "Loan already closed.", "fine_amount": 0}, status=status.HTTP_400_BAD_REQUEST)
+        
+        now = timezone.now()
+        if now > loan.due_at:
+            overdue_days = max((now.date() - loan.due_at.date()).days, 1)
+            fine_amount = overdue_days * 10
+            return Response({"overdue": True, "overdue_days": overdue_days, "fine_amount": fine_amount}, status=status.HTTP_200_OK)
+        return Response({"overdue": False, "overdue_days": 0, "fine_amount": 0}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["post"])
     def return_loan(self, request, pk=None):
         loan = self.get_object()
@@ -72,13 +85,21 @@ class LoanViewSet(viewsets.ModelViewSet):
 
         if loan.returned_at > loan.due_at and not hasattr(loan, "fine"):
             overdue_days = max((loan.returned_at.date() - loan.due_at.date()).days, 1)
+            
+            # Use lower() to handle string conversions from frontend if needed, but bool is safer
+            # request.data can contain boolean True/False
+            paid_now = request.data.get("paid_now", False)
+            fine_status = Fine.PAID if paid_now in [True, 'true', 'True', 1] else Fine.PENDING
+            
             fine = Fine.objects.create(
                 loan=loan,
                 amount=overdue_days * 10,
                 reason="Overdue return",
+                status=fine_status
             )
+            msg = "Book returned. Fine marked as paid." if fine_status == Fine.PAID else "Book returned. Fine added to account."
             return Response(
-                {"detail": "Book returned with fine.", "fine_id": fine.id},
+                {"detail": msg, "fine_id": fine.id, "fine_status": fine_status},
                 status=status.HTTP_200_OK,
             )
 
@@ -89,6 +110,9 @@ class LoanViewSet(viewsets.ModelViewSet):
         loan = self.get_object()
         if loan.returned_at:
             raise ValidationError({"detail": "Returned loans cannot be renewed."})
+            
+        if timezone.now() > loan.due_at:
+            raise ValidationError({"detail": "Overdue loans cannot be renewed. Please return the book and clear your fines."})
 
         loan.renewed_count += 1
         loan.due_at = loan.due_at + timedelta(days=14)
