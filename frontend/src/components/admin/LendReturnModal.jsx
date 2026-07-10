@@ -61,7 +61,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
           const usersData = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data?.results || []);
           const booksData = Array.isArray(booksRes.data) ? booksRes.data : (booksRes.data?.results || []);
 
-          setUsers(usersData.map(u => ({ value: u.user_id, label: `${u.user_id} - ${u.student_name || u.name || 'Unknown'}` })));
+          setUsers(usersData.map(u => ({ value: u.id?.toString(), label: `${u.user_id} - ${u.student_name || u.name || 'Unknown'}` })));
           setBooks(booksData.map(b => ({ value: b.id?.toString(), label: `${b.isbn || 'No-ISBN'} - ${b.title || 'Unknown'}` })));
         } catch (error) {
           console.error("Failed to load autocomplete options", error);
@@ -139,8 +139,8 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
           return;
         }
         await circulation.issueBook({
-          user_id: data.enrollmentId,
-          copy_id: data.copyId,
+          borrower: data.enrollmentId,
+          copy: data.copyId,
           issued_at: data.issueDate,
           due_at: data.dueDate
         });

@@ -71,10 +71,7 @@ export const signupSchema = z.object({
 export const lendReturnSchema = z.object({
   enrollmentId: z
     .string()
-    .min(1, 'Enrollment ID is required')
-    .min(4, 'Must be at least 4 characters')
-    .max(10, 'Must be at most 10 characters')
-    .regex(/^[a-zA-Z0-9]+$/, 'Only letters and numbers allowed'),
+    .min(1, 'Please select a student'),
   
   copyId: z.string().optional(),
   
