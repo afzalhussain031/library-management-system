@@ -259,9 +259,9 @@ const Circulation = () => {
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[120] transition-opacity animate-[fadeIn_0.15s_ease-out]" onClick={() => setConfirmModal({...confirmModal, isOpen: false})} />
           <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 pointer-events-none">
-            <div className="w-full max-w-[460px] bg-white rounded-[26px] shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto transform transition-all duration-150 animate-[scaleUp_0.2s_ease-out] overflow-hidden">
+            <div className="w-full max-w-[460px] bg-white rounded-[26px] p-6 shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto transform transition-all duration-150 animate-[scaleUp_0.2s_ease-out] overflow-hidden max-h-[92vh]">
               
-              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-slate-50/50">
+              <div className="flex items-start justify-between mb-5 mt-1 shrink-0">
                 <div className="flex items-center gap-3">
                   <AlertCircle className={
                     confirmModal.actionType === 'return' && confirmModal.isOverdue 
@@ -270,17 +270,22 @@ const Circulation = () => {
                         ? "text-blue-500" 
                         : "text-[#E0B220]"
                   } size={22} />
-                  <h2 className="text-lg font-extrabold text-slate-800 tracking-tight">
-                    Confirm {confirmModal.actionType === 'return' ? 'Return' : 'Renewal'}
-                  </h2>
+                  <div>
+                    <h2 className="text-[18px] font-extrabold text-slate-800 tracking-tight">
+                      Confirm {confirmModal.actionType === 'return' ? 'Return' : 'Renewal'}
+                    </h2>
+                    <p className="text-[12px] font-medium text-slate-500 mt-1 tracking-wide">
+                      Please confirm your action below.
+                    </p>
+                  </div>
                 </div>
-                <button type="button" onClick={() => setConfirmModal({...confirmModal, isOpen: false})} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                <button type="button" onClick={() => setConfirmModal({...confirmModal, isOpen: false})} className="flex-shrink-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-2">
                   <X size={18} />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="px-6 py-6 text-slate-600 text-[14px]">
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 text-slate-600 text-[14px]">
                 {confirmModal.loading ? (
                   <p className="flex justify-center items-center py-4 text-gray-500 font-medium">Calculating details...</p>
                 ) : confirmModal.actionType === 'return' && confirmModal.isOverdue ? (
@@ -334,10 +339,18 @@ const Circulation = () => {
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-gray-100 bg-white shrink-0">
+              <div className="flex items-center justify-end gap-3 pt-5 mt-4 border-t border-slate-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal({...confirmModal, isOpen: false})}
+                  disabled={confirmModal.loading}
+                  className="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
                 <button 
                   onClick={() => executeAction()}
-                  className="w-full bg-[#E0B220] hover:bg-[#D1A61D] text-white shadow-md shadow-yellow-500/20 disabled:bg-gray-200 disabled:text-gray-400 font-bold text-sm py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
+                  className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
                   disabled={confirmModal.loading}
                 >
                   {confirmModal.loading ? 'Processing...' : `Confirm ${confirmModal.actionType === 'return' ? 'Return' : 'Renew'}`}

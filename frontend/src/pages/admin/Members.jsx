@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
+import AddMemberModal from '../../components/admin/members/AddMemberModal';
 import { membersApi } from '../../services/api';
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
@@ -14,9 +15,10 @@ const Members = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selectedMember, setSelectedMember] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   // 1. Fetch data safely using the custom hook
-  const { data: rawMembers, isLoading, error } = useApi(membersApi.getAll, []);
+  const { data: rawMembers, isLoading, error, refetch } = useApi(membersApi.getAll, []);
 
   // 2. Format the data only when it exists
   const members = (rawMembers || []).map(user => {
@@ -122,7 +124,10 @@ const Members = () => {
             <button className="flex items-center gap-2 text-sm text-gray-600 font-semibold hover:text-gray-800">
               <Calendar size={16} /> Select date range
             </button>
-            <button className="flex items-center gap-1 px-4 py-1.5 bg-[#eef2ff] text-indigo-600 font-bold text-xs rounded-full hover:bg-indigo-100 transition-colors">
+            <button 
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1 px-4 py-1.5 bg-[#eef2ff] text-indigo-600 font-bold text-xs rounded-full hover:bg-indigo-100 transition-colors"
+            >
               <Plus size={14} /> ADD MEMBER
             </button>
           </div>
@@ -165,6 +170,12 @@ const Members = () => {
           onRemove={handleRemoveMember} 
         />
       )}
+
+      <AddMemberModal 
+        open={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={() => refetch()} 
+      />
     </div>
   );
 };

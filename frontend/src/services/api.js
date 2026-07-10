@@ -46,6 +46,7 @@ export const profile = {
 // ===================== MEMBERS =====================
 export const membersApi = {
   getAll: () => client.get('/members/'),
+  createMember: (data) => client.post('/register/', data),
 }
 
 // ===================== DASHBOARD =====================
