@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import client from "../../services/httpClient";
 import {
   Calendar,
@@ -11,10 +12,13 @@ import UserAvatar from "../../components/common/UserAvatar";
 import { useApi } from "../../hook/useApi";
 import { dashboard } from "../../services/api";
 import ErrorMessage from "../../components/common/ErrorMessage";
+import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 import toast from "react-hot-toast";
+import LendReturnModal from "../../components/admin/LendReturnModal";
 
 const Circulation = () => {
   const [activeTab, setActiveTab] = useState("active");
+  const [isLendModalOpen, setIsLendModalOpen] = useState(false);
 
   const { data: rawLoans, isLoading: loading, error, refetch: fetchLoans } = useApi(dashboard.getBorrowedBooks, []);
   const loans = rawLoans || [];
@@ -84,16 +88,15 @@ const Circulation = () => {
             <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100">
               <Calendar size={14} className="text-gray-400" /> Today
             </button>
-            <button className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
+            <button onClick={() => setIsLendModalOpen(true)} className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
               Issue Book
             </button>
           </div>
         </div>
       </div>
-      {loading && <div className="text-center py-8 text-gray-500">Loading circulation data...</div>}
       {error && <div className="py-8"><ErrorMessage message={error} /></div>}
       {/* Data Table */}
-      {!loading && !error && (
+      {!error && (
         <div className="w-full overflow-x-auto pb-4">
           <div className="min-w-[1000px]">
             {/* Headers */}
@@ -108,69 +111,104 @@ const Circulation = () => {
             </div>
             {/* List */}
             <div className="space-y-3">
-              {filteredLoans.map((loan) => (
-                <div key={loan.id} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4">
-                  <div className="w-[80px] shrink-0 text-[13px] font-medium text-gray-400">
-                    #{loan.id}
+              {loading ? (
+                [1, 2, 3, 4, 5].map(key => (
+                  <div key={key} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4">
+                    <div className="w-[80px] shrink-0">
+                      <SkeletonText className="h-4 w-12" />
+                    </div>
+                    <div className="w-[200px] shrink-0 pr-4 flex items-center gap-3">
+                      <SkeletonAvatar className="w-8 h-8 rounded-full shrink-0" />
+                      <SkeletonText className="h-4 w-24" />
+                    </div>
+                    <div className="w-[200px] shrink-0 pr-4 space-y-2">
+                      <SkeletonText className="h-4 w-32" />
+                      <SkeletonText className="h-3 w-16" />
+                    </div>
+                    <div className="w-[160px] shrink-0">
+                      <SkeletonText className="h-4 w-24" />
+                    </div>
+                    <div className="w-[160px] shrink-0">
+                      <SkeletonText className="h-4 w-24" />
+                    </div>
+                    <div className="w-[120px] shrink-0">
+                      <SkeletonText className="h-6 w-16 rounded" />
+                    </div>
+                    <div className="flex-1 min-w-[160px] flex justify-end gap-3 pr-2">
+                      <SkeletonText className="h-6 w-20 rounded" />
+                    </div>
                   </div>
-                  <div className="w-[200px] shrink-0 pr-4 flex items-center gap-3">
-                    <UserAvatar name={loan.user_name || 'Unknown'} size="sm" />
-                    <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.user_name}</p>
-                  </div>
-                  <div className="w-[200px] shrink-0 pr-4">
-                    <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.book_title}</p>
-                    <p className="text-[12px] text-gray-500 truncate">ID: #{loan.book_id}</p>
-                  </div>
-                  <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
-                    {new Date(loan.issued_at).toLocaleDateString()}
-                  </div>
-                  <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
-                    {new Date(loan.due_at).toLocaleDateString()}
-                  </div>
-                  
-                  {/* Status Badge */}
-                  <div className="w-[120px] shrink-0">
-                    {loan.returned_at ? (
-                      <span className="px-3 py-1 rounded text-[11px] font-bold bg-[#C9F7F5] text-[#1BC5BD]">Returned</span>
-                    ) : new Date(loan.due_at) < new Date() ? (
-                      <span className="px-3 py-1 rounded text-[11px] font-bold bg-[#FFE2E5] text-[#F64E60]">Overdue</span>
-                    ) : (
-                      <span className="px-3 py-1 rounded text-[11px] font-bold bg-[#FEF6DD] text-[#E0B220]">Active</span>
-                    )}
-                  </div>
-                  {/* Actions */}
-                  <div className="flex-1 min-w-[160px] flex items-center justify-end gap-3 text-gray-400 pr-2">
-                    {!loan.returned_at && (
-                      <>
-                        <button 
-                          onClick={() => handleReturn(loan.id)} 
-                          className="hover:text-green-500 transition-colors flex items-center gap-1 text-[12px]"
-                          title="Mark as Returned"
-                        >
-                          <CheckCircle size={18} /> Return
-                        </button>
-                        <button 
-                          onClick={() => handleRenew(loan.id)}
-                          className="hover:text-blue-500 transition-colors flex items-center gap-1 text-[12px] ml-2"
-                          title="Renew (Add 14 days)"
-                        >
-                          <RefreshCw size={18} /> Renew
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-              
-              {filteredLoans.length === 0 && (
+                ))
+              ) : filteredLoans.length === 0 ? (
                 <div className="text-center py-10 text-gray-500 font-semibold">
                   No records found in this category.
                 </div>
+              ) : (
+                filteredLoans.map((loan) => (
+                  <div key={loan.id} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4">
+                    <div className="w-[80px] shrink-0 text-[13px] font-medium text-gray-400">
+                      #{loan.id}
+                    </div>
+                    <div className="w-[200px] shrink-0 pr-4 flex items-center gap-3">
+                      <UserAvatar name={loan.user_name || 'Unknown'} size="sm" />
+                      <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.user_name}</p>
+                    </div>
+                    <div className="w-[200px] shrink-0 pr-4">
+                      <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.book_title}</p>
+                      <p className="text-[12px] text-gray-500 truncate">ID: #{loan.book_id}</p>
+                    </div>
+                    <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
+                      {new Date(loan.issued_at).toLocaleDateString()}
+                    </div>
+                    <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
+                      {new Date(loan.due_at).toLocaleDateString()}
+                    </div>
+                    
+                    {/* Status Badge */}
+                    <div className="w-[120px] shrink-0">
+                      {loan.returned_at ? (
+                        <span className="px-3 py-1 rounded text-[11px] font-bold bg-[#C9F7F5] text-[#1BC5BD]">Returned</span>
+                      ) : new Date(loan.due_at) < new Date() ? (
+                        <span className="px-3 py-1 rounded text-[11px] font-bold bg-[#FFE2E5] text-[#F64E60]">Overdue</span>
+                      ) : (
+                        <span className="px-3 py-1 rounded text-[11px] font-bold bg-[#FEF6DD] text-[#E0B220]">Active</span>
+                      )}
+                    </div>
+                    {/* Actions */}
+                    <div className="flex-1 min-w-[160px] flex items-center justify-end gap-3 text-gray-400 pr-2">
+                      {!loan.returned_at && (
+                        <>
+                          <button 
+                            onClick={() => handleReturn(loan.id)} 
+                            className="hover:text-green-500 transition-colors flex items-center gap-1 text-[12px]"
+                            title="Mark as Returned"
+                          >
+                            <CheckCircle size={18} /> Return
+                          </button>
+                          <button 
+                            onClick={() => handleRenew(loan.id)}
+                            className="hover:text-blue-500 transition-colors flex items-center gap-1 text-[12px] ml-2"
+                            title="Renew (Add 14 days)"
+                          >
+                            <RefreshCw size={18} /> Renew
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
         </div>
       )}
+      
+      {/* 4. RENDER THE MODAL COMPONENT */}
+      <LendReturnModal 
+        open={isLendModalOpen} 
+        onClose={() => setIsLendModalOpen(false)}
+        onSuccess={fetchLoans}
+      />
     </div>
   );
 };

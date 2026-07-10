@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { SkeletonText } from "../../common/Skeleton";
 
-export default function BookHistory() {
+export default function BookHistory({ isLoading }) {
 
   const [activeTab, setActiveTab] = useState("borrowed");
 
@@ -123,7 +124,21 @@ export default function BookHistory() {
 
         {/* 🔵 BORROWED */}
         {activeTab === "borrowed" &&
-          books.map((book, i) => (
+          (isLoading ? (
+            [1, 2, 3, 4].map(key => (
+              <div key={key} className="flex items-start justify-between border-b border-gray-100 pb-4">
+                <div className="space-y-2">
+                  <SkeletonText className="h-4 w-32" />
+                  <SkeletonText className="h-3 w-24" />
+                  <SkeletonText className="h-2 w-16" />
+                </div>
+                <div className="text-right space-y-2 flex flex-col items-end">
+                  <SkeletonText className="h-2 w-16" />
+                  <SkeletonText className="h-3 w-20" />
+                </div>
+              </div>
+            ))
+          ) : books.map((book, i) => (
             <div
               key={i}
               className="flex items-start justify-between border-b border-gray-100 pb-4"
@@ -154,11 +169,25 @@ export default function BookHistory() {
               </div>
 
             </div>
-          ))}
+          )))}
 
         {/* 🟢 RETURNED */}
         {activeTab === "returned" &&
-          books.map((book, i) => (
+          (isLoading ? (
+            [1, 2, 3, 4].map(key => (
+              <div key={key} className="flex items-start justify-between border-b border-gray-100 pb-4">
+                <div className="space-y-2">
+                  <SkeletonText className="h-4 w-32" />
+                  <SkeletonText className="h-3 w-24" />
+                  <SkeletonText className="h-2 w-16" />
+                </div>
+                <div className="text-right space-y-2 flex flex-col items-end">
+                  <SkeletonText className="h-2 w-16" />
+                  <SkeletonText className="h-3 w-20" />
+                </div>
+              </div>
+            ))
+          ) : books.map((book, i) => (
             <div
               key={i}
               className="flex items-start justify-between border-b border-gray-100 pb-4"
@@ -189,11 +218,30 @@ export default function BookHistory() {
               </div>
 
             </div>
-          ))}
+          )))}
 
         {/* 🔴 FINES */}
         {activeTab === "fines" &&
-          books.map((book, i) => (
+          (isLoading ? (
+            [1, 2, 3, 4].map(key => (
+              <div key={key} className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div className="space-y-2">
+                  <SkeletonText className="h-4 w-32" />
+                  <SkeletonText className="h-3 w-24" />
+                  <SkeletonText className="h-2 w-16" />
+                </div>
+                <div className="text-center space-y-2 flex flex-col items-center">
+                  <SkeletonText className="h-2 w-12" />
+                  <SkeletonText className="h-3 w-16" />
+                </div>
+                <div className="text-center space-y-2 flex flex-col items-center">
+                  <SkeletonText className="h-2 w-12" />
+                  <SkeletonText className="h-3 w-12" />
+                </div>
+                <SkeletonText className="h-6 w-16 rounded-full" />
+              </div>
+            ))
+          ) : books.map((book, i) => (
             <div
               key={i}
               className="flex items-center justify-between border-b border-gray-100 pb-4"
@@ -242,7 +290,7 @@ export default function BookHistory() {
               </button>
 
             </div>
-          ))}
+          )))}
 
       </div>
 

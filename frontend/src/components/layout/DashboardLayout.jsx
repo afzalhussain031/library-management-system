@@ -3,8 +3,6 @@ import { Outlet } from 'react-router-dom'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 
-// 1. IMPORT THE MODAL COMPONENT
-import LendReturnModal from '../admin/LendReturnModal' 
 
 function PageLoader() {
   return (
@@ -16,10 +14,6 @@ function PageLoader() {
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  
-  // 2. CREATE A STATE VARIABLE TO TRACK IF MODAL IS OPEN
-  // Initially, it is 'false' (hidden)
-  const [isLendModalOpen, setIsLendModalOpen] = useState(false) 
 
   return (
     <div className="flex h-screen bg-linear-to-r from-gray-100 to-yellow-100 overflow-hidden">
@@ -29,8 +23,6 @@ export default function DashboardLayout() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onToggle={() => setSidebarOpen(prev => !prev)}
-        // 3. PASS A PROP DOWN TO SIDEBAR TO OPEN THE MODAL
-        onOpenLendModal={() => setIsLendModalOpen(true)} 
       />
 
       {/* Main area */}
@@ -44,13 +36,6 @@ export default function DashboardLayout() {
           </Suspense>
         </main>
       </div>
-
-      {/* 4. RENDER THE MODAL COMPONENT */}
-      {/* It receives 'open' to know when to show, and 'onClose' to close itself */}
-      <LendReturnModal 
-        open={isLendModalOpen} 
-        onClose={() => setIsLendModalOpen(false)} 
-      />
       
     </div>
   )

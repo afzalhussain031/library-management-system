@@ -11,9 +11,9 @@ export default function UserProfile() {
   const { currentUser } = useAuth(); // Get current user from context
   const { data: profileData, isLoading: loading, error } = useApi(profile.get, null);
 
-  if (loading) return <div>Loading...</div>;
   if (error) return <ErrorMessage message={error} />;
-  if (!profileData) return <div>No profile Data found</div>
+  
+  const safeProfile = profileData || {};
 
   return (
     <div className="bg-linear-to-r from-gray-100 to-yellow-100 min-h-screen">
@@ -21,7 +21,7 @@ export default function UserProfile() {
         {/* LEFT SIDE */}
         <div className="lg:col-span-1 space-y-4">
 
-          <ProfileCard userData={profileData}/>
+          <ProfileCard userData={safeProfile} isLoading={loading} />
 
           <InfoSection
             title="Account Information"
@@ -31,6 +31,7 @@ export default function UserProfile() {
               ["Phone", profileData.phone_number || "N/A"],
               ["Year of Study", profileData.batch || "N/A"],
             ]}
+            isLoading={loading}
           />
 
           <InfoSection
@@ -41,6 +42,7 @@ export default function UserProfile() {
               ["Section", profileData.father_name || "N/A"],
               ["Attendance", profileData.mother_name || "N/A"],
             ]}
+            isLoading={loading}
           />
 
           <InfoSection
@@ -52,13 +54,14 @@ export default function UserProfile() {
               ["Valid Till", "31 Dec 2026"],
             ]}
             fine={true}
+            isLoading={loading}
           />
 
         </div>
 
         {/* RIGHT SIDE */}
         <div className="lg:col-span-2">
-          <BookHistory />
+          <BookHistory isLoading={loading} />
         </div>
 
       </div>

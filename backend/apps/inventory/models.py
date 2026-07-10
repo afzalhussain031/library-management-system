@@ -8,12 +8,16 @@ class BookCopy(models.Model):
     LOANED = "loaned"
     RESERVED = "reserved"
     MAINTENANCE = "maintenance"
+    DAMAGED = "damaged"
+    LOST = "lost"
 
     STATUS_CHOICES = [
         (AVAILABLE, "Available"),
         (LOANED, "Loaned"),
         (RESERVED, "Reserved"),
         (MAINTENANCE, "Maintenance"),
+        (DAMAGED, "Damaged"),
+        (LOST, "Lost"),
     ]
 
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="copies")

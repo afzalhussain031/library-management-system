@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const { data: analyticsData, isLoading, error } = useApi(dashboard.getAdminStats);
   
   const [bookRequests, setBookRequests] = useState([]);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   // Calculate Month-over-Month Growth
   const calculateGrowth = (current, previous) => {
@@ -42,7 +43,7 @@ const AdminDashboard = () => {
   // Update states once data is loaded
   useEffect(() => {
     if (analyticsData?.recent_reservations) {
-      const formattedRequests = analyticsData.recent_reservations.map(res => ({
+      const formattedRequests = (analyticsData?.recent_reservations || []).map(res => ({
         id: res.id,
         bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
         bookColor: 'bg-blue-400', 
@@ -127,6 +128,7 @@ const AdminDashboard = () => {
   }
 
   const handleApproveRequest = async (id) => {
+    setActionLoadingId(id);
     const toastId = toast.loading("Approving request...");
     try {
       await client.patch(`/reservations/${id}/`, { status: 'ready' });
@@ -135,10 +137,13 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error("Error approving request:", err);
       toast.error("Failed to approve request.", { id: toastId });
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
   const handleDenyRequest = async (id) => {
+    setActionLoadingId(id);
     const toastId = toast.loading("Denying request...");
     try {
       await client.patch(`/reservations/${id}/`, { status: 'cancelled' });
@@ -147,16 +152,10 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error("Error denying request:", err);
       toast.error("Failed to deny request.", { id: toastId });
+    } finally {
+      setActionLoadingId(null);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg font-semibold text-gray-600 animate-pulse">Loading dashboard data...</div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -168,18 +167,20 @@ const AdminDashboard = () => {
 
   return (
     <div className="px-0 py-4 sm:p-6 md:p-8 space-y-6 w-full max-w-[1600px] mx-auto font-sans">
-      <DashboardStats data={stats} />
+      <DashboardStats data={stats} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
-        <OverdueDetails data={overdueDetails} />
+        <OverdueDetails data={overdueDetails} isLoading={isLoading} />
 
         <div className="space-y-6 xl:col-span-5">
           <BookRequests 
             data={bookRequests}
+            isLoading={isLoading}
+            actionLoadingId={actionLoadingId}
             onApprove={handleApproveRequest}
             onDeny={handleDenyRequest}
           />
-          <BooksLended data={booksLended} />
+          <BooksLended data={booksLended} isLoading={isLoading} />
         </div>
       </div>
     </div>

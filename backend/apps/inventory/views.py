@@ -13,6 +13,12 @@ class BookCopyViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+
+        book_id = self.request.query_params.get('book', None)
+        if book_id is not None:
+            queryset = queryset.filter(book_id=book_id)
+
+            
         if self.request.user.is_authenticated and self.request.user.is_staff:
             return queryset
         return queryset.filter(status=BookCopy.AVAILABLE)

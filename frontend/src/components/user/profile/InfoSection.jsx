@@ -1,4 +1,6 @@
-export default function InfoSection({ title, data, fine }) {
+import { SkeletonText } from "../../common/Skeleton";
+
+export default function InfoSection({ title, data, fine, isLoading }) {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 mx-2">
       <h2 className="text-lg font-semibold text-gray-900 mb-4 ">{title}</h2>
@@ -8,8 +10,8 @@ export default function InfoSection({ title, data, fine }) {
           <div key={i} className="min-w-0">
             <p className="text-xs text-gray-500 mb-1">{label}</p>
 
-            <p className="text-sm font-medium text-gray-900 break-all">
-              {value}
+            <p className="text-sm font-medium text-gray-900 break-all mt-1">
+              {isLoading ? <SkeletonText className="h-5 w-3/4" /> : value}
             </p>
           </div>
         ))}

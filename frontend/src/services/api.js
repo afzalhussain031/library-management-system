@@ -71,8 +71,44 @@ export const catalog = {
   getBooks: () =>
     client.get('/books/'),
   
+  addBook: (data) =>
+    client.post('/books/', data),
+
+  updateBook: (id, data) => 
+    client.put(`/books/${id}/`, data),
+
+  deleteBook: (id) => 
+    client.delete(`/books/${id}/`),
+    
+  getCategories: () =>
+    client.get('/categories/'),
+    
+  createCategory: (data) =>
+    client.post('/categories/', data),
+    
+  getPublishers: () =>
+    client.get('/publishers/'),
+    
+  createPublisher: (data) =>
+    client.post('/publishers/', data),
+  
   getWishlist: () =>
     client.get('/wishlist/')
+}
+
+// ===================== INVENTORY =====================
+export const inventory = {
+  addBookCopy: (data) =>
+    client.post('/copies/', data),
+
+  getCopiesByBook: (bookId) => 
+    client.get(`/copies/?book=${bookId}`),
+
+  updateCopy: (id, data) => 
+    client.patch(`/copies/${id}/`, data),
+
+  deleteCopy: (id) => 
+    client.delete(`/copies/${id}/`),
 }
 
 // ===================== BILLING =====================
@@ -91,5 +127,10 @@ export const circulation = {
   
   // New endpoints for Kanban
   updateReservationStatus: (id, status) => client.patch(`/reservations/${id}/`, { status }),
-  fulfillReservation: (id) => client.post(`/reservations/${id}/fulfill/`)
+  fulfillReservation: (id) => client.post(`/reservations/${id}/fulfill/`),
+  
+  // New endpoints for manual Lend/Return
+  issueBook: (data) => client.post('/loans/', data),
+  returnBook: (loanId) => client.post(`/loans/${loanId}/return_loan/`),
+  getUserLoans: (userId) => client.get(`/loans/?user_id=${userId}`)
 }

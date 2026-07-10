@@ -9,13 +9,22 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  Check,
+  X as CloseIcon,
 } from "lucide-react";
 import { catalog } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
+import { toast } from "react-hot-toast";
+import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
+import AddBookModal from "../../components/admin/dashboard/AddBookModal";
+import PhysicalCopiesTable from "../../components/admin/dashboard/PhysicalCopiesTable";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [bookToEdit, setBookToEdit] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
   
   // NEW: Filter States
   const [activeTopFilter, setActiveTopFilter] = useState("All books");
@@ -25,7 +34,7 @@ const Books = () => {
     setExpandedRow(expandedRow === id ? null : id);
   };
 
-  const { data: rawBooks, isLoading: loading, error } = useApi(catalog.getBooks, []);
+  const { data: rawBooks, isLoading: loading, error, refetch: fetchBooks } = useApi(catalog.getBooks, []);
   const books = rawBooks || [];
 
   // NEW: Filtering Logic
@@ -77,6 +86,17 @@ const Books = () => {
     }`;
   };
 
+  const handleDeleteConfirm = async (id) => {
+    try {
+      await catalog.deleteBook(id);
+      toast.success("Book deleted successfully!");
+      setPendingDeleteId(null);
+      fetchBooks(); // Refresh table
+    } catch (error) {
+      toast.error("Failed to delete book.");
+    }
+  };
+
   return (
     <div className="px-0 py-0 sm:p-0 md:p-0 space-y-6 w-full max-w-[1600px] mx-auto font-sans min-h-screen overflow-hidden">
       {/* Filter and Stats Dash */}
@@ -121,7 +141,13 @@ const Books = () => {
             <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
               <Calendar size={14} className="text-gray-400" /> This Month
             </button>
-            <button className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
+            <button 
+              onClick={() => {
+                setBookToEdit(null); // Ensure it's in Add Mode
+                setIsAddModalOpen(true);
+              }}
+              className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors"
+            >
               <Plus size={14} /> Add Book
             </button>
           </div>
@@ -165,12 +191,11 @@ const Books = () => {
         </div>
       </div>
 
-      {/* Show Loading/Error States */}
-      {loading && <div className="text-center py-8 text-gray-500 font-semibold">Loading books...</div>}
+      {/* Show Error State */}
       {error && <div className="py-8"><ErrorMessage message={error} /></div>}
 
       {/* Responsive Table Container */}
-      {!loading && !error && (
+      {!error && (
         <div className="w-full overflow-x-auto pb-4">
           <div className="min-w-[1220px]">
             {/* Books List Header */}
@@ -190,8 +215,44 @@ const Books = () => {
 
             {/* NEW: Render filteredBooks instead of books */}
             <div className="space-y-3">
-              {filteredBooks.map((book, idx) => (
-                <div
+              {loading ? (
+                // Render 5 Skeleton Rows
+                [1, 2, 3, 4, 5].map(key => (
+                  <div key={key} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4">
+                     <div className="w-[50px] shrink-0">
+                       <div className="w-4 h-4 rounded bg-gray-200 animate-pulse" />
+                     </div>
+                     <div className="w-[80px] shrink-0">
+                       <SkeletonCard className="w-[40px] h-[50px] rounded-sm" />
+                     </div>
+                     <div className="w-[240px] shrink-0 pr-4 space-y-2">
+                       <SkeletonText className="h-4 w-3/4" />
+                       <SkeletonText className="h-3 w-1/2" />
+                     </div>
+                     <div className="w-[160px] shrink-0 pr-2">
+                       <SkeletonText className="h-4 w-2/3" />
+                     </div>
+                     <div className="w-[120px] shrink-0">
+                       <SkeletonText className="h-4 w-1/2" />
+                     </div>
+                     <div className="w-[160px] shrink-0">
+                       <SkeletonText className="h-4 w-2/3" />
+                     </div>
+                     <div className="w-[120px] shrink-0">
+                       <SkeletonText className="h-6 w-3/4 rounded" />
+                     </div>
+                     <div className="w-[90px] shrink-0 text-center">
+                       <SkeletonText className="h-4 w-1/3 mx-auto" />
+                     </div>
+                     <div className="flex-1 min-w-[160px] flex justify-end gap-3 pr-2">
+                       <SkeletonText className="h-4 w-4 rounded-full" />
+                       <SkeletonText className="h-4 w-4 rounded-full" />
+                     </div>
+                  </div>
+                ))
+              ) : (
+                filteredBooks.map((book, idx) => (
+                  <div
                   key={book.id}
                   className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-200 overflow-hidden"
                 >
@@ -241,15 +302,51 @@ const Books = () => {
                       0
                     </div>
                     <div className="flex-1 min-w-[160px] flex items-center justify-end gap-3 text-gray-400 pr-2">
-                      <button className="hover:text-blue-500 transition-colors" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        className={`hover:text-blue-500 transition-all ${pendingDeleteId === book.id ? 'opacity-30 pointer-events-none' : ''}`} 
+                        onClick={(e) => { e.stopPropagation(); setBookToEdit(book); setIsAddModalOpen(true); }}
+                        title="Edit Book"
+                      >
                         <Edit2 size={16} className="text-[#4386F5]" />
                       </button>
-                      <button className="hover:text-red-500 transition-colors" onClick={(e) => e.stopPropagation()}>
-                        <Trash2 size={16} className="text-[#1C2434]" />
-                      </button>
-                      <button className="hover:text-gray-700 transition-colors" onClick={(e) => e.stopPropagation()}>
+
+                      {pendingDeleteId === book.id ? (
+                        // INLINE DEFENSIVE DELETE UI
+                        <div className="flex items-center gap-1.5 animate-in zoom-in-95 duration-200 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.08)] rounded-full px-1.5 py-1 border border-red-50 -my-2 relative z-10">
+                          <span className="text-[10px] font-extrabold text-[#F64E60] tracking-wider uppercase pl-2 pr-1">Delete?</span>
+                          <button 
+                            className="p-1 rounded-full bg-[#FFE2E5] text-[#F64E60] hover:bg-[#F64E60] hover:text-white transition-all duration-200"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteConfirm(book.id); }}
+                            title="Confirm Delete"
+                          >
+                            <Check size={14} strokeWidth={3} />
+                          </button>
+                          <button 
+                            className="p-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-all duration-200"
+                            onClick={(e) => { e.stopPropagation(); setPendingDeleteId(null); }}
+                            title="Cancel"
+                          >
+                            <CloseIcon size={14} strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          className="hover:text-red-500 transition-colors" 
+                          onClick={(e) => { e.stopPropagation(); setPendingDeleteId(book.id); }}
+                          title="Delete Book"
+                        >
+                          <Trash2 size={16} className="text-[#1C2434]" />
+                        </button>
+                      )}
+
+                      <button 
+                        className={`hover:text-gray-700 transition-all ${pendingDeleteId === book.id ? 'opacity-30 pointer-events-none' : ''}`} 
+                        onClick={(e) => e.stopPropagation()}
+                        title="Print Label"
+                      >
                         <Printer size={16} className="text-[#1C2434]" />
                       </button>
+
                       <button className="hover:text-gray-700 transition-colors ml-1">
                         {expandedRow === book.id ? <ChevronUp size={18} className="text-[#1C2434]" /> : <ChevronDown size={18} className="text-[#1C2434]" />}
                       </button>
@@ -267,25 +364,12 @@ const Books = () => {
                         </p>
                       </div>
 
-                      {/* Right: Grid Details */}
-                      <div className="flex-1 grid grid-cols-3 gap-y-4 gap-x-4 min-w-[500px]">
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 mb-1">Publish date</p>
-                          <p className="text-[13px] font-bold text-[#1C2434]">{book.published_date || "N/A"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 mb-1">Language</p>
-                          <p className="text-[13px] font-bold text-[#1C2434]">N/A</p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 mb-1">Cost</p>
-                          <p className="text-[13px] font-bold text-[#1C2434]">N/A</p>
-                        </div>
-                      </div>
+                      {/* Right: Physical Copies Mini-Table */}
+                      <PhysicalCopiesTable bookId={book.id} />
                     </div>
                   )}
                 </div>
-              ))}
+              )))}
             </div>
             
             {/* NEW: Changed to check filteredBooks length */}
@@ -297,6 +381,14 @@ const Books = () => {
           </div>
         </div>
       )}
+
+      {/* Add Book Modal */}
+      <AddBookModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={fetchBooks} 
+        bookToEdit={bookToEdit}
+      />
     </div>
   );
 };

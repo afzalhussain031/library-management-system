@@ -23,7 +23,7 @@ class LoanSerializer(serializers.ModelSerializer):
             "book_id",
             "book_title",
             "book_author",
-            "user_name", # 2. Include the new field here
+            "user_name",
             "issued_at",
             "due_at",
             "returned_at",
@@ -32,6 +32,8 @@ class LoanSerializer(serializers.ModelSerializer):
             "is_overdue",
             "overdue_days",
             "current_fine_estimate",
+            "copy",
+            "borrower",
         ]
         
     # 3. Define how to fetch the name

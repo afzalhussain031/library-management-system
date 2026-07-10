@@ -4,6 +4,7 @@ import { Clock, CheckCircle, AlertCircle, BookOpen, User, MoreVertical } from 'l
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import toast from 'react-hot-toast';
+import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 
 const COLUMNS = [
   { id: 'pending', title: 'Pending (Waitlist)', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' },
@@ -82,9 +83,6 @@ export default function Reservations() {
       return acc;
     }, {});
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading Kanban Board...</div>;
-    if (error) return <div className="p-8"><ErrorMessage message={error} /></div>;
-
      return (
     <div className="p-6 h-full flex flex-col relative">
       <div className="mb-8">
@@ -107,21 +105,31 @@ export default function Reservations() {
                 <h2 className="font-semibold text-slate-700 flex justify-between items-center">
                   {col.title}
                   <span className="bg-white text-xs px-2 py-1 rounded-full text-slate-500 font-medium shadow-sm border border-slate-100">
-                    {colReservations.length}
+                    {loading ? "..." : colReservations.length}
                   </span>
                 </h2>
               </div>
               <div className="flex-1 p-4 overflow-y-auto space-y-4">
-                
-                {/* Empty State Illustration */}
-                {colReservations.length === 0 && (
+                {loading ? (
+                  [1, 2].map(key => (
+                    <div key={key} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <SkeletonText className="h-4 w-3/4" />
+                      </div>
+                      <SkeletonText className="h-3 w-1/2 mb-4" />
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-50">
+                        <SkeletonAvatar className="w-5 h-5 rounded-full" />
+                        <SkeletonText className="h-3 w-1/3" />
+                      </div>
+                    </div>
+                  ))
+                ) : colReservations.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50">
                     <BookOpen className="w-12 h-12 text-slate-400 mb-4" />
                     <p className="text-sm text-slate-500 font-medium">The {col.title.toLowerCase()} shelf is clear!</p>
                   </div>
-                )}
-                {/* Cards */}
-                {colReservations.map(res => {
+                ) : (
+                  colReservations.map(res => {
                   // Figure out queue position if pending
                   let queuePosition = null;
                   if (res.status === 'pending') {
@@ -177,7 +185,8 @@ export default function Reservations() {
                       </div>
                     </div>
                   );
-                })}
+                })
+              )}
               </div>
             </div>
           );
