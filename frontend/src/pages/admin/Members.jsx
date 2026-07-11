@@ -31,9 +31,13 @@ const Members = () => {
       branch: user.department || 'N/A',
       year: user.batch || 'N/A',
       borrowed: 0, 
-      fine: 0
+      fine: 0,
+      role: user.role || 'student'
     };
   });
+
+  const totalStudents = members.filter(m => m.role === 'student').length;
+  const totalFaculties = members.filter(m => m.role !== 'student').length;
 
   const handleRemoveMember = (id) => {
     // Note: If you implement deletion, you'll need a mechanism to update the hook data
@@ -48,8 +52,9 @@ const Members = () => {
                           member.phone?.includes(searchQuery);
     
     const matchesBranch = activeFilter === 'All' || member.branch === activeFilter;
+    const matchesTab = activeTab === 'Students' ? member.role === 'student' : member.role !== 'student';
     
-    return matchesSearch && matchesBranch;
+    return matchesSearch && matchesBranch && matchesTab;
   });
 
   return (
@@ -66,7 +71,7 @@ const Members = () => {
             className={`pb-3 px-2 font-bold text-[15px] flex items-center gap-2 relative ${activeTab === 'Students' ? 'text-[#F6BE0A]' : 'text-gray-500'}`}
             onClick={() => setActiveTab('Students')}
           >
-            Students <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Students' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Students' ? filteredMembers.length : 545}</span>
+            Students <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Students' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Students' ? filteredMembers.length : totalStudents}</span>
             {activeTab === 'Students' && (
               <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#F6BE0A] rounded-t-md" />
             )}
@@ -75,7 +80,7 @@ const Members = () => {
             className={`pb-3 px-4 font-bold text-[15px] flex items-center gap-2 relative ml-6 ${activeTab === 'Faculties' ? 'text-[#F6BE0A]' : 'text-gray-500'}`}
             onClick={() => setActiveTab('Faculties')}
           >
-            Faculties <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Faculties' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>86</span>
+            Faculties <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Faculties' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Faculties' ? filteredMembers.length : totalFaculties}</span>
             {activeTab === 'Faculties' && (
               <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#F6BE0A] rounded-t-md" />
             )}
