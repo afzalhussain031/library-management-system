@@ -17,6 +17,9 @@ const Members = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
+  const [activeBatch, setActiveBatch] = useState('All');
+  const [isBatchDropdownOpen, setIsBatchDropdownOpen] = useState(false);
+  
   // 1. Fetch data safely using the custom hook
   const { data: rawMembers, isLoading, error, refetch } = useApi(membersApi.getAll, []);
 
@@ -39,6 +42,8 @@ const Members = () => {
   const totalStudents = members.filter(m => m.role === 'student').length;
   const totalFaculties = members.filter(m => m.role !== 'student').length;
 
+  const availableBatches = ['All', ...new Set(members.map(m => m.year).filter(y => y && y !== 'N/A'))].sort();
+
   const handleRemoveMember = (id) => {
     // Note: If you implement deletion, you'll need a mechanism to update the hook data
     // or trigger a refetch. For now, it just closes the modal locally since we removed
@@ -52,9 +57,10 @@ const Members = () => {
                           member.phone?.includes(searchQuery);
     
     const matchesBranch = activeFilter === 'All' || member.branch === activeFilter;
+    const matchesBatch = activeBatch === 'All' || member.year === activeBatch;
     const matchesTab = activeTab === 'Students' ? member.role === 'student' : member.role !== 'student';
     
-    return matchesSearch && matchesBranch && matchesTab;
+    return matchesSearch && matchesBranch && matchesBatch && matchesTab;
   });
 
   return (
@@ -62,7 +68,7 @@ const Members = () => {
       
       {/* Filter and Stats Dash */}
       <div 
-        className="w-full max-w-[1547px] bg-[#FFFFFFB2] rounded-[40px] border-b border-[#F3F4F6] shadow-sm overflow-hidden mb-8"
+        className="w-full max-w-[1547px] bg-[#FFFFFFB2] rounded-[40px] border-b border-[#F3F4F6] shadow-sm mb-8"
         style={{ minHeight: '121px' }}
       >
         {/* Tabs */}
@@ -119,10 +125,43 @@ const Members = () => {
               ))}
             </div>
 
-            {/* Year Dropdown */}
-            <button className="flex items-center gap-2 px-4 py-1 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50">
-              Year <ChevronDown size={14} />
-            </button>
+            {/* Batch Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsBatchDropdownOpen(!isBatchDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-1 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#F6BE0A]"
+              >
+                {activeBatch === 'All' ? 'Batch' : activeBatch} <ChevronDown size={14} className={`transition-transform ${isBatchDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isBatchDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsBatchDropdownOpen(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 overflow-hidden">
+                    <ul className="max-h-60 overflow-y-auto">
+                      {availableBatches.map(batch => (
+                        <li key={batch}>
+                          <button
+                            onClick={() => {
+                              setActiveBatch(batch);
+                              setIsBatchDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              activeBatch === batch ? 'text-[#F6BE0A] font-bold bg-[#F6BE0A]/5' : 'text-gray-700 font-medium'
+                            }`}
+                          >
+                            {batch}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
