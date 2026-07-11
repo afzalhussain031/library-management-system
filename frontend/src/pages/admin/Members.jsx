@@ -3,6 +3,8 @@ import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'luci
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
 import AddMemberModal from '../../components/admin/members/AddMemberModal';
+import EditMemberDrawer from '../../components/admin/members/EditMemberDrawer';
+import ActionConfirmDialog from '../../components/common/ActionConfirmDialog';
 import { membersApi } from '../../services/api';
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
@@ -16,6 +18,14 @@ const Members = () => {
   
   const [selectedMember, setSelectedMember] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [actionConfirm, setActionConfirm] = useState({
+    isOpen: false,
+    type: null, // 'clear_fine' | 'suspend'
+    member: null
+  });
   
   const [activeBatch, setActiveBatch] = useState('All');
   const [isBatchDropdownOpen, setIsBatchDropdownOpen] = useState(false);
@@ -45,10 +55,50 @@ const Members = () => {
   const availableBatches = ['All', ...new Set(members.map(m => m.year).filter(y => y && y !== 'N/A'))].sort();
 
   const handleRemoveMember = (id) => {
-    // Note: If you implement deletion, you'll need a mechanism to update the hook data
-    // or trigger a refetch. For now, it just closes the modal locally since we removed
-    // the local setMembers array.
     setSelectedMember(null);
+    setIsDetailsExpanded(false);
+  };
+
+  const handleEditMember = (member) => {
+    setEditingMember(member);
+  };
+
+  const handleViewActivity = (member) => {
+    setSelectedMember(member);
+    setIsDetailsExpanded(true);
+  };
+
+  const handleClearFineClick = (member) => {
+    setActionConfirm({
+      isOpen: true,
+      type: 'clear_fine',
+      member
+    });
+  };
+
+  const handleSuspendClick = (member) => {
+    setActionConfirm({
+      isOpen: true,
+      type: 'suspend',
+      member
+    });
+  };
+
+  const handleActionConfirm = (reason) => {
+    const { type, member } = actionConfirm;
+    if (type === 'clear_fine') {
+      console.log(`Cleared fine for ${member.name}`);
+      // Add toast notification here
+    } else if (type === 'suspend') {
+      console.log(`Suspended ${member.name} for reason: ${reason}`);
+      // Add toast notification here
+    }
+    setActionConfirm({ isOpen: false, type: null, member: null });
+  };
+  
+  const handleCloseDetails = () => {
+    setSelectedMember(null);
+    setIsDetailsExpanded(false);
   };
 
   const filteredMembers = members.filter(member => {
@@ -195,6 +245,10 @@ const Members = () => {
                 key={member.id} 
                 member={member} 
                 onClick={() => setSelectedMember(member)} 
+                onEdit={handleEditMember}
+                onViewActivity={handleViewActivity}
+                onClearFine={handleClearFineClick}
+                onSuspend={handleSuspendClick}
               />
             ))}
           </div>
@@ -210,8 +264,9 @@ const Members = () => {
       {selectedMember && (
         <MemberDetailsModal 
           member={selectedMember} 
-          onClose={() => setSelectedMember(null)} 
+          onClose={handleCloseDetails} 
           onRemove={handleRemoveMember} 
+          initialExpanded={isDetailsExpanded}
         />
       )}
 
@@ -219,6 +274,27 @@ const Members = () => {
         open={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         onSuccess={() => refetch()} 
+      />
+
+      <EditMemberDrawer
+        isOpen={!!editingMember}
+        onClose={() => setEditingMember(null)}
+        member={editingMember}
+      />
+
+      <ActionConfirmDialog
+        isOpen={actionConfirm.isOpen}
+        onClose={() => setActionConfirm({ isOpen: false, type: null, member: null })}
+        onConfirm={handleActionConfirm}
+        title={actionConfirm.type === 'clear_fine' ? 'Clear Fine' : 'Suspend Member'}
+        description={
+          actionConfirm.type === 'clear_fine' 
+            ? `Are you sure you want to clear the pending fine of ₹${actionConfirm.member?.fine} for ${actionConfirm.member?.name}?` 
+            : `Are you sure you want to suspend the membership of ${actionConfirm.member?.name}? They will not be able to borrow books until unsuspended.`
+        }
+        confirmText={actionConfirm.type === 'clear_fine' ? 'Clear Fine' : 'Suspend Member'}
+        isDestructive={actionConfirm.type === 'suspend'}
+        requiresReason={actionConfirm.type === 'suspend'}
       />
     </div>
   );
