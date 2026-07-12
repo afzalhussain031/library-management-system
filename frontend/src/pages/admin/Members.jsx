@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
+import MemberCardSkeleton from '../../components/admin/members/MemberCardSkeleton';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
 import AddMemberModal from '../../components/admin/members/AddMemberModal';
 import EditMemberDrawer from '../../components/admin/members/EditMemberDrawer';
@@ -317,9 +318,10 @@ const Members = () => {
         {error ? (
           <ErrorMessage message={error} />
         ) : isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500 font-medium h-full">
-            <Loader size={40} className="text-[#F6BE0A] mb-4 animate-spin" />
-            <p>Loading members...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, index) => (
+              <MemberCardSkeleton key={index} />
+            ))}
           </div>
         ) : filteredMembers.length > 0 ? (
           /* Grid of Cards */
