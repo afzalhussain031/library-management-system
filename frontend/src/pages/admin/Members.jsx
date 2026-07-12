@@ -29,6 +29,11 @@ const Members = () => {
   
   const [activeBatch, setActiveBatch] = useState('All');
   const [isBatchDropdownOpen, setIsBatchDropdownOpen] = useState(false);
+  const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
+  
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All', 'Active', 'Suspended'
+  const [pendingFinesOnly, setPendingFinesOnly] = useState(false);
   
   // 1. Fetch data safely using the custom hook
   const { data: rawMembers, isLoading, error, refetch } = useApi(membersApi.getAll, []);
@@ -48,7 +53,8 @@ const Members = () => {
       membershipId: user.membership_id || null,
       validTill: user.membership_valid_till || null,
       fine: user.pending_fines ? parseFloat(user.pending_fines) : 0,
-      role: user.role || 'student'
+      role: user.role || 'student',
+      isActive: user.is_active ?? true
     };
   });
 
@@ -113,7 +119,12 @@ const Members = () => {
     const matchesBatch = activeBatch === 'All' || member.year === activeBatch;
     const matchesTab = activeTab === 'Students' ? member.role === 'student' : member.role !== 'student';
     
-    return matchesSearch && matchesBranch && matchesBatch && matchesTab;
+    const matchesStatus = statusFilter === 'All' || 
+                          (statusFilter === 'Active' && member.isActive) ||
+                          (statusFilter === 'Suspended' && !member.isActive);
+    const matchesFines = pendingFinesOnly ? member.fine > 0 : true;
+    
+    return matchesSearch && matchesBranch && matchesBatch && matchesTab && matchesStatus && matchesFines;
   });
 
   return (
@@ -161,21 +172,42 @@ const Members = () => {
               <Search className="absolute right-3 top-2.5 text-gray-400" size={16} />
             </div>
 
-            {/* Filter Tags */}
-            <div className="flex items-center gap-2">
-              {FILTER_TAGS.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => setActiveFilter(tag)}
-                  className={`px-4 py-1 rounded-full text-xs font-bold transition-colors ${
-                    activeFilter === tag 
-                      ? 'bg-[#1e293b] text-white' 
-                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
+            {/* Branch Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-1 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#F6BE0A]"
+              >
+                {activeFilter === 'All' ? 'Branch' : activeFilter} <ChevronDown size={14} className={`transition-transform ${isBranchDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isBranchDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsBranchDropdownOpen(false)}
+                  ></div>
+                  <div className="absolute left-0 mt-2 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 overflow-hidden">
+                    <ul className="max-h-60 overflow-y-auto">
+                      {FILTER_TAGS.map(tag => (
+                        <li key={tag}>
+                          <button
+                            onClick={() => {
+                              setActiveFilter(tag);
+                              setIsBranchDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              activeFilter === tag ? 'text-[#F6BE0A] font-bold bg-[#F6BE0A]/5' : 'text-gray-700 font-medium'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Batch Dropdown */}
@@ -215,9 +247,58 @@ const Members = () => {
                 </>
               )}
             </div>
+
+            {/* Status Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-1 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#F6BE0A]"
+              >
+                {statusFilter === 'All' ? 'Status' : statusFilter} <ChevronDown size={14} className={`transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isStatusDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsStatusDropdownOpen(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 overflow-hidden">
+                    <ul className="max-h-60 overflow-y-auto">
+                      {['All', 'Active', 'Suspended'].map(status => (
+                        <li key={status}>
+                          <button
+                            onClick={() => {
+                              setStatusFilter(status);
+                              setIsStatusDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              statusFilter === status ? 'text-[#F6BE0A] font-bold bg-[#F6BE0A]/5' : 'text-gray-700 font-medium'
+                            }`}
+                          >
+                            {status}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
+            <label className="flex items-center cursor-pointer relative">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={pendingFinesOnly}
+                onChange={(e) => setPendingFinesOnly(e.target.checked)}
+              />
+              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#F6BE0A]"></div>
+              <span className="ml-2 text-sm font-semibold text-gray-600">Pending Fines Only</span>
+            </label>
+
             <button className="flex items-center gap-2 text-sm text-gray-600 font-semibold hover:text-gray-800">
               <Calendar size={16} /> Select date range
             </button>
