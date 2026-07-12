@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Activity, ChevronLeft } from 'lucide-react';
+import { X, Activity, ChevronLeft, Mail } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 import MemberActivityPanel from './MemberActivityPanel';
 
@@ -122,9 +122,21 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Email</p>
-                  <p className="text-[13px] font-extrabold text-[#334155] mt-0.5 truncate" title={email}>
-                    {email ? email : <span className="text-gray-400 italic font-medium">Not Available</span>}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-[13px] font-extrabold text-[#334155] truncate max-w-[150px]" title={email}>
+                      {email ? email : <span className="text-gray-400 italic font-medium">Not Available</span>}
+                    </p>
+                    {email && email !== 'N/A' && (
+                      <a 
+                        href={`mailto:${email}`}
+                        title={`Email ${member.name}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-600 hover:scale-110 transition-all shadow-sm shrink-0"
+                      >
+                        <Mail size={12} />
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Phone</p>

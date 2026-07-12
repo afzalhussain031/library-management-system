@@ -45,6 +45,7 @@ const Members = () => {
     return {
       id: user.id,
       name: resolvedName,
+      email: user.email,
       enr: user.user_id,
       phone: user.phone_number || 'N/A',
       branch: user.department || 'N/A',
