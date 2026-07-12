@@ -66,6 +66,43 @@ export const signupSchema = z.object({
   }
 )
 
+// ===== ADD MEMBER MODAL FORM =====
+export const addMemberSchema = z.object({
+  student_name: z
+    .string()
+    .min(1, 'Full name is required')
+    .min(2, 'Name must be at least 2 characters')
+    .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
+
+  user_id: z
+    .string()
+    .min(1, 'Enrollment number is required')
+    .min(4, 'Must be at least 4 characters')
+    .max(10, 'Must be at most 10 characters')
+    .regex(/^[a-zA-Z0-9]+$/, 'Only letters and numbers allowed'),
+
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Invalid email address'),
+
+  phone_number: z
+    .string()
+    .min(1, 'Phone number is required')
+    .regex(/^[0-9]{10}$/, 'Phone must be exactly 10 digits'),
+
+  department: z
+    .string()
+    .optional()
+    .default(''),
+
+  password: z
+    .string()
+    .min(1, 'Password is required')
+    .min(8, 'Password must be at least 8 characters'),
+})
+
+
 
 // ===== LEND/RETURN MODAL FORM =====
 export const lendReturnSchema = z.object({

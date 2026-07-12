@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
+import AddMemberModal from '../../components/admin/members/AddMemberModal';
+import EditMemberDrawer from '../../components/admin/members/EditMemberDrawer';
+import ActionConfirmDialog from '../../components/common/ActionConfirmDialog';
 import { membersApi } from '../../services/api';
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
@@ -14,9 +17,21 @@ const Members = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selectedMember, setSelectedMember] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [actionConfirm, setActionConfirm] = useState({
+    isOpen: false,
+    type: null, // 'clear_fine' | 'suspend'
+    member: null
+  });
+  
+  const [activeBatch, setActiveBatch] = useState('All');
+  const [isBatchDropdownOpen, setIsBatchDropdownOpen] = useState(false);
   
   // 1. Fetch data safely using the custom hook
-  const { data: rawMembers, isLoading, error } = useApi(membersApi.getAll, []);
+  const { data: rawMembers, isLoading, error, refetch } = useApi(membersApi.getAll, []);
 
   // 2. Format the data only when it exists
   const members = (rawMembers || []).map(user => {
@@ -28,16 +43,65 @@ const Members = () => {
       phone: user.phone_number || 'N/A',
       branch: user.department || 'N/A',
       year: user.batch || 'N/A',
-      borrowed: 0, 
-      fine: 0
+      borrowed: user.currently_borrowed || 0,
+      totalBorrowed: user.total_borrowed || 0,
+      membershipId: user.membership_id || null,
+      validTill: user.membership_valid_till || null,
+      fine: user.pending_fines ? parseFloat(user.pending_fines) : 0,
+      role: user.role || 'student'
     };
   });
 
+  const totalStudents = members.filter(m => m.role === 'student').length;
+  const totalFaculties = members.filter(m => m.role !== 'student').length;
+
+  const availableBatches = ['All', ...new Set(members.map(m => m.year).filter(y => y && y !== 'N/A'))].sort();
+
   const handleRemoveMember = (id) => {
-    // Note: If you implement deletion, you'll need a mechanism to update the hook data
-    // or trigger a refetch. For now, it just closes the modal locally since we removed
-    // the local setMembers array.
     setSelectedMember(null);
+    setIsDetailsExpanded(false);
+  };
+
+  const handleEditMember = (member) => {
+    setEditingMember(member);
+  };
+
+  const handleViewActivity = (member) => {
+    setSelectedMember(member);
+    setIsDetailsExpanded(true);
+  };
+
+  const handleClearFineClick = (member) => {
+    setActionConfirm({
+      isOpen: true,
+      type: 'clear_fine',
+      member
+    });
+  };
+
+  const handleSuspendClick = (member) => {
+    setActionConfirm({
+      isOpen: true,
+      type: 'suspend',
+      member
+    });
+  };
+
+  const handleActionConfirm = (reason) => {
+    const { type, member } = actionConfirm;
+    if (type === 'clear_fine') {
+      console.log(`Cleared fine for ${member.name}`);
+      // Add toast notification here
+    } else if (type === 'suspend') {
+      console.log(`Suspended ${member.name} for reason: ${reason}`);
+      // Add toast notification here
+    }
+    setActionConfirm({ isOpen: false, type: null, member: null });
+  };
+  
+  const handleCloseDetails = () => {
+    setSelectedMember(null);
+    setIsDetailsExpanded(false);
   };
 
   const filteredMembers = members.filter(member => {
@@ -46,8 +110,10 @@ const Members = () => {
                           member.phone?.includes(searchQuery);
     
     const matchesBranch = activeFilter === 'All' || member.branch === activeFilter;
+    const matchesBatch = activeBatch === 'All' || member.year === activeBatch;
+    const matchesTab = activeTab === 'Students' ? member.role === 'student' : member.role !== 'student';
     
-    return matchesSearch && matchesBranch;
+    return matchesSearch && matchesBranch && matchesBatch && matchesTab;
   });
 
   return (
@@ -55,7 +121,7 @@ const Members = () => {
       
       {/* Filter and Stats Dash */}
       <div 
-        className="w-full max-w-[1547px] bg-[#FFFFFFB2] rounded-[40px] border-b border-[#F3F4F6] shadow-sm overflow-hidden mb-8"
+        className="w-full max-w-[1547px] bg-[#FFFFFFB2] rounded-[40px] border-b border-[#F3F4F6] shadow-sm mb-8"
         style={{ minHeight: '121px' }}
       >
         {/* Tabs */}
@@ -64,7 +130,7 @@ const Members = () => {
             className={`pb-3 px-2 font-bold text-[15px] flex items-center gap-2 relative ${activeTab === 'Students' ? 'text-[#F6BE0A]' : 'text-gray-500'}`}
             onClick={() => setActiveTab('Students')}
           >
-            Students <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Students' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Students' ? filteredMembers.length : 545}</span>
+            Students <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Students' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Students' ? filteredMembers.length : totalStudents}</span>
             {activeTab === 'Students' && (
               <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#F6BE0A] rounded-t-md" />
             )}
@@ -73,7 +139,7 @@ const Members = () => {
             className={`pb-3 px-4 font-bold text-[15px] flex items-center gap-2 relative ml-6 ${activeTab === 'Faculties' ? 'text-[#F6BE0A]' : 'text-gray-500'}`}
             onClick={() => setActiveTab('Faculties')}
           >
-            Faculties <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Faculties' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>86</span>
+            Faculties <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Faculties' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Faculties' ? filteredMembers.length : totalFaculties}</span>
             {activeTab === 'Faculties' && (
               <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#F6BE0A] rounded-t-md" />
             )}
@@ -112,17 +178,53 @@ const Members = () => {
               ))}
             </div>
 
-            {/* Year Dropdown */}
-            <button className="flex items-center gap-2 px-4 py-1 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50">
-              Year <ChevronDown size={14} />
-            </button>
+            {/* Batch Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsBatchDropdownOpen(!isBatchDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-1 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#F6BE0A]"
+              >
+                {activeBatch === 'All' ? 'Batch' : activeBatch} <ChevronDown size={14} className={`transition-transform ${isBatchDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isBatchDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsBatchDropdownOpen(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 overflow-hidden">
+                    <ul className="max-h-60 overflow-y-auto">
+                      {availableBatches.map(batch => (
+                        <li key={batch}>
+                          <button
+                            onClick={() => {
+                              setActiveBatch(batch);
+                              setIsBatchDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              activeBatch === batch ? 'text-[#F6BE0A] font-bold bg-[#F6BE0A]/5' : 'text-gray-700 font-medium'
+                            }`}
+                          >
+                            {batch}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
             <button className="flex items-center gap-2 text-sm text-gray-600 font-semibold hover:text-gray-800">
               <Calendar size={16} /> Select date range
             </button>
-            <button className="flex items-center gap-1 px-4 py-1.5 bg-[#eef2ff] text-indigo-600 font-bold text-xs rounded-full hover:bg-indigo-100 transition-colors">
+            <button 
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1 px-4 py-1.5 bg-[#eef2ff] text-indigo-600 font-bold text-xs rounded-full hover:bg-indigo-100 transition-colors"
+            >
               <Plus size={14} /> ADD MEMBER
             </button>
           </div>
@@ -146,6 +248,10 @@ const Members = () => {
                 key={member.id} 
                 member={member} 
                 onClick={() => setSelectedMember(member)} 
+                onEdit={handleEditMember}
+                onViewActivity={handleViewActivity}
+                onClearFine={handleClearFineClick}
+                onSuspend={handleSuspendClick}
               />
             ))}
           </div>
@@ -161,10 +267,38 @@ const Members = () => {
       {selectedMember && (
         <MemberDetailsModal 
           member={selectedMember} 
-          onClose={() => setSelectedMember(null)} 
+          onClose={handleCloseDetails} 
           onRemove={handleRemoveMember} 
+          initialExpanded={isDetailsExpanded}
         />
       )}
+
+      <AddMemberModal 
+        open={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={() => refetch()} 
+      />
+
+      <EditMemberDrawer
+        isOpen={!!editingMember}
+        onClose={() => setEditingMember(null)}
+        member={editingMember}
+      />
+
+      <ActionConfirmDialog
+        isOpen={actionConfirm.isOpen}
+        onClose={() => setActionConfirm({ isOpen: false, type: null, member: null })}
+        onConfirm={handleActionConfirm}
+        title={actionConfirm.type === 'clear_fine' ? 'Clear Fine' : 'Suspend Member'}
+        description={
+          actionConfirm.type === 'clear_fine' 
+            ? `Are you sure you want to clear the pending fine of ₹${actionConfirm.member?.fine} for ${actionConfirm.member?.name}?` 
+            : `Are you sure you want to suspend the membership of ${actionConfirm.member?.name}? They will not be able to borrow books until unsuspended.`
+        }
+        confirmText={actionConfirm.type === 'clear_fine' ? 'Clear Fine' : 'Suspend Member'}
+        isDestructive={actionConfirm.type === 'suspend'}
+        requiresReason={actionConfirm.type === 'suspend'}
+      />
     </div>
   );
 };

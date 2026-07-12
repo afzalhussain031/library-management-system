@@ -1,7 +1,32 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MoreVertical, Edit2, Activity, DollarSign, Ban } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 
-const MemberCard = ({ member, onClick }) => {
+const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSuspend }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleAction = (e, action) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    action(member);
+  };
+
   return (
     <div 
       onClick={onClick}
@@ -10,15 +35,57 @@ const MemberCard = ({ member, onClick }) => {
         boxShadow: '0px 12px 35px 0px #0000000C',
       }}
     >
+      {/* Top right Actions Menu */}
+      <div className="absolute top-4 right-4 z-10" ref={menuRef}>
+        <button 
+          onClick={handleMenuClick}
+          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <MoreVertical size={16} />
+        </button>
+        
+        {isMenuOpen && (
+          <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden py-1 z-20">
+            <button 
+              onClick={(e) => handleAction(e, onEdit)}
+              className="w-full text-left px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-gray-50 hover:text-[#F6BE0A] flex items-center gap-2"
+            >
+              <Edit2 size={14} /> Edit Member
+            </button>
+            <button 
+              onClick={(e) => handleAction(e, onViewActivity)}
+              className="w-full text-left px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-gray-50 hover:text-[#F6BE0A] flex items-center gap-2"
+            >
+              <Activity size={14} /> View Activity
+            </button>
+            {member.fine > 0 && (
+              <button 
+                onClick={(e) => handleAction(e, onClearFine)}
+                className="w-full text-left px-4 py-2 text-[13px] font-medium text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+              >
+                <DollarSign size={14} /> Clear Fine
+              </button>
+            )}
+            <div className="h-px bg-gray-100 my-1"></div>
+            <button 
+              onClick={(e) => handleAction(e, onSuspend)}
+              className="w-full text-left px-4 py-2 text-[13px] font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
+            >
+              <Ban size={14} /> Suspend Member
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Avatar Row */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pr-6">
         <UserAvatar 
           name={member.name} 
           size="md" 
           className="border-[2px] border-[#DEB853] shadow-sm group-hover:border-[#F6BE0A] transition-all duration-300" 
         />
         <div>
-          <h3 className="font-bold text-[#1C2434] text-[15px] leading-tight group-hover:text-[#F6BE0A] transition-colors duration-300">{member.name}</h3>
+          <h3 className="font-bold text-[#1C2434] text-[15px] leading-tight group-hover:text-[#F6BE0A] transition-colors duration-300 truncate w-[130px]" title={member.name}>{member.name}</h3>
           <p className="text-[#A0ABC0] text-[12px] mt-0.5 font-medium">{member.enr}</p>
         </div>
       </div>

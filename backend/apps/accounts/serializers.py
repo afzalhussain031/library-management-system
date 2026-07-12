@@ -151,6 +151,24 @@ class CustomUserProfileSerializer(serializers.ModelSerializer):
         ]
 
 
+class MemberListSerializer(CustomUserProfileSerializer):
+    """Serializer for member list with library stats"""
+    currently_borrowed = serializers.IntegerField(read_only=True)
+    total_borrowed = serializers.IntegerField(read_only=True)
+    pending_fines = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    membership_valid_till = serializers.DateField(source='membership.valid_till', read_only=True)
+    membership_id = serializers.CharField(source='membership.membership_id', read_only=True)
+
+    class Meta(CustomUserProfileSerializer.Meta):
+        fields = CustomUserProfileSerializer.Meta.fields + [
+            "currently_borrowed",
+            "total_borrowed",
+            "pending_fines",
+            "membership_valid_till",
+            "membership_id"
+        ]
+
+
 class CustomUserUpdateSerializer(serializers.ModelSerializer):
     """Update user profile (limited fields)"""
 

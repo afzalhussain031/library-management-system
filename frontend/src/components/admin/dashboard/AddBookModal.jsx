@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { X, Plus, Trash2, Loader2, Info } from "lucide-react";
 import CreatableSelect from "react-select/creatable";
 import { toast } from "react-hot-toast";
+import Button from "../../common/Button";
 import { catalog, inventory } from "../../../services/api";
 
 const schema = z.object({
@@ -222,8 +223,8 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
         borderColor: state.isFocused ? '#FBBF24' : '#CBD5E1'
       },
       borderRadius: '0.5rem',
-      padding: '0.125rem',
-      fontSize: '12px',
+      padding: '2px',
+      fontSize: '13px',
       color: '#1E293B',
     }),
     singleValue: (base, state) => ({
@@ -286,7 +287,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
                 {/* Title */}
                 <div className="md:col-span-2">
-                  <label className="text-[11px] font-bold text-slate-500 mb-1.5 block tracking-wide">Title</label>
+                  <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">Title</label>
                   <Controller
                     name="title"
                     control={control}
@@ -307,38 +308,47 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
 
                 {/* Author */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 mb-1.5 block tracking-wide">Author</label>
+                  <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">Author</label>
                   <input
                     {...register("author")}
                     disabled={isExistingBook && !bookToEdit}
-                    className="w-full border rounded-lg px-3.5 py-2 text-xs text-slate-800 placeholder-slate-300 outline-none transition disabled:bg-slate-50 disabled:text-slate-400 border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                    className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition disabled:bg-slate-50 disabled:text-slate-400 ${
+                      errors.author ? 'border-red-500 bg-red-50' : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                    }`}
                   />
+                  {errors.author && <p className="text-xs text-red-600 mt-1">{errors.author.message}</p>}
                 </div>
 
                 {/* ISBN */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 mb-1.5 block tracking-wide">ISBN</label>
+                  <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">ISBN</label>
                   <input
                     {...register("isbn")}
                     disabled={isExistingBook && !bookToEdit}
-                    className="w-full border rounded-lg px-3.5 py-2 text-xs text-slate-800 placeholder-slate-300 outline-none transition disabled:bg-slate-50 disabled:text-slate-400 border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                    className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition disabled:bg-slate-50 disabled:text-slate-400 ${
+                      errors.isbn ? 'border-red-500 bg-red-50' : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                    }`}
                   />
+                  {errors.isbn && <p className="text-xs text-red-600 mt-1">{errors.isbn.message}</p>}
                 </div>
 
                 {/* Published Date */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 mb-1.5 block tracking-wide">Published Date</label>
+                  <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">Published Date</label>
                   <input
                     type="date"
                     {...register("published_date")}
                     disabled={isExistingBook && !bookToEdit}
-                    className="w-full border rounded-lg px-3.5 py-2 text-xs text-slate-800 placeholder-slate-300 outline-none transition disabled:bg-slate-50 disabled:text-slate-400 border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                    className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition disabled:bg-slate-50 disabled:text-slate-400 ${
+                      errors.published_date ? 'border-red-500 bg-red-50' : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                    }`}
                   />
+                  {errors.published_date && <p className="text-xs text-red-600 mt-1">{errors.published_date.message}</p>}
                 </div>
 
                 {/* Category */}
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 mb-1.5 block tracking-wide">Category</label>
+                  <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">Category</label>
                   <Controller
                     name="category"
                     control={control}
@@ -357,7 +367,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
 
                 {/* Publisher */}
                 <div className="md:col-span-2">
-                  <label className="text-[11px] font-bold text-slate-500 mb-1.5 block tracking-wide">Publisher</label>
+                  <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">Publisher</label>
                   <Controller
                     name="publisher"
                     control={control}
@@ -402,19 +412,24 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
                     {fields.map((item, index) => (
                       <div key={item.id} className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100 hover:border-amber-200/50 transition-colors group">
                         <div className="flex-1">
-                          <label className="text-[11px] font-bold text-slate-500 mb-1 block tracking-wide">Accession Number *</label>
+                          <label className="text-[12px] font-bold text-slate-600 mb-1 block tracking-wide">Accession Number *</label>
                           <input
                             {...register(`copies.${index}.accession_number`)}
-                            className="w-full border rounded-lg px-3.5 py-2 text-xs text-slate-800 placeholder-slate-300 outline-none transition bg-white border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                            className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition bg-white ${
+                              errors?.copies?.[index]?.accession_number ? 'border-red-500 bg-red-50' : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                            }`}
                             placeholder="e.g. ACC-001"
                           />
+                          {errors?.copies?.[index]?.accession_number && <p className="text-xs text-red-600 mt-1">{errors.copies[index].accession_number.message}</p>}
                         </div>
                         
                         <div className="flex-1">
-                          <label className="text-[11px] font-bold text-slate-500 mb-1 block tracking-wide">Shelf Location</label>
+                          <label className="text-[12px] font-bold text-slate-600 mb-1 block tracking-wide">Shelf Location</label>
                           <input
                             {...register(`copies.${index}.shelf_location`)}
-                            className="w-full border rounded-lg px-3.5 py-2 text-xs text-slate-800 placeholder-slate-300 outline-none transition bg-white border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                            className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition bg-white ${
+                              errors?.copies?.[index]?.shelf_location ? 'border-red-500 bg-red-50' : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                            }`}
                             placeholder="e.g. A1-Shelf-2"
                           />
                         </div>
@@ -436,7 +451,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 pt-5 mt-2 border-t border-slate-100 shrink-0">
+        <div className="flex items-center justify-end gap-3 pt-5 mt-4 border-t border-slate-100 shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -444,18 +459,15 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
           >
             Cancel
           </button>
-          <button
+          <Button
             type="submit"
             form="add-book-form"
+            isLoading={isSubmitting}
             disabled={isSubmitting}
-            className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all"
+            className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
           >
-            {isSubmitting ? (
-              <><Loader2 size={16} className="animate-spin" /> Saving...</>
-            ) : (
-              bookToEdit ? "Save Changes" : "Save Book Data"
-            )}
-          </button>
+            {bookToEdit ? "Save Changes" : "Save Book Data"}
+          </Button>
         </div>
       </div>
     </div>
