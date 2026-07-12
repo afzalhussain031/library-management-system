@@ -7,6 +7,9 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db import models
+from django.db.models import Count, Sum, Q
+from django.db.models.functions import Coalesce
+from decimal import Decimal
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_str
@@ -29,6 +32,7 @@ from .serializers import (
     PasswordChangeSerializer,
     ResetPasswordSerializer,
     StaffCreateSerializer,
+    MemberListSerializer,
 )
 
 # Fetch our CustomUser model setup from base.py settings
@@ -212,11 +216,15 @@ class MemberListView(generics.ListAPIView):
     """Returns a list of all registered users/members."""
     
     queryset = CustomUser.objects.all()
-    serializer_class = CustomUserProfileSerializer
+    serializer_class = MemberListSerializer
     permission_classes = [IsAuthenticated] 
     
     def get_queryset(self):
-        return super().get_queryset()
+        return super().get_queryset().select_related('membership').annotate(
+            currently_borrowed=Count('loans', filter=Q(loans__returned_at__isnull=True)),
+            total_borrowed=Count('loans'),
+            pending_fines=Coalesce(Sum('loans__fine__amount', filter=Q(loans__fine__status='pending')), Decimal('0.00'))
+        )
 
 # =========================================================================
 # 📊 METRICS & DASHBOARD DATA VIEWS

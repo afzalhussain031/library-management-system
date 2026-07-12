@@ -43,8 +43,11 @@ const Members = () => {
       phone: user.phone_number || 'N/A',
       branch: user.department || 'N/A',
       year: user.batch || 'N/A',
-      borrowed: 0, 
-      fine: 0,
+      borrowed: user.currently_borrowed || 0,
+      totalBorrowed: user.total_borrowed || 0,
+      membershipId: user.membership_id || null,
+      validTill: user.membership_valid_till || null,
+      fine: user.pending_fines ? parseFloat(user.pending_fines) : 0,
       role: user.role || 'student'
     };
   });

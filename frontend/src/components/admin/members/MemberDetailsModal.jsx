@@ -13,13 +13,13 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
 
   if (!member) return null;
 
-  // Graceful fallbacks for detailed mock information
-  const email = member.email || `${member.name.toLowerCase().replace(/\s+/g, '')}@college.edu`;
-  const enrollmentId = member.enrFull || `ENR-2023-${member.enr ? member.enr.replace('ENR-', '') : '0456'}`;
-  const totalBorrowed = member.totalBorrowed || (member.borrowed + 12);
-  const membershipId = member.membershipId || `LIB-009${member.id ? String(member.id).padStart(3, '0') : '876'}`;
-  const validTill = member.validTill || '31 Dec 2026';
-  const pendingFine = member.fine || 450;
+  // Use real data or honest defaults
+  const email = member.email;
+  const enrollmentId = member.enrFull || member.enr;
+  const totalBorrowed = member.totalBorrowed || 0;
+  const membershipId = member.membershipId;
+  const validTill = member.validTill;
+  const pendingFine = member.fine || 0;
 
   // Prevent closing when clicking modal content
   const handleContentClick = (e) => {
@@ -116,11 +116,15 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                 <div>
                   <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Enrollment ID</p>
-                  <p className="text-[13px] font-extrabold text-[#334155] mt-0.5">{enrollmentId}</p>
+                  <p className="text-[13px] font-extrabold text-[#334155] mt-0.5">
+                    {enrollmentId ? enrollmentId : <span className="text-gray-400 italic font-medium">Not Set</span>}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Email</p>
-                  <p className="text-[13px] font-extrabold text-[#334155] mt-0.5 truncate" title={email}>{email}</p>
+                  <p className="text-[13px] font-extrabold text-[#334155] mt-0.5 truncate" title={email}>
+                    {email ? email : <span className="text-gray-400 italic font-medium">Not Available</span>}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Phone</p>
@@ -148,11 +152,15 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
               </div>
               <div>
                 <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Membership ID</p>
-                <p className="text-[15px] font-black text-[#1C2434] mt-0.5">{membershipId}</p>
+                <p className="text-[15px] font-black text-[#1C2434] mt-0.5">
+                  {membershipId ? membershipId : <span className="text-gray-400 italic text-[13px] font-medium">Not Assigned</span>}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Valid Till</p>
-                <p className="text-[15px] font-black text-[#1C2434] mt-0.5">{validTill}</p>
+                <p className="text-[15px] font-black text-[#1C2434] mt-0.5">
+                  {validTill ? validTill : <span className="text-gray-400 italic text-[13px] font-medium">Not Set</span>}
+                </p>
               </div>
             </div>
 
