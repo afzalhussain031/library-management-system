@@ -2,6 +2,7 @@ import { useState, Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
+import LendReturnModal from '../admin/LendReturnModal'
 
 
 function PageLoader() {
@@ -14,6 +15,7 @@ function PageLoader() {
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLendModalOpen, setIsLendModalOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-linear-to-r from-gray-100 to-yellow-100 overflow-hidden">
@@ -23,6 +25,7 @@ export default function DashboardLayout() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onToggle={() => setSidebarOpen(prev => !prev)}
+        onOpenLendModal={() => setIsLendModalOpen(true)}
       />
 
       {/* Main area */}
@@ -37,6 +40,11 @@ export default function DashboardLayout() {
         </main>
       </div>
       
+      {/* Global Circulation Modal */}
+      <LendReturnModal 
+        open={isLendModalOpen} 
+        onClose={() => setIsLendModalOpen(false)} 
+      />
     </div>
   )
 }
