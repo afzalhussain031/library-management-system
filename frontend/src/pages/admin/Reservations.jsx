@@ -14,6 +14,7 @@ const TABS = ['Pending', 'Ready for Pickup', 'History'];
 export default function Reservations() {
   const [activeTab, setActiveTab] = useState('Pending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [historyFilter, setHistoryFilter] = useState('All');
   const [selectedReservation, setSelectedReservation] = useState(null);
 
   const { data: rawReservations, setData: setReservations, isLoading, error, refetch } = useApi(circulation.getReservations, []);
@@ -81,7 +82,11 @@ export default function Reservations() {
     // 1. Filter by Tab
     if (activeTab === 'Pending' && res.status !== 'pending') return false;
     if (activeTab === 'Ready for Pickup' && res.status !== 'ready') return false;
-    if (activeTab === 'History' && !['fulfilled', 'cancelled'].includes(res.status)) return false;
+    if (activeTab === 'History') {
+      if (!['fulfilled', 'cancelled'].includes(res.status)) return false;
+      if (historyFilter === 'Fulfilled' && res.status !== 'fulfilled') return false;
+      if (historyFilter === 'Cancelled' && res.status !== 'cancelled') return false;
+    }
 
     // 2. Filter by Search
     if (searchQuery) {
@@ -129,9 +134,9 @@ export default function Reservations() {
           ))}
         </div>
 
-        {/* Search Bar */}
-        <div className="px-8 py-4 flex items-center">
-          <div className="relative w-64 md:w-96">
+        {/* Search Bar & Sub-filters */}
+        <div className="px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="relative w-full sm:w-64 md:w-96">
             <input 
               type="text" 
               placeholder="Search by book or user name..." 
@@ -141,6 +146,25 @@ export default function Reservations() {
             />
             <Search className="absolute right-4 top-2.5 text-gray-400" size={18} />
           </div>
+
+          {/* History Sub-filters */}
+          {activeTab === 'History' && (
+            <div className="flex bg-white rounded-full p-1 border border-gray-100 shadow-sm self-start sm:self-auto overflow-x-auto shrink-0">
+              {['All', 'Fulfilled', 'Cancelled'].map(filter => (
+                <button
+                  key={filter}
+                  onClick={() => setHistoryFilter(filter)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
+                    historyFilter === filter
+                      ? 'bg-[#1C2434] text-white shadow-sm'
+                      : 'text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

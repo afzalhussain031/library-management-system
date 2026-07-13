@@ -14,16 +14,17 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onF
 
   // --- PENDING TAB (Grouped by Book) ---
   if (statusTab === 'Pending') {
-    // Group by book_id and sort by reserved_at
+    // Group by book_title (since book_id is write-only in the backend API)
     const grouped = reservations.reduce((acc, curr) => {
-      acc[curr.book_id] = acc[curr.book_id] || [];
-      acc[curr.book_id].push(curr);
+      const groupKey = curr.book_title || "Unknown Book";
+      acc[groupKey] = acc[groupKey] || [];
+      acc[groupKey].push(curr);
       return acc;
     }, {});
 
     // Sort queues internally by date
-    Object.keys(grouped).forEach(bookId => {
-      grouped[bookId].sort((a, b) => new Date(a.reserved_at) - new Date(b.reserved_at));
+    Object.keys(grouped).forEach(key => {
+      grouped[key].sort((a, b) => new Date(a.reserved_at) - new Date(b.reserved_at));
     });
 
     return (
@@ -40,8 +41,7 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onF
           <tbody>
             {Object.values(grouped).map(queue => (
               <WaitlistAccordionRow 
-                key={queue[0].book_id}
-                bookId={queue[0].book_id}
+                key={queue[0].book_title}
                 bookTitle={queue[0].book_title}
                 queue={queue}
                 onAllocate={onAllocate}
@@ -71,13 +71,20 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onF
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {reservations.map(res => (
-            <tr 
-              key={res.id} 
-              onClick={() => onRowClick(res)}
-              className="hover:bg-gray-50/80 cursor-pointer transition-colors group"
-            >
-              <td className="p-4 font-bold text-[#1C2434] text-sm">{res.book_title}</td>
+          {reservations.map(res => {
+            const isHistory = statusTab === 'History';
+            const bgClass = isHistory 
+              ? (res.status === 'fulfilled' ? 'bg-emerald-50/40 hover:bg-emerald-50/80' : 
+                 res.status === 'cancelled' ? 'bg-red-50/40 hover:bg-red-50/80' : 'hover:bg-gray-50/80')
+              : 'hover:bg-gray-50/80';
+              
+            return (
+              <tr 
+                key={res.id} 
+                onClick={() => onRowClick(res)}
+                className={`${bgClass} cursor-pointer transition-colors group`}
+              >
+                <td className="p-4 font-bold text-[#1C2434] text-sm">{res.book_title}</td>
               <td className="p-4 text-sm text-gray-700">{res.user_name}</td>
               <td className="p-4 text-sm text-gray-500 hidden sm:table-cell">
                 {statusTab === 'Ready for Pickup' 
@@ -115,7 +122,8 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onF
                 )}
               </td>
             </tr>
-          ))}
+          );
+          })}
         </tbody>
       </table>
     </div>
