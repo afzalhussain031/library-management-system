@@ -8,6 +8,7 @@ import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 
 import ReservationTable from '../../components/admin/reservations/ReservationTable';
 import ReservationDetailsDrawer from '../../components/admin/reservations/ReservationDetailsDrawer';
+import AllocationModal from '../../components/admin/reservations/AllocationModal';
 
 const TABS = ['Pending', 'Ready for Pickup', 'History'];
 
@@ -16,26 +17,34 @@ export default function Reservations() {
   const [searchQuery, setSearchQuery] = useState('');
   const [historyFilter, setHistoryFilter] = useState('All');
   const [selectedReservation, setSelectedReservation] = useState(null);
+  const [allocationModalData, setAllocationModalData] = useState(null);
 
   const { data: rawReservations, setData: setReservations, isLoading, error, refetch } = useApi(circulation.getReservations, []);
   const reservations = rawReservations || [];
 
   // --- ACTIONS ---
   
-  const handleAllocate = async (id) => {
+  const handleAllocateClick = (reservation) => {
+    setAllocationModalData(reservation);
+  };
+
+  const handleAllocate = async (reservationId, copyId = null) => {
     const toastId = toast.loading("Allocating copy...");
+    setAllocationModalData(null); // Close modal immediately
     try {
       // Optimistic update
       setReservations(prev => prev.map(r => 
-        r.id === id ? { ...r, status: 'ready', ready_at: new Date().toISOString() } : r
+        r.id === reservationId ? { ...r, status: 'ready', ready_at: new Date().toISOString() } : r
       ));
       
-      await circulation.updateReservationStatus(id, 'ready');
+      const extraData = copyId ? { allocated_copy: copyId } : {};
+      await circulation.updateReservationStatus(reservationId, 'ready', extraData);
       toast.success("Copy allocated and marked as Ready!", { id: toastId });
       setSelectedReservation(null);
+      refetch(); // to get the allocated_copy_barcode from backend
     } catch (error) {
       console.error("Failed to allocate copy", error);
-      toast.error("Failed to allocate copy.", { id: toastId });
+      toast.error(error.response?.data?.detail || "Failed to allocate copy.", { id: toastId });
       refetch(); // Rollback
     }
   };
@@ -187,7 +196,7 @@ export default function Reservations() {
             reservations={filteredReservations}
             statusTab={activeTab}
             onRowClick={(res) => setSelectedReservation(res)}
-            onAllocate={handleAllocate}
+            onAllocate={handleAllocateClick}
             onFulfill={handleFulfill}
             onCancel={handleCancel}
           />
@@ -199,9 +208,17 @@ export default function Reservations() {
         isOpen={!!selectedReservation}
         reservation={selectedReservation}
         onClose={() => setSelectedReservation(null)}
-        onAllocate={handleAllocate}
+        onAllocate={handleAllocateClick}
         onFulfill={handleFulfill}
         onCancel={handleCancel}
+      />
+
+      {/* Allocation Modal */}
+      <AllocationModal
+        isOpen={!!allocationModalData}
+        onClose={() => setAllocationModalData(null)}
+        reservation={allocationModalData}
+        onConfirm={handleAllocate}
       />
     </div>
   );

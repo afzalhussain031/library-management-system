@@ -40,7 +40,7 @@ const WaitlistAccordionRow = ({ bookId, bookTitle, queue, onAllocate, onRowClick
         </td>
         <td className="p-4 text-right">
           <button
-            onClick={() => onAllocate(nextInLine?.id)}
+            onClick={() => onAllocate(nextInLine)}
             className="px-4 py-1.5 bg-[#F6BE0A] text-white text-xs font-bold rounded-full hover:bg-yellow-500 transition-colors shadow-sm"
           >
             Allocate Next

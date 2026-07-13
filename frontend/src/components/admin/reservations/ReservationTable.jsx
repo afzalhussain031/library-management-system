@@ -108,11 +108,11 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onF
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onFulfill(res.id);
+                      onRowClick(res);
                     }}
-                    className="px-4 py-1.5 bg-[#1C2434] text-white text-xs font-bold rounded-full hover:bg-black transition-colors shadow-sm"
+                    className="px-4 py-1.5 bg-gray-100 text-[#1C2434] text-xs font-bold rounded-full hover:bg-gray-200 transition-colors shadow-sm"
                   >
-                    Fulfill
+                    Review
                   </button>
                 )}
                 {statusTab === 'History' && (

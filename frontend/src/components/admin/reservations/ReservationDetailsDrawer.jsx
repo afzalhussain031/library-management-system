@@ -102,7 +102,7 @@ const ReservationDetailsDrawer = ({ isOpen, onClose, reservation, onFulfill, onA
           
           {reservation.status === 'pending' && (
             <button 
-              onClick={() => onAllocate(reservation.id)}
+              onClick={() => onAllocate(reservation)}
               className="flex-1 px-6 py-2.5 rounded-full text-sm font-bold bg-[#F6BE0A] text-white hover:bg-yellow-500 transition-colors shadow-sm"
             >
               Allocate Copy (Make Ready)

@@ -156,9 +156,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 instance.allocated_copy = available_copy
                 instance.save(update_fields=['allocated_copy'])
                 
-                # Change the physical copy's status to prevent theft
-                available_copy.status = BookCopy.RESERVED
-                available_copy.save(update_fields=['status'])
+            # Verify the locked copy is actually available if it was manually provided
+            if instance.allocated_copy.status != BookCopy.AVAILABLE:
+                raise ValidationError({"detail": "The selected copy is not available."})
+
+            # Change the physical copy's status to prevent theft
+            instance.allocated_copy.status = BookCopy.RESERVED
+            instance.allocated_copy.save(update_fields=['status'])
         # 2. Handling Cancellation/Denial
         elif instance.status == Reservation.CANCELLED and instance.allocated_copy:
             # Release the locked copy back to the library
