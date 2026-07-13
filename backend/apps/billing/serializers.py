@@ -30,6 +30,8 @@ class FineSerializer(serializers.ModelSerializer):
             "amount",
             "reason",
             "status",
+            "waive_reason",
+            "payment_method",
             "created_at",
             "is_paid",
         ]

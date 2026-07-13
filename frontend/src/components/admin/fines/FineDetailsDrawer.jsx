@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Clock, BookOpen, User, Calendar, CheckCircle, XCircle, DollarSign, Tag } from 'lucide-react';
 
 const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
+  const [isWaiving, setIsWaiving] = useState(false);
+  const [waiveReason, setWaiveReason] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsWaiving(false);
+      setWaiveReason("");
+      setIsPaying(false);
+      setPaymentMethod("");
+    }
+  }, [isOpen]);
+
   if (!isOpen || !fine) return null;
 
   return (
@@ -117,6 +131,26 @@ const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
                   </p>
                 </div>
               )}
+
+              {fine.status === 'waived' && fine.waive_reason && (
+                <div className="relative mt-4">
+                  <div className="absolute -left-[17px] top-1 w-2.5 h-2.5 bg-slate-400 rounded-full ring-4 ring-white"></div>
+                  <p className="text-xs font-bold text-slate-500">Waive Reason</p>
+                  <p className="text-sm font-medium text-slate-800 bg-slate-50 p-2 rounded border border-slate-100 mt-1">
+                    {fine.waive_reason}
+                  </p>
+                </div>
+              )}
+
+              {fine.status === 'paid' && fine.payment_method && (
+                <div className="relative mt-4">
+                  <div className="absolute -left-[17px] top-1 w-2.5 h-2.5 bg-green-400 rounded-full ring-4 ring-white"></div>
+                  <p className="text-xs font-bold text-slate-500">Payment Method</p>
+                  <p className="text-sm font-medium text-slate-800 capitalize">
+                    {fine.payment_method.replace('_', ' ')}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -124,23 +158,17 @@ const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
         {/* Footer Actions */}
         <div className="border-t border-slate-100 p-6 flex flex-wrap items-center gap-3 bg-slate-50/50">
           
-          {fine.status === 'pending' && (
+          {fine.status === 'pending' && !isWaiving && !isPaying && (
             <>
               <button 
-                onClick={() => {
-                  onMarkPaid(fine.id, 'paid');
-                  onClose();
-                }}
+                onClick={() => setIsPaying(true)}
                 className="flex-1 px-6 py-2.5 rounded-full text-sm font-bold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm flex items-center justify-center gap-2"
               >
-                <CheckCircle size={16} /> Mark as Paid
+                <CheckCircle size={16} /> Process Payment
               </button>
               
               <button 
-                onClick={() => {
-                  onWaive(fine.id, 'waived');
-                  onClose();
-                }}
+                onClick={() => setIsWaiving(true)}
                 className="px-6 py-2.5 rounded-full text-sm font-bold text-slate-600 bg-white hover:bg-slate-100 transition-colors border border-slate-200 flex items-center gap-2"
               >
                 <XCircle size={16} /> Waive
@@ -148,12 +176,89 @@ const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
             </>
           )}
 
-          <button 
-            onClick={onClose}
-            className="w-full px-6 py-2.5 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors"
-          >
-            Close
-          </button>
+          {fine.status === 'pending' && isPaying && (
+            <div className="w-full space-y-3">
+              <label className="block text-sm font-bold text-slate-700">Payment Method <span className="text-red-500">*</span></label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 bg-white"
+              >
+                <option value="">Select Method...</option>
+                <option value="cash">Cash</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="credit_card">Credit Card</option>
+              </select>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => {
+                    if (paymentMethod) {
+                      onMarkPaid(fine.id, paymentMethod);
+                      onClose();
+                    }
+                  }}
+                  disabled={!paymentMethod}
+                  className="flex-1 px-6 py-2.5 rounded-full text-sm font-bold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                >
+                  Confirm Payment
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsPaying(false);
+                    setPaymentMethod("");
+                  }}
+                  className="px-6 py-2.5 rounded-full text-sm font-bold text-slate-600 bg-white hover:bg-slate-100 transition-colors border border-slate-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {fine.status === 'pending' && isWaiving && (
+            <div className="w-full space-y-3">
+              <label className="block text-sm font-bold text-slate-700">Reason for Waiving <span className="text-red-500">*</span></label>
+              <textarea
+                value={waiveReason}
+                onChange={(e) => setWaiveReason(e.target.value)}
+                placeholder="Enter justification..."
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 resize-none h-24"
+              />
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => {
+                    if (waiveReason.trim()) {
+                      onWaive(fine.id, waiveReason.trim());
+                      onClose();
+                    }
+                  }}
+                  disabled={!waiveReason.trim()}
+                  className="flex-1 px-6 py-2.5 rounded-full text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                >
+                  Confirm Waive
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsWaiving(false);
+                    setWaiveReason("");
+                  }}
+                  className="px-6 py-2.5 rounded-full text-sm font-bold text-slate-600 bg-white hover:bg-slate-100 transition-colors border border-slate-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!isWaiving && !isPaying && (
+            <button 
+              onClick={onClose}
+              className="w-full px-6 py-2.5 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
 

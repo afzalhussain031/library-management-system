@@ -17,11 +17,18 @@ export default function FinesAndPayments() {
   const fines = rawFines || [];
 
   // Handle updating a fine's status
-  const handleUpdateStatus = async (id, newStatus) => {
+  const handleUpdateStatus = async (id, newStatus, waiveReason = null, paymentMethod = null) => {
     const toastId = toast.loading(`Updating status to ${newStatus}...`);
     try {
-      await billing.updateFine(id, { status: newStatus });
-      setFines(fines.map(fine => fine.id === id ? { ...fine, status: newStatus } : fine));
+      const payload = { status: newStatus };
+      if (newStatus === 'waived' && waiveReason) {
+        payload.waive_reason = waiveReason;
+      }
+      if (newStatus === 'paid' && paymentMethod) {
+        payload.payment_method = paymentMethod;
+      }
+      await billing.updateFine(id, payload);
+      setFines(fines.map(fine => fine.id === id ? { ...fine, status: newStatus, waive_reason: waiveReason, payment_method: paymentMethod } : fine));
       toast.success(`Fine marked as ${newStatus}!`, { id: toastId });
     } catch (error) {
       console.error("Failed to update fine:", error);
@@ -210,8 +217,8 @@ export default function FinesAndPayments() {
         isOpen={!!selectedFine} 
         onClose={() => setSelectedFine(null)} 
         fine={selectedFine}
-        onMarkPaid={(id) => handleUpdateStatus(id, 'paid')}
-        onWaive={(id) => handleUpdateStatus(id, 'waived')}
+        onMarkPaid={(id, method) => handleUpdateStatus(id, 'paid', null, method)}
+        onWaive={(id, reason) => handleUpdateStatus(id, 'waived', reason)}
       />
     </div>
   );
