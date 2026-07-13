@@ -1,33 +1,22 @@
-import { useState, useEffect } from "react";
-import { dashboard } from "../../services/api";
+import { dashboard } from "../../../services/api";
+import { useApi } from "../../../hook/useApi";
+import ErrorMessage from "../../common/ErrorMessage";
+import { SkeletonAvatar, SkeletonText } from "../../common/Skeleton";
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading, error } = useApi(dashboard.getNotifications, []);
+  
+  const notifList = Array.isArray(data) ? data : data?.results || [];
+  const notifications = notifList.slice(0, 3);
 
-  useEffect(() => {
-    async function fetchNotifications() {
-      try {
-        const response = await dashboard.getNotifications();
-        const notifList = Array.isArray(response) ? response : response.results || [];
-        
-        // Get last 3 notifications
-        const recentNotifs = notifList.slice(0, 3);
-        setNotifications(recentNotifs);
-      } catch (err) {
-        console.error("Failed to fetch notifications:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
 
-    fetchNotifications();
-  }, []);
 
-  if (loading) {
+  // Remove early loading return
+
+  if (error) {
     return (
-      <div className="bg-white p-2 rounded-3xl shadow-md border border-gray-100 flex items-center justify-center h-32">
-        <p className="text-gray-500">Loading...</p>
+      <div className="bg-white p-2 rounded-3xl shadow-md border border-gray-100 h-32">
+        <ErrorMessage message={error} />
       </div>
     );
   }
@@ -42,7 +31,19 @@ export default function Notifications() {
       </div>
 
       <div className="space-y-5">
-        {notifications.length === 0 ? (
+        {loading ? (
+          [1, 2, 3].map(key => (
+            <div key={key} className="flex items-center justify-between px-2">
+              <div className="flex items-start gap-4">
+                <SkeletonAvatar className="w-12 h-12 rounded-lg" />
+                <div className="space-y-2 mt-1">
+                  <SkeletonText className="h-4 w-32" />
+                  <SkeletonText className="h-3 w-48" />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : notifications.length === 0 ? (
           <p className="text-gray-500 text-sm p-4">No notifications</p>
         ) : (
           notifications.map((notif, idx) => (

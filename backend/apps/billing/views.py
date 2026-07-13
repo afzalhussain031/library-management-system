@@ -13,6 +13,15 @@ class FineViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.request.user.is_authenticated and self.request.user.is_staff:
+        user = self.request.user
+        
+        # Check if user is any kind of staff/admin
+        is_admin = False
+        if user.is_authenticated:
+            if user.is_staff or getattr(user, 'role', '') in ['staff', 'librarian', 'superadmin']:
+                is_admin = True
+                
+        if is_admin:
             return queryset
-        return queryset.filter(loan__borrower=self.request.user)
+            
+        return queryset.filter(loan__borrower=user)

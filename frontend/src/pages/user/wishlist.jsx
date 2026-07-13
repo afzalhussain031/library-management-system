@@ -1,7 +1,7 @@
 import React from "react"
 
-import Navbar from "../../components/wishlist/navbar.jsx";
-import BookList from "../../components/wishlist/booklist.jsx";
+import Navbar from "../../components/user/wishlist/Navbar";
+import BookList from "../../components/user/wishlist/BookList";
 
 
 export default function Wishlist() {

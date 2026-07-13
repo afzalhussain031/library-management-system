@@ -9,11 +9,10 @@ from .views import (
     LogoutView,
     PasswordChangeView,
     RegisterView,
-    ResendVerificationEmailView,
     ResetPasswordView,
     StaffCreateView,
     UserProfileView,
-    VerifyEmailView,
+    MemberListView,
 )
 
 urlpatterns = [
@@ -21,12 +20,11 @@ urlpatterns = [
     path("token/refresh/", CookieTokenRefreshView.as_view(), name="token_refresh"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", UserProfileView.as_view(), name="user-profile"),
+    path("members/", MemberListView.as_view(), name="member-list"),
     path("me/", CurrentUserView.as_view(), name="current-user"),
     path("me/password/", PasswordChangeView.as_view(), name="password-change"),
     path("me/dashboard/", DashboardView.as_view(), name="dashboard"),
     path("register/", RegisterView.as_view(), name="register"),
-    path("verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify-email"),
-    path("resend-verification/", ResendVerificationEmailView.as_view(), name="resend-verification"),
     path("staff/create/", StaffCreateView.as_view(), name="staff-create"),
     path("forgot-password/", ForgotPasswordView.as_view(), name="forgot-password"),
     path("reset-password/", ResetPasswordView.as_view(), name="reset-password"),

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Plus, Building2, SlidersHorizontal, Users } from 'lucide-react';
 import OrganisationCard from '../../components/superadmin/OrganisationCard';
 import AddOrganisationModal from '../../components/superadmin/AddOrganisationModal';
-import MemberCard from '../admin/../../components/admin/MemberCard';
-import MemberDetailsModal from '../admin/../../components/admin/MemberDetailsModal';
+import MemberCard from '../../components/admin/members/MemberCard';
+import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
 
 const MOCK_MIXED_ITEMS = [
   // Row 1

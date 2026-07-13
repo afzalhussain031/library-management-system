@@ -1,36 +1,19 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { profile } from "../../services/api";
+import { useApi } from "../../hook/useApi";
+import ErrorMessage from "../../components/common/ErrorMessage";
 
-import ProfileCard from "../../components/Profile/ProfileCard";
-import InfoSection from "../../components/Profile/InfoSection";
-import BookHistory from "../../components/Profile/BookHistory";
+import ProfileCard from "../../components/user/profile/ProfileCard";
+import InfoSection from "../../components/user/profile/InfoSection";
+import BookHistory from "../../components/user/profile/BookHistory";
 
 export default function UserProfile() {
   const { currentUser } = useAuth(); // Get current user from context
-  const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: profileData, isLoading: loading, error } = useApi(profile.get, null);
 
-  // Fetch profile data from backend
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const data = await profile.get();
-        setProfileData(data);
-      } catch (error) {
-        console.error("Failed to fetch profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (currentUser) {
-      fetchProfile();
-    }
-  }, [currentUser]);
-
-  if (loading) return <div>Loading...</div>;
-  if (!profileData) return <div>No profile Data found</div>
+  if (error) return <ErrorMessage message={error} />;
+  
+  const safeProfile = profileData || {};
 
   return (
     <div className="bg-linear-to-r from-gray-100 to-yellow-100 min-h-screen">
@@ -38,7 +21,7 @@ export default function UserProfile() {
         {/* LEFT SIDE */}
         <div className="lg:col-span-1 space-y-4">
 
-          <ProfileCard userData={profileData}/>
+          <ProfileCard userData={safeProfile} isLoading={loading} />
 
           <InfoSection
             title="Account Information"
@@ -48,6 +31,7 @@ export default function UserProfile() {
               ["Phone", profileData.phone_number || "N/A"],
               ["Year of Study", profileData.batch || "N/A"],
             ]}
+            isLoading={loading}
           />
 
           <InfoSection
@@ -58,6 +42,7 @@ export default function UserProfile() {
               ["Section", profileData.father_name || "N/A"],
               ["Attendance", profileData.mother_name || "N/A"],
             ]}
+            isLoading={loading}
           />
 
           <InfoSection
@@ -69,13 +54,14 @@ export default function UserProfile() {
               ["Valid Till", "31 Dec 2026"],
             ]}
             fine={true}
+            isLoading={loading}
           />
 
         </div>
 
         {/* RIGHT SIDE */}
         <div className="lg:col-span-2">
-          <BookHistory />
+          <BookHistory isLoading={loading} />
         </div>
 
       </div>
