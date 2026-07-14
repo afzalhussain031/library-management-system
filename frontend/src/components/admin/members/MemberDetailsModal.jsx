@@ -73,20 +73,7 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
             </div>
           )}
 
-          <button 
-            onClick={onClose}
-            className={`absolute top-6 left-8 p-1.5 rounded-full hover:bg-slate-100 text-[#A0ABC0] hover:text-[#1C2434] transition-colors hidden md:block`}
-          >
-            <X size={20} />
-          </button>
-          
-          {/* Mobile Close Button */}
-          <button 
-            onClick={onClose}
-            className={`absolute top-8 left-8 p-1.5 rounded-full hover:bg-slate-100 text-[#A0ABC0] hover:text-[#1C2434] transition-colors md:hidden`}
-          >
-            <X size={20} />
-          </button>
+
 
           {/* Main Grid: Left Profile, Right Account Info (when not expanded, else stacks) */}
           <div className={`grid grid-cols-1 md:grid-cols-12 gap-6 items-center mt-8`}>
@@ -176,7 +163,7 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
               </div>
             </div>
 
-            {/* Bottom Row - Status Badges */}
+            {/* Bottom Row - Status Badges & Actions */}
             <div className="flex items-center justify-between mt-1">
               {pendingFine > 0 ? (
                 <div className="px-4 py-1.5 bg-[#FFF0E6] text-[#FF5A00] font-extrabold text-[11px] rounded-full shadow-sm border border-[#FF5A00]/10 w-fit">
@@ -187,18 +174,17 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
                   No Pending Fine
                 </div>
               )}
+              
+              {!isExpanded && (
+                <button 
+                  onClick={() => setIsExpanded(true)}
+                  className="px-4 py-1.5 bg-[#F6BE0A]/10 hover:bg-[#F6BE0A]/20 text-[#D97706] font-extrabold text-[11px] uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer"
+                >
+                  <Activity size={14} /> View Activity
+                </button>
+              )}
             </div>
           </div>
-          
-          {/* View Activity Button */}
-          {!isExpanded && (
-            <button 
-              onClick={() => setIsExpanded(true)}
-              className="mt-2 w-full py-3.5 bg-[#F6BE0A]/10 hover:bg-[#F6BE0A]/20 text-[#D97706] font-extrabold rounded-2xl flex items-center justify-center gap-2 transition-colors shrink-0"
-            >
-              <Activity size={18} /> View Library Activity
-            </button>
-          )}
         </div>
 
         {/* Side-Car Activity Panel */}
@@ -215,23 +201,12 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
                >
                  <ChevronLeft size={16} /> Back to Profile
                </button>
-               <button 
-                 onClick={onClose}
-                 className="p-1.5 rounded-full hover:bg-slate-100 text-[#A0ABC0] hover:text-[#1C2434] transition-colors"
-               >
-                 <X size={20} />
-               </button>
+
             </div>
             
             <MemberActivityPanel />
             
-            {/* Desktop Close button for the Side-Car */}
-            <button 
-              onClick={onClose}
-              className="absolute top-6 right-6 p-1.5 rounded-full bg-white shadow-sm hover:bg-slate-100 text-[#A0ABC0] hover:text-[#1C2434] transition-colors hidden md:block z-10"
-            >
-              <X size={20} />
-            </button>
+
           </div>
         )}
       </div>

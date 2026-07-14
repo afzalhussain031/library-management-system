@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, BookOpen, User, Calendar, CheckCircle, XCircle, DollarSign, Tag } from 'lucide-react';
+import { X, Clock, BookOpen, User, Calendar, CheckCircle, XCircle, DollarSign, Tag, Printer, Mail } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
   const [isWaiving, setIsWaiving] = useState(false);
@@ -251,7 +252,25 @@ const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
             </div>
           )}
 
-          {!isWaiving && !isPaying && (
+          {fine.status === 'paid' && (
+            <div className="flex w-full gap-3">
+              <button 
+                onClick={() => toast('🖨️ Print Receipt feature coming soon!', { icon: '🚧' })}
+                className="flex-1 px-6 py-2.5 rounded-full text-sm font-bold bg-slate-800 text-white hover:bg-slate-900 transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <Printer size={16} /> Print Receipt
+              </button>
+              
+              <button 
+                onClick={() => toast('✉️ Email Invoice feature coming soon!', { icon: '🚧' })}
+                className="flex-1 px-6 py-2.5 rounded-full text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 transition-colors border border-slate-200 flex items-center justify-center gap-2"
+              >
+                <Mail size={16} /> Email Invoice
+              </button>
+            </div>
+          )}
+
+          {!isWaiving && !isPaying && fine.status !== 'paid' && (
             <button 
               onClick={onClose}
               className="w-full px-6 py-2.5 rounded-full text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors"
