@@ -10,6 +10,9 @@ import Dashboard from '../pages/user/Dashboard';
 import UserProfile from "../pages/user/Profile";
 import Wishlist from "../pages/user/Wishlist";
 import Books from "../pages/user/Books";
+import MyLoans from "../pages/user/MyLoans";
+import MyReservations from "../pages/user/MyReservations";
+import MyFines from "../pages/user/MyFines";
 import ManageBooks from '../pages/admin/ManageBooks';
 import Members from '../pages/admin/Members';
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -61,6 +64,9 @@ const AppRouter = () => {
           <Route path="/profile" element={<UserProfile />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/books" element={<Books />} />
+          <Route path="/my-loans" element={<MyLoans />} />
+          <Route path="/my-reservations" element={<MyReservations />} />
+          <Route path="/my-fines" element={<MyFines />} />
         </Route>
       </Route>
 
