@@ -29,7 +29,7 @@ export default function DashboardLayout() {
       />
 
       {/* Main area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden p-3 pl-0 gap-3">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden p-3 md:pl-0 gap-3">
         <Topbar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
 
         {/* Page content */}

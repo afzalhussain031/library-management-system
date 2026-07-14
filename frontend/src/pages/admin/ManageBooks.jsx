@@ -196,7 +196,9 @@ const Books = () => {
 
       {/* Responsive Table Container */}
       {!error && (
-        <div className="w-full overflow-x-auto pb-4">
+        <>
+        {/* Desktop Table View */}
+        <div className="hidden lg:block w-full overflow-x-auto pb-4">
           <div className="min-w-[1220px]">
             {/* Books List Header */}
             <div className="flex items-center px-6 py-2 text-[12px] font-bold text-gray-400 mb-2">
@@ -380,6 +382,91 @@ const Books = () => {
             )}
           </div>
         </div>
+
+        {/* Mobile Card View */}
+        <div className="flex lg:hidden flex-col gap-4 pb-4">
+           {loading ? (
+             [1, 2, 3].map(key => (
+               <div key={key} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex gap-4">
+                  <SkeletonCard className="w-16 h-24 rounded-md shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <SkeletonText className="h-4 w-3/4" />
+                    <SkeletonText className="h-3 w-1/2" />
+                  </div>
+               </div>
+             ))
+           ) : filteredBooks.length === 0 ? (
+              <div className="text-center py-10 text-gray-500 font-semibold">
+                  No books found matching the selected filters.
+              </div>
+           ) : (
+             filteredBooks.map((book) => (
+                <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3">
+                  <div className="flex gap-4">
+                    {/* Thumbnail placeholder */}
+                    <div className="w-16 h-24 bg-[#EAEAEA] flex items-center justify-center text-[10px] text-gray-400 font-medium rounded-md shrink-0">
+                      #{book.id}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate">{book.title}</p>
+                      <p className="text-[12px] text-gray-500 mb-2 truncate">by {book.author}</p>
+                      
+                      {book.total_copies === 0 ? (
+                        <span className="px-2 py-1 rounded text-[10px] font-bold inline-block bg-gray-100 text-gray-500">
+                          No Copies
+                        </span>
+                      ) : book.available_copies > 0 ? (
+                        <span className="px-2 py-1 rounded text-[10px] font-bold inline-block bg-[#C9F7F5] text-[#1BC5BD]">
+                          {book.available_copies} / {book.total_copies} Available
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 rounded text-[10px] font-bold inline-block bg-[#FFE2E5] text-[#F64E60]">
+                          0 / {book.total_copies} Available
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100/50">
+                     <button 
+                       className="text-gray-500 text-[12px] font-bold flex items-center gap-1 hover:text-gray-700"
+                       onClick={() => toggleRow(book.id)}
+                     >
+                       {expandedRow === book.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />} Details
+                     </button>
+                     <div className="flex items-center gap-4">
+                       <button className="text-[#4386F5] text-[12px] font-bold flex items-center gap-1" onClick={() => { setBookToEdit(book); setIsAddModalOpen(true); }}>
+                         <Edit2 size={14} /> Edit
+                       </button>
+                       <button className="text-[#F64E60] text-[12px] font-bold flex items-center gap-1" onClick={() => setPendingDeleteId(book.id)}>
+                         <Trash2 size={14} /> Delete
+                       </button>
+                     </div>
+                  </div>
+                  
+                  {/* Inline Delete Confirm on Mobile */}
+                  {pendingDeleteId === book.id && (
+                     <div className="bg-[#FFE2E5] rounded-xl p-3 flex items-center justify-between mt-2 animate-in zoom-in-95 duration-200">
+                       <span className="text-[12px] font-bold text-[#F64E60]">Delete this book?</span>
+                       <div className="flex gap-2">
+                         <button className="px-3 py-1 bg-[#F64E60] text-white rounded-full text-[11px] font-bold" onClick={() => handleDeleteConfirm(book.id)}>Yes</button>
+                         <button className="px-3 py-1 bg-white text-gray-600 rounded-full text-[11px] font-bold" onClick={() => setPendingDeleteId(null)}>No</button>
+                       </div>
+                     </div>
+                  )}
+
+                  {/* Expanded Content on Mobile */}
+                  {expandedRow === book.id && (
+                    <div className="pt-2 mt-2 border-t border-gray-100">
+                      <PhysicalCopiesTable bookId={book.id} />
+                    </div>
+                  )}
+                </div>
+             ))
+           )}
+        </div>
+        </>
       )}
 
       {/* Add Book Modal */}

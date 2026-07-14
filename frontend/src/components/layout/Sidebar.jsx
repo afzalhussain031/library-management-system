@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 // NEW: Import your Auth Context and the Navigation configuration
 import { useAuth } from "../../context/AuthContext";
 import { SIDEBAR_MENU } from "../../config/navigation";
@@ -82,8 +82,8 @@ export default function LMSSidebar({ open, onClose, onToggle, onOpenLendModal })
       {/* Sidebar Layout Container - Always visible on desktop and mobile */}
       <div className="flex p-3 pr-0 gap-3 bg-transparent select-none shrink-0 h-screen">
         
-        {/* Left Icon Sidebar - Always visible, compact width: 56px (w-14) & Full Height */}
-        <div className="w-14 h-full bg-[#FFFBE5] rounded-[28px] flex flex-col items-center py-5 px-1 shadow-sm border border-[#FFF7D4]/40 shrink-0">
+        {/* Left Icon Sidebar - Hidden on mobile, compact width: 56px (w-14) & Full Height */}
+        <div className="hidden md:flex w-14 h-full bg-[#FFFBE5] rounded-[28px] flex-col items-center py-5 px-1 shadow-sm border border-[#FFF7D4]/40 shrink-0">
           
           {/* Header Area */}
           <div className="h-[88px] flex items-center justify-center shrink-0 mb-4 w-full">
@@ -127,20 +127,29 @@ export default function LMSSidebar({ open, onClose, onToggle, onOpenLendModal })
         {/* Main Sidebar Panel */}
         <div
           className={`bg-white rounded-[28px] shadow-sm flex flex-col h-full transition-all duration-300 ease-in-out shrink-0 border-slate-100
-          fixed md:relative top-3 bottom-3 z-50 left-[76px]
+          fixed md:relative top-3 bottom-3 z-50 left-3
           ${
             open
-              ? "w-[190px] p-4 py-5 opacity-100 translate-x-0 border"
-              : "w-0 p-0 border-none overflow-hidden opacity-0 -translate-x-10"
+              ? "w-[260px] p-4 py-5 opacity-100 translate-x-0 border"
+              : "w-0 p-0 border-none overflow-hidden opacity-0 -translate-x-full"
           }
           md:left-auto md:top-auto md:bottom-auto md:translate-x-0 md:opacity-100 md:border md:p-4 md:py-5 md:w-[190px] md:overflow-visible
           `}
         >
           {/* Header Area */}
           <div className="h-[88px] flex flex-col justify-between shrink-0 mb-4">
-            <div className="flex items-center gap-2 mt-0.5">
-              <PinkBoxLogo />
-              <h1 className="text-[17px] font-bold tracking-tight text-[#1E2538]">LMS</h1>
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <div className="flex items-center gap-2">
+                <PinkBoxLogo />
+                <h1 className="text-[17px] font-bold tracking-tight text-[#1E2538]">LMS</h1>
+              </div>
+              {/* Close Button on Mobile */}
+              <button 
+                onClick={onClose}
+                className="md:hidden p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
             {/* NEW: Hide Lend/Return button from standard users */}
             {['staff', 'superadmin', 'librarian'].includes(userRole) && (

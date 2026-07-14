@@ -122,7 +122,7 @@ export default function FinesAndPayments() {
           </select>
         </div>
         {/* Data Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-100">
               <tr>
@@ -210,6 +210,63 @@ export default function FinesAndPayments() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="flex md:hidden flex-col gap-4 p-4 bg-slate-50">
+           {loading ? (
+             [1, 2, 3].map(key => (
+               <div key={key} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex gap-3">
+                  <SkeletonAvatar className="w-10 h-10 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <SkeletonText className="h-4 w-3/4" />
+                    <SkeletonText className="h-3 w-1/2" />
+                  </div>
+               </div>
+             ))
+           ) : error ? (
+             <ErrorMessage message={error} />
+           ) : filteredFines.length === 0 ? (
+              <div className="text-center py-10 text-slate-400">
+                  No fines found.
+              </div>
+           ) : (
+             filteredFines.map((fine) => (
+                <div key={fine.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => setSelectedFine(fine)}>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-3">
+                      <UserAvatar name={fine.borrower_name || 'Unknown'} size="sm" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-800 text-[14px] truncate">{fine.borrower_name || 'Unknown'}</p>
+                        <p className="text-xs text-slate-400 truncate max-w-[150px]">{fine.borrower_email}</p>
+                      </div>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      fine.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                      fine.status === 'paid' ? 'bg-green-100 text-green-700' :
+                      'bg-slate-100 text-slate-700'
+                    }`}>
+                      {fine.status}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 mt-1">
+                    <p className="text-[13px] text-slate-700 font-medium leading-snug">{fine.loan_book_title}</p>
+                    <p className="text-[12px] text-slate-500">{fine.reason}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100/50 mt-1">
+                     <p className="text-[15px] font-bold text-slate-800">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fine.amount)}</p>
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); setSelectedFine(fine); }}
+                       className="text-[12px] font-semibold text-blue-600 flex items-center gap-1"
+                     >
+                       View Details
+                     </button>
+                  </div>
+                </div>
+             ))
+           )}
         </div>
       </div>
 
