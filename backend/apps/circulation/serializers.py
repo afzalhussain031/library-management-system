@@ -72,10 +72,11 @@ class ReservationSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
     book_title = serializers.CharField(source="book.title", read_only=True)
     book_author = serializers.CharField(source="book.author", read_only=True)
-    book_id = serializers.IntegerField(write_only=True)
+    book_id = serializers.IntegerField(source="book.id", read_only=True)
     
     # 1. Add the custom field
     user_name = serializers.SerializerMethodField()
+    allocated_copy_barcode = serializers.CharField(source="allocated_copy.barcode", read_only=True)
 
     class Meta:
         model = Reservation
@@ -88,6 +89,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             "user_name", # 2. Include the new field here
             "reserved_at",
             "status",
+            "allocated_copy",
+            "allocated_copy_barcode",
         ]
 
     # 3. Define how to fetch the name

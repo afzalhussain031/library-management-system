@@ -6,20 +6,29 @@ import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import toast from "react-hot-toast";
 import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
+import FineDetailsDrawer from "../../components/admin/fines/FineDetailsDrawer";
 
 export default function FinesAndPayments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
+  const [selectedFine, setSelectedFine] = useState(null);
 
   const { data: rawFines, setData: setFines, isLoading: loading, error } = useApi(billing.getFines, []);
   const fines = rawFines || [];
 
   // Handle updating a fine's status
-  const handleUpdateStatus = async (id, newStatus) => {
+  const handleUpdateStatus = async (id, newStatus, waiveReason = null, paymentMethod = null) => {
     const toastId = toast.loading(`Updating status to ${newStatus}...`);
     try {
-      await billing.updateFine(id, { status: newStatus });
-      setFines(fines.map(fine => fine.id === id ? { ...fine, status: newStatus } : fine));
+      const payload = { status: newStatus };
+      if (newStatus === 'waived' && waiveReason) {
+        payload.waive_reason = waiveReason;
+      }
+      if (newStatus === 'paid' && paymentMethod) {
+        payload.payment_method = paymentMethod;
+      }
+      await billing.updateFine(id, payload);
+      setFines(fines.map(fine => fine.id === id ? { ...fine, status: newStatus, waive_reason: waiveReason, payment_method: paymentMethod } : fine));
       toast.success(`Fine marked as ${newStatus}!`, { id: toastId });
     } catch (error) {
       console.error("Failed to update fine:", error);
@@ -62,7 +71,7 @@ export default function FinesAndPayments() {
           </div>
           <div>
             <p className="text-sm text-slate-500 font-medium">Pending Collection</p>
-            <h3 className="text-2xl font-bold text-slate-800">${totalPending.toFixed(2)}</h3>
+            <h3 className="text-2xl font-bold text-slate-800">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalPending)}</h3>
           </div>
         </div>
         
@@ -72,7 +81,7 @@ export default function FinesAndPayments() {
           </div>
           <div>
             <p className="text-sm text-slate-500 font-medium">Total Collected</p>
-            <h3 className="text-2xl font-bold text-slate-800">${totalCollected.toFixed(2)}</h3>
+            <h3 className="text-2xl font-bold text-slate-800">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalCollected)}</h3>
           </div>
         </div>
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -81,7 +90,7 @@ export default function FinesAndPayments() {
           </div>
           <div>
             <p className="text-sm text-slate-500 font-medium">Fines Waived</p>
-            <h3 className="text-2xl font-bold text-slate-800">${totalWaived.toFixed(2)}</h3>
+            <h3 className="text-2xl font-bold text-slate-800">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalWaived)}</h3>
           </div>
         </div>
       </div>
@@ -161,7 +170,7 @@ export default function FinesAndPayments() {
                 <tr><td colSpan="6" className="text-center py-10 text-slate-400">No fines found.</td></tr>
               ) : (
                 filteredFines.map((fine) => (
-                  <tr key={fine.id} className="hover:bg-slate-50/80 transition-colors group">
+                  <tr key={fine.id} onClick={() => setSelectedFine(fine)} className="hover:bg-slate-50/80 transition-colors group cursor-pointer">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <UserAvatar name={fine.borrower_name || 'Unknown'} size="md" />
@@ -175,7 +184,7 @@ export default function FinesAndPayments() {
                       <p className="text-slate-700 font-medium">{fine.loan_book_title}</p>
                     </td>
                     <td className="px-6 py-4">{fine.reason}</td>
-                    <td className="px-6 py-4 font-bold text-slate-800">${fine.amount}</td>
+                    <td className="px-6 py-4 font-bold text-slate-800">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fine.amount)}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                         fine.status === 'pending' ? 'bg-orange-100 text-orange-700' :
@@ -186,24 +195,15 @@ export default function FinesAndPayments() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {fine.status === 'pending' && (
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => handleUpdateStatus(fine.id, 'paid')}
-                            className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-                            title="Mark as Paid"
-                          >
-                            <Check size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleUpdateStatus(fine.id, 'waived')}
-                            className="p-2 text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-colors"
-                            title="Waive Fine"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        </div>
-                      )}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFine(fine);
+                        }}
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        View Details
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -212,6 +212,14 @@ export default function FinesAndPayments() {
           </table>
         </div>
       </div>
+
+      <FineDetailsDrawer 
+        isOpen={!!selectedFine} 
+        onClose={() => setSelectedFine(null)} 
+        fine={selectedFine}
+        onMarkPaid={(id, method) => handleUpdateStatus(id, 'paid', null, method)}
+        onWaive={(id, reason) => handleUpdateStatus(id, 'waived', reason)}
+      />
     </div>
   );
 }
