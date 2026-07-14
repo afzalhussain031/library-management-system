@@ -1,7 +1,7 @@
 // We import some extra icons for the new pages
 import { 
   LayoutGrid, BookOpen, Users, User, Settings, Info, Headphones, 
-  Repeat, CreditCard, Bookmark, BarChart 
+  Repeat, CreditCard, Bookmark, BarChart, History, Clock
 } from "lucide-react";
 
 export const ROLES = {
@@ -16,8 +16,11 @@ export const SIDEBAR_MENU = [
   // GENERAL USER ROUTES
   // ==========================================
   { title: "Dashboard", icon: LayoutGrid, path: "/dashboard", allowedRoles: [ROLES.USER] },
-  { title: "Browse Books", icon: BookOpen, path: "/books", allowedRoles: [ROLES.USER] },
-  { title: "Wishlist", icon: Bookmark, path: "/wishlist", allowedRoles: [ROLES.USER], divider: true },
+  { title: "Browse Catalog", icon: BookOpen, path: "/books", allowedRoles: [ROLES.USER] },
+  { title: "My Loans", icon: History, path: "/my-loans", allowedRoles: [ROLES.USER] },
+  { title: "My Reservations", icon: Clock, path: "/my-reservations", allowedRoles: [ROLES.USER] },
+  { title: "Wishlist", icon: Bookmark, path: "/wishlist", allowedRoles: [ROLES.USER] },
+  { title: "Fines & Payments", icon: CreditCard, path: "/my-fines", allowedRoles: [ROLES.USER], divider: true },
 
   // ==========================================
   // CORE STAFF/ADMIN ROUTES

@@ -17,7 +17,7 @@ const OverdueDetails = ({ data, isLoading }) => {
   };
 
   return (
-    <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col xl:col-span-7">
+    <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
         <h2 className="text-lg font-bold text-gray-800">Overdue details</h2>
         {/* FIXED: Path updated to match AppRouter.jsx */}

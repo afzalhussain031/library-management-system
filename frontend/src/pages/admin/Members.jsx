@@ -138,7 +138,7 @@ const Members = () => {
         style={{ minHeight: '121px' }}
       >
         {/* Tabs */}
-        <div className="flex px-8 pt-4 border-b border-gray-100">
+        <div className="flex px-4 md:px-8 pt-4 border-b border-gray-100">
           <button 
             className={`pb-3 px-2 font-bold text-[15px] flex items-center gap-2 relative ${activeTab === 'Students' ? 'text-[#F6BE0A]' : 'text-gray-500'}`}
             onClick={() => setActiveTab('Students')}
@@ -160,7 +160,7 @@ const Members = () => {
         </div>
 
         {/* Filters Row */}
-        <div className="px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="px-4 md:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-wrap">
             {/* Search within filters */}
             <div className="relative w-48 lg:w-64">
@@ -315,7 +315,7 @@ const Members = () => {
       </div>
 
       {/* Cards Container */}
-      <div className="bg-[#FFFFFF80] rounded-[40px] p-6 md:p-8 shadow-sm border border-white min-h-[400px]">
+      <div className="bg-[#FFFFFF80] rounded-[40px] p-4 md:p-8 shadow-sm border border-white min-h-[400px]">
         {error ? (
           <ErrorMessage message={error} />
         ) : isLoading ? (

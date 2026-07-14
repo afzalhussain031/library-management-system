@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import DashboardStats from "../../components/admin/dashboard/DashboardStats";
 import OverdueDetails from "../../components/admin/dashboard/OverdueDetails";
 import BookRequests from "../../components/admin/dashboard/BookRequests";
-import BooksLended from "../../components/admin/dashboard/BooksLended";
+import RecentActivityTimeline from "../../components/admin/dashboard/RecentActivityTimeline";
 
 import { useApi } from "../../hook/useApi";
 import { dashboard } from "../../services/api";
@@ -37,7 +37,7 @@ const AdminDashboard = () => {
     { id: 4, title: 'Books Left', value: '...', weeklyDelta: '+42 This week', monthlyDelta: '+102% This month' },
   ];
 
-  let booksLended = [];
+  let timelineData = [];
   let overdueDetails = [];
 
   // Update states once data is loaded
@@ -88,29 +88,16 @@ const AdminDashboard = () => {
       },
     ];
 
-    booksLended = (analyticsData.recent_loans || []).map(loan => {
-      let status = 'Borrowed';
-      let statusColor = 'text-blue-500 bg-blue-50';
-      if (loan.returned_at) {
-        status = 'Returned';
-        statusColor = 'text-green-500 bg-green-50';
-      } else if (new Date(loan.due_at) < new Date()) {
-        status = 'Overdue';
-        statusColor = 'text-red-500 bg-red-50';
-      } else if (loan.renewed_count > 0) {
-        status = 'Renewed';
-        statusColor = 'text-yellow-600 bg-yellow-50';
-      }
+    timelineData = (analyticsData.recent_loans || []).map(loan => {
+      const isReturn = !!loan.returned_at;
+      const eventDateStr = isReturn ? loan.returned_at : loan.issued_at;
+      
       return {
         id: loan.id,
-        bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
-        bookColor: 'bg-green-400',
+        eventType: isReturn ? 'return' : 'borrow',
+        userName: loan.user_name || 'Unknown User',
         bookTitle: loan.book_title,
-        bookAuthor: `by ${loan.book_author}`,
-        userName: loan.user_name || 'Unknown User', 
-        date: new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
-        status: status,
-        statusColor: statusColor
+        eventDate: new Date(eventDateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
       };
     });
 
@@ -170,17 +157,19 @@ const AdminDashboard = () => {
       <DashboardStats data={stats} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
-        <OverdueDetails data={overdueDetails} isLoading={isLoading} />
-
-        <div className="space-y-6 xl:col-span-5">
+        <div className="space-y-6 xl:col-span-7 flex flex-col">
+          <OverdueDetails data={overdueDetails.slice(0, 3)} isLoading={isLoading} />
           <BookRequests 
-            data={bookRequests}
+            data={bookRequests.slice(0, 3)}
             isLoading={isLoading}
             actionLoadingId={actionLoadingId}
             onApprove={handleApproveRequest}
             onDeny={handleDenyRequest}
           />
-          <BooksLended data={booksLended} isLoading={isLoading} />
+        </div>
+
+        <div className="xl:col-span-5 flex flex-col h-full">
+          <RecentActivityTimeline data={timelineData} isLoading={isLoading} />
         </div>
       </div>
     </div>

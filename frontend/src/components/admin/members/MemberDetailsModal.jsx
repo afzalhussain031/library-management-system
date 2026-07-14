@@ -47,7 +47,7 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
 
           {/* Top-Right Remove Action & Close button (Only in Profile view) */}
           {showConfirm ? (
-            <div className="absolute top-6 right-8 flex items-center gap-2 bg-white p-2 rounded-full shadow-lg border border-red-100 animate-fade-in z-10">
+            <div className="absolute top-4 md:top-6 right-4 md:right-8 flex items-center gap-2 bg-white p-2 rounded-full shadow-lg border border-red-100 animate-fade-in z-10">
               <span className="text-xs font-bold text-slate-600 ml-2 mr-1">Are you sure?</span>
               <button 
                 onClick={() => onRemove(member.id)}
@@ -63,12 +63,18 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
               </button>
             </div>
           ) : (
-            <div className="absolute top-6 right-8 z-10 flex gap-2">
+            <div className="absolute top-4 md:top-6 right-4 md:right-8 z-10 flex items-center gap-2">
               <button 
                 onClick={() => setShowConfirm(true)}
-                className="bg-[#EF4444] hover:bg-[#DC2626] text-white font-extrabold text-xs rounded-full px-6 py-2 transition-all duration-150 active:scale-95 shadow-sm cursor-pointer"
+                className="bg-[#EF4444] hover:bg-[#DC2626] text-white font-extrabold text-xs rounded-full px-4 md:px-6 py-2 transition-all duration-150 active:scale-95 shadow-sm cursor-pointer"
               >
                 Remove
+              </button>
+              <button
+                onClick={onClose}
+                className="md:hidden flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 shadow-sm"
+              >
+                <X size={16} strokeWidth={3} />
               </button>
             </div>
           )}
