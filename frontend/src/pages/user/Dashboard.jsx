@@ -22,9 +22,9 @@ export default function Dashboard() {
       {/* Top Cards */}
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">        
     <StatCard title="Borrowed" value={libInfo.currently_borrowed || 0} color="bg-blue-100" icon = {<Pause strokeWidth={1.5} />} isLoading={loading} />
-        <StatCard title="Due Soon" value="32" color="bg-yellow-100"  icon={<Wallet strokeWidth={1.5} />} isLoading={loading} />
+        <StatCard title="Due Soon" value={libInfo.due_soon || 0} color="bg-yellow-100"  icon={<Wallet strokeWidth={1.5} />} isLoading={loading} />
         <StatCard title="Total Fine" value={`₹${libInfo.pending_fines || 0}`} color="bg-pink-100" icon={<Mail strokeWidth={1.5} />} isLoading={loading} />
-        <StatCard title="Wishlist" value="7" color="bg-green-100" icon={<Heart strokeWidth={1.5} />} isLoading={loading} />
+        <StatCard title="Wishlist" value={libInfo.wishlist || 0} color="bg-green-100" icon={<Heart strokeWidth={1.5} />} isLoading={loading} />
       </div>
 
       {/* Middle Section */}
