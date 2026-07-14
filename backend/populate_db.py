@@ -141,12 +141,12 @@ def populate():
         {"book": "Clean Code", "accession": "CPY-002", "status": BookCopy.LOANED},
         {"book": "Design Patterns", "accession": "CPY-003", "status": BookCopy.AVAILABLE},
         {"book": "The Pragmatic Programmer", "accession": "CPY-004", "status": BookCopy.AVAILABLE},
-        {"book": "Introduction to Algorithms", "accession": "CPY-005", "status": BookCopy.MAINTENANCE},
-        {"book": "Calculus, 8th Edition", "accession": "CPY-006", "status": BookCopy.AVAILABLE},
+        {"book": "Introduction to Algorithms", "accession": "CPY-005", "status": BookCopy.LOANED},
+        {"book": "Calculus, 8th Edition", "accession": "CPY-006", "status": BookCopy.LOANED},
         {"book": "The Martian", "accession": "CPY-007", "status": BookCopy.LOANED},
-        {"book": "Dune", "accession": "CPY-008", "status": BookCopy.AVAILABLE},
-        {"book": "Sapiens: A Brief History", "accession": "CPY-009", "status": BookCopy.MAINTENANCE},
-        {"book": "Thinking, Fast and Slow", "accession": "CPY-010", "status": BookCopy.AVAILABLE},
+        {"book": "Dune", "accession": "CPY-008", "status": BookCopy.LOANED},
+        {"book": "Sapiens: A Brief History", "accession": "CPY-009", "status": BookCopy.LOANED},
+        {"book": "Thinking, Fast and Slow", "accession": "CPY-010", "status": BookCopy.LOANED},
     ]
 
     copies = {}
@@ -163,16 +163,16 @@ def populate():
     # ==========================================
     now = timezone.now()
     loans_data = [
-        {"copy": "CPY-002", "user": "STU001", "due_days": 9, "returned": False},
+        {"copy": "CPY-002", "user": "STU001", "due_days": -5, "returned": False},
         {"copy": "CPY-007", "user": "STU002", "due_days": 12, "returned": False},
         {"copy": "CPY-004", "user": "STU003", "due_days": -6, "returned": True},
         {"copy": "CPY-006", "user": "STU004", "due_days": -16, "returned": False},
-        {"copy": "CPY-010", "user": "STU005", "due_days": 13, "returned": False},
-        {"copy": "CPY-008", "user": "STU006", "due_days": 4, "returned": False},
+        {"copy": "CPY-010", "user": "STU005", "due_days": -2, "returned": False},
+        {"copy": "CPY-008", "user": "STU006", "due_days": -8, "returned": False},
         {"copy": "CPY-001", "user": "STU007", "due_days": -1, "returned": True},
         {"copy": "CPY-003", "user": "STU001", "due_days": 11, "returned": False},
         {"copy": "CPY-005", "user": "STU002", "due_days": -26, "returned": False},
-        {"copy": "CPY-009", "user": "STU003", "due_days": 9, "returned": False},
+        {"copy": "CPY-009", "user": "STU003", "due_days": -10, "returned": False},
     ]
 
     loans_list = []
