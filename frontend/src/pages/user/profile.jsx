@@ -26,10 +26,10 @@ export default function UserProfile() {
           <InfoSection
             title="Account Information"
             data={[
-              ["Enrollment ID", profileData.enrollment_number || "N/A"],
-              ["Email", profileData.email || "N/A"],
-              ["Phone", profileData.phone_number || "N/A"],
-              ["Year of Study", profileData.batch || "N/A"],
+              ["Enrollment ID", safeProfile.user_id || "N/A"],
+              ["Email", safeProfile.email || "N/A"],
+              ["Phone", safeProfile.phone_number || "N/A"],
+              ["Year of Study", safeProfile.batch || "N/A"],
             ]}
             isLoading={loading}
           />
@@ -37,10 +37,10 @@ export default function UserProfile() {
           <InfoSection
             title="Academic Details"
             data={[
-              ["Course", profileData.student_id || "N/A"],
-              ["Semester", profileData.department || "N/A"],
-              ["Section", profileData.father_name || "N/A"],
-              ["Attendance", profileData.mother_name || "N/A"],
+              ["Course", safeProfile.department || "N/A"],
+              ["Semester", safeProfile.batch || "N/A"],
+              ["Section", safeProfile.father_name || "N/A"],
+              ["Attendance", safeProfile.mother_name || "N/A"],
             ]}
             isLoading={loading}
           />

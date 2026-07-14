@@ -239,6 +239,9 @@ class DashboardView(APIView):
     def get(self, request):
         from apps.billing.models import Fine
         from apps.circulation.models import Loan
+        from apps.catalog.models import Wishlist
+        from django.utils import timezone
+        from datetime import timedelta
 
         user = request.user
         membership = Membership.objects.filter(user=user).first()
@@ -255,6 +258,16 @@ class DashboardView(APIView):
             )["total"]
             or 0
         )
+
+        now = timezone.now()
+        due_soon = Loan.objects.filter(
+            borrower=user,
+            returned_at__isnull=True,
+            due_at__gte=now,
+            due_at__lte=now + timedelta(days=7)
+        ).count()
+
+        wishlist = Wishlist.objects.filter(user=user).count()
 
         data = {
             "account_information": {
@@ -276,6 +289,8 @@ class DashboardView(APIView):
                 "currently_borrowed": currently_borrowed,
                 "total_borrowed": total_borrowed,
                 "pending_fines": float(pending_fines),
+                "due_soon": due_soon,
+                "wishlist": wishlist,
                 "membership_valid_till": (
                     membership.valid_till.isoformat() if membership else None
                 ),

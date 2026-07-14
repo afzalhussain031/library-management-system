@@ -99,17 +99,17 @@ export const catalog = {
 
 // ===================== INVENTORY =====================
 export const inventory = {
+  getCopiesByBook: (bookId) =>
+    client.get(`/copies/?book=${bookId}`),
+
   addBookCopy: (data) =>
     client.post('/copies/', data),
 
-  getCopiesByBook: (bookId) => 
-    client.get(`/copies/?book=${bookId}`),
+  updateCopy: (copyId, data) =>
+    client.patch(`/copies/${copyId}/`, data),
 
-  updateCopy: (id, data) => 
-    client.patch(`/copies/${id}/`, data),
-
-  deleteCopy: (id) => 
-    client.delete(`/copies/${id}/`),
+  deleteCopy: (copyId) =>
+    client.delete(`/copies/${copyId}/`)
 }
 
 // ===================== BILLING =====================
