@@ -1,13 +1,24 @@
+import { useEffect } from "react";
 import { catalog } from "../../../services/api";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonCard } from "../../common/Skeleton";
 
 export default function Recommended() {
-  const { data, isLoading: loading, error } = useApi(catalog.getBooks, []);
+  const { data, isLoading: loading, error, refetch } = useApi(catalog.getRecommendations, []);
+
+  useEffect(() => {
+    const handleSearch = () => {
+      refetch();
+    };
+    window.addEventListener("searchPerformed", handleSearch);
+    return () => {
+      window.removeEventListener("searchPerformed", handleSearch);
+    };
+  }, [refetch]);
   
   const bookList = Array.isArray(data) ? data : data?.results || [];
-  const recommendedBooks = bookList.slice(0, 4).map(book => ({
+  const recommendedBooks = bookList.map(book => ({
     id: book.id,
     title: book.title || "Unknown Title",
     cover: book.cover_image || null
@@ -36,7 +47,7 @@ export default function Recommended() {
 
       <div className="flex gap-4 items-center overflow-x-auto">
         {loading ? (
-          [1, 2, 3, 4].map(key => (
+          [1, 2, 3, 4, 5, 6].map(key => (
             <SkeletonCard key={key} className="w-25 min-w-20 h-29 rounded-md shrink-0" />
           ))
         ) : (

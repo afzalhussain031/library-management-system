@@ -1,19 +1,18 @@
-from apps.accounts.models import UserProfile
-from django.contrib.auth.models import User
+from apps.accounts.models import CustomUser
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 
 class UserProfileApiContractTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="alice",
+        self.user = CustomUser.objects.create_user(
+            user_id="alice",
             password="strong-pass-123",
             email="alice@example.com",
             first_name="Alice",
             last_name="Reader",
+            bio="Original bio",
         )
-        self.profile = UserProfile.objects.create(user=self.user, bio="Original bio")
         self.client.force_authenticate(user=self.user)
         self.url = "/api/profile/"
 
@@ -25,25 +24,27 @@ class UserProfileApiContractTests(APITestCase):
             set(response.data.keys()),
             {
                 "id",
-                "username",
+                "user_id",
+                "role",
                 "email",
+                "email_verified",
                 "first_name",
                 "last_name",
-                "bio",
-                "department",
-                "role",
-                "enrollment_number",
-                "address",
-                "student_id",
-                "student_name",
-                "batch",
-                "mother_name",
                 "phone_number",
+                "department",
+                "student_name",
                 "father_name",
+                "mother_name",
+                "batch",
+                "address",
+                "bio",
+                "is_staff",
+                "is_superuser",
+                "date_joined",
             },
         )
         self.assertEqual(response.data["id"], self.user.id)
-        self.assertEqual(response.data["username"], "alice")
+        self.assertEqual(response.data["user_id"], "alice")
         self.assertEqual(response.data["email"], "alice@example.com")
         self.assertEqual(response.data["first_name"], "Alice")
         self.assertEqual(response.data["last_name"], "Reader")
@@ -53,10 +54,9 @@ class UserProfileApiContractTests(APITestCase):
         response = self.client.patch(self.url, {"bio": "Updated bio"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.profile.refresh_from_db()
         self.user.refresh_from_db()
 
-        self.assertEqual(self.profile.bio, "Updated bio")
+        self.assertEqual(self.user.bio, "Updated bio")
         self.assertEqual(self.user.email, "alice@example.com")
 
     def test_patch_profile_updates_user_fields(self):
@@ -86,16 +86,18 @@ class UserProfileApiContractTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.user.refresh_from_db()
-        self.profile.refresh_from_db()
 
         self.assertEqual(self.user.email, "combo@example.com")
         self.assertEqual(self.user.first_name, "Combo")
-        self.assertEqual(self.profile.bio, "Mixed update")
+        self.assertEqual(self.user.bio, "Mixed update")
 
     def test_patch_profile_ignores_read_only_fields(self):
+        original_id = self.user.id
+        original_user_id = self.user.user_id
+
         payload = {
             "id": 9999,
-            "username": "hacker-name",
+            "user_id": "hacker-name",
             "bio": "Still valid",
         }
 
@@ -103,21 +105,19 @@ class UserProfileApiContractTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.user.refresh_from_db()
-        self.profile.refresh_from_db()
 
-        self.assertEqual(self.user.id, response.data["id"])
-        self.assertEqual(self.user.username, "alice")
-        self.assertEqual(self.profile.bio, "Still valid")
+        self.assertEqual(self.user.id, original_id)
+        self.assertEqual(self.user.user_id, original_user_id)
+        self.assertEqual(self.user.bio, "Still valid")
 
 
 class PasswordChangeApiContractTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="alice",
+        self.user = CustomUser.objects.create_user(
+            user_id="alice",
             password="strong-pass-123",
             email="alice@example.com",
         )
-        UserProfile.objects.create(user=self.user, bio="Original bio")
         self.url = "/api/me/password/"
         self.client.force_authenticate(user=self.user)
 
@@ -183,4 +183,4 @@ class PasswordChangeApiContractTests(APITestCase):
         response = self.client.put(self.url, payload, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("non_field_errors", response.data)
+        self.assertIn("new_password", response.data)

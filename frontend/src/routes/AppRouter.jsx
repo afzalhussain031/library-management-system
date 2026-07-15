@@ -6,6 +6,8 @@ import ProtectedRoute from '../components/layout/ProtectedRoute';
 // Pages
 import Login from '../pages/auth/Login';
 import SignUp from '../pages/auth/SignUp';
+import VerifyEmail from '../pages/auth/VerifyEmail';
+import VerifyEmailConfirm from '../pages/auth/VerifyEmailConfirm';
 import Dashboard from '../pages/user/Dashboard';
 import UserProfile from "../pages/user/Profile";
 import Wishlist from "../pages/user/Wishlist";
@@ -52,6 +54,8 @@ const AppRouter = () => {
       {/* ================= PUBLIC ROUTES ================= */}
       <Route path="/login" element={<Login />} />
       <Route path='/register' element={<SignUp />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/verify-email/:uidb64/:token" element={<VerifyEmailConfirm />} />
 
       {/* ================= GROUP 1: GENERAL USER ROUTES ================= */}
       {/* Leaving allowedRoles blank here means ANY logged-in account can access these hallways */}

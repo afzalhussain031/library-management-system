@@ -26,6 +26,11 @@ export const auth = {
     const response = await client.get('/me/')
     return response.data
   },
+
+  verifyEmail: async (uidb64, token) => {
+    const response = await client.get(`/verify-email/${uidb64}/${token}/`)
+    return response.data
+  },
   
   logout: () =>
     client.post('/logout/', {}),
@@ -71,6 +76,9 @@ export const dashboard = {
 export const catalog = {
   getBooks: () =>
     client.get('/books/'),
+  
+  getRecommendations: () =>
+    client.get('/recommendations/personalized/'),
   
   addBook: (data) =>
     client.post('/books/', data),

@@ -120,6 +120,7 @@ class StaffCreateSerializer(serializers.ModelSerializer):
 
 class CustomUserProfileSerializer(serializers.ModelSerializer):
     """Read user profile"""
+    email_verified = serializers.BooleanField(source='is_email_verified', read_only=True)
 
     class Meta:
         model = CustomUser

@@ -1,11 +1,27 @@
+import { useState } from "react";
 import { Bell, SlidersHorizontal, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import profileImg from "../../assets/profile.jpg";
+import client from "../../services/httpClient";
+import { toast } from "react-hot-toast";
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = async (e) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      try {
+        await client.get(`/books/?search=${encodeURIComponent(searchQuery.trim())}`);
+        toast.success(`Search logged: "${searchQuery.trim()}"`);
+        window.dispatchEvent(new CustomEvent("searchPerformed", { detail: searchQuery.trim() }));
+      } catch (err) {
+        console.error("Failed to log search:", err);
+      }
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -25,6 +41,9 @@ const Navbar = () => {
           <input
             type="text"
             placeholder="Search books..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
             className="bg-transparent outline-none flex-1 text-sm"
           />
           <SlidersHorizontal size={18} />
