@@ -1,11 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
+import { catalog } from "../../../services/api";
 
 
 
-const BookCard = ({ title, author }) => {
+const BookCard = ({ id, title, author, initialWishlistId }) => {
   
-  const [liked, setLiked] = useState(false);
+  const [wishlistId, setWishlistId] = useState(initialWishlistId);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    setWishlistId(initialWishlistId);
+  }, [initialWishlistId]);
+
+  const liked = !!wishlistId;
+
+  const handleLikeClick = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      if (liked) {
+        await catalog.removeFromWishlist(wishlistId);
+        setWishlistId(null);
+      } else {
+        const response = await catalog.addToWishlist({ book_id: id });
+        setWishlistId(response.id || response.data?.id);
+      }
+    } catch (error) {
+      console.error("Failed to update wishlist:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className=" flex justify-between items-center w-full-screen  h-xl p-4 bg-white shadow rounded-[20px] mb-4">
@@ -13,7 +39,11 @@ const BookCard = ({ title, author }) => {
         <h3 className="font-semibold text-gray-800 text-lg">{title}</h3>
         <p className="text-gray-600">by {author}</p>
       </div>
-      <button className= "cursor-pointer "onClick={() => setLiked(!liked)}>
+      <button 
+        className={`cursor-pointer ${isUpdating ? "opacity-50" : ""}`}
+        onClick={handleLikeClick}
+        disabled={isUpdating}
+      >
         <Heart
           color={liked ? "red" : "gray"}   
           fill={liked ? "red" : "none"}   

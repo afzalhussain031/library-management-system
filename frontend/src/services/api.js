@@ -94,7 +94,13 @@ export const catalog = {
     client.post('/publishers/', data),
   
   getWishlist: () =>
-    client.get('/wishlist/')
+    client.get('/wishlist/'),
+
+  addToWishlist: (data) =>
+    client.post('/wishlist/', data),
+
+  removeFromWishlist: (id) =>
+    client.delete(`/wishlist/${id}/`)
 }
 
 // ===================== INVENTORY =====================

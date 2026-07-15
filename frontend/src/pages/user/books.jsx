@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useMemo } from "react"
 
 
 
@@ -22,11 +22,25 @@ export default function Books() {
     return catalog.getBooks({ sort, filter: filterParam });
   }, [filter, sort]);
 
+  const fetchWishlist = useCallback(() => catalog.getWishlist(), []);
+
   const { data, isLoading, error } = useApi(fetchBooks, []);
+  const { data: wishlistData } = useApi(fetchWishlist, []);
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
   const books = Array.isArray(data) ? data : data?.results || [];
+
+  const wishlistMap = useMemo(() => {
+    const map = {};
+    const items = Array.isArray(wishlistData) ? wishlistData : wishlistData?.results || [];
+    items.forEach(item => {
+      if (item.book && item.book.id) {
+        map[item.book.id] = item.id;
+      }
+    });
+    return map;
+  }, [wishlistData]);
 
   return (
 
@@ -46,7 +60,7 @@ export default function Books() {
         {isLoading ? (
           <div className="p-4 text-gray-600">Loading books...</div>
         ) : (
-          <BookList books={books} />
+          <BookList books={books} wishlistMap={wishlistMap} />
         )}
       </div>
       <div className="flex justify-center pb-1">
