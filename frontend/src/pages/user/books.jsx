@@ -4,11 +4,18 @@ import React from "react"
 
 import BookList from "../../components/user/catalog/BookList";
 import Navbar1 from "../../components/user/catalog/Navbar";
+import { useApi } from "../../hook/useApi";
+import { catalog } from "../../services/api";
+import ErrorMessage from "../../components/common/ErrorMessage";
 
 
 
 export default function Books() {
-    
+  const { data, isLoading, error } = useApi(catalog.getBooks, []);
+
+  if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
+
+  const books = Array.isArray(data) ? data : data?.results || [];
 
   return (
 
@@ -25,11 +32,14 @@ export default function Books() {
           </h1>
         </div>
 
-        <BookList />
+        {isLoading ? (
+          <div className="p-4 text-gray-600">Loading books...</div>
+        ) : (
+          <BookList books={books} />
+        )}
       </div>
       <div className="flex justify-center pb-1">
         <button className="bg-yellow-200 cursor-pointer hover:bg-yellow-400 transition   rounded-full text-sm  px-4 py-2  text-gray-700">  1-25 of 21 → </button>
-
       </div>
 
     </div>
