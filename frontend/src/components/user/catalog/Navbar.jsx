@@ -1,19 +1,40 @@
 import { useState } from "react";
 import Sortby from "./sortby";
-function Navbar1() {
+function Navbar1({ filter, onFilterChange, sort, onSortChange }) {
    const [open, setOpen] = useState(false);
   return (
       <div id="navbar1">
       <nav className="w-full h-12 bg-gary-100 rounded flex items-center  px-4 justify-between">
         <ul className="hidden sm:flex space-x-6">
-          <li><a href="#AllBooks" className="text-gray-700">All Books</a></li>
-          <li><a href="#Available" className="text-gray-700">Available</a></li>
-          <li><a href="#Recommended" className="text-gray-700">Recommended</a></li>
+          <li>
+            <button 
+              onClick={() => onFilterChange('AllBooks')} 
+              className={filter === 'AllBooks' ? "text-yellow-600 font-semibold cursor-pointer" : "text-gray-700 cursor-pointer"}
+            >
+              All Books
+            </button>
+          </li>
+          <li>
+            <button 
+              onClick={() => onFilterChange('Available')} 
+              className={filter === 'Available' ? "text-yellow-600 font-semibold cursor-pointer" : "text-gray-700 cursor-pointer"}
+            >
+              Available
+            </button>
+          </li>
+          <li>
+            <button 
+              onClick={() => onFilterChange('Recommended')} 
+              className={filter === 'Recommended' ? "text-yellow-600 font-semibold cursor-pointer" : "text-gray-700 cursor-pointer"}
+            >
+              Recommended
+            </button>
+          </li>
           
         </ul>
        
       
-        <Sortby/>
+        <Sortby sort={sort} onSortChange={onSortChange}/>
         
          
           

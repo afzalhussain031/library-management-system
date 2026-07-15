@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState, useCallback } from "react"
 
 
 
@@ -11,7 +11,18 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 
 
 export default function Books() {
-  const { data, isLoading, error } = useApi(catalog.getBooks, []);
+  const [filter, setFilter] = useState('AllBooks');
+  const [sort, setSort] = useState('popularity');
+
+  const fetchBooks = useCallback(() => {
+    let filterParam = undefined;
+    if (filter !== 'AllBooks') {
+      filterParam = filter.toLowerCase();
+    }
+    return catalog.getBooks({ sort, filter: filterParam });
+  }, [filter, sort]);
+
+  const { data, isLoading, error } = useApi(fetchBooks, []);
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
@@ -22,7 +33,7 @@ export default function Books() {
     <div className="flex flex-col rounded-[20px] bg-[#F5F5F5]  mx-auto bg-linear-to-r from-gray-150 min-h-screen to-yellow-100">
       
       <div className="shrink-0">
-        <Navbar1 />
+        <Navbar1 filter={filter} onFilterChange={setFilter} sort={sort} onSortChange={setSort} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4">
