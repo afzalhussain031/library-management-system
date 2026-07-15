@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Loan, Reservation
+from apps.catalog.models import Book
 from django.utils import timezone
 
 class LoanSerializer(serializers.ModelSerializer):
@@ -70,6 +71,9 @@ class LoanSerializer(serializers.ModelSerializer):
 
 class ReservationSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
+    book = serializers.PrimaryKeyRelatedField(
+        queryset=Book.objects.all(), write_only=True
+    )
     book_title = serializers.CharField(source="book.title", read_only=True)
     book_author = serializers.CharField(source="book.author", read_only=True)
     book_id = serializers.IntegerField(source="book.id", read_only=True)
@@ -82,6 +86,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         model = Reservation
         fields = [
             "id",
+            "book",
             "book_id",
             "book_title",
             "book_author",

@@ -131,6 +131,7 @@ export const billing = {
 export const circulation = {
   // Existing ones...
   getReservations: () => client.get('/reservations/'),
+  createReservation: (data) => client.post('/reservations/', data),
   
   // New endpoints for Kanban
   updateReservationStatus: (id, status, extraData = {}) => client.patch(`/reservations/${id}/`, { status, ...extraData }),
