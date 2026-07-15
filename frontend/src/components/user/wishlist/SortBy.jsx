@@ -1,15 +1,21 @@
 import { useState } from "react";
 
-function Sortby() {
+function Sortby({ onSortChange }) {
   const [sortBy, setSortBy] = useState("popularity");
 
+  const handleChange = (e) => {
+    const newVal = e.target.value;
+    setSortBy(newVal);
+    if (onSortChange) onSortChange(newVal);
+  };
+
   return (
-    <div className="flex items-center text-gray-700  sm:space-x-3">
+    <div className="flex items-center text-gray-700 sm:space-x-3">
       <label>Sort by:</label>
 
       <select
         value={sortBy}
-        onChange={(e) => setSortBy(e.target.value)}
+        onChange={handleChange}
         className="border rounded px-2 py-1"
       >
         <option value="popularity">Popularity</option>
@@ -19,6 +25,5 @@ function Sortby() {
     </div>
   );
 }
-
 
 export default Sortby;

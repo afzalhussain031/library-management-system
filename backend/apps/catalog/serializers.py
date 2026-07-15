@@ -83,5 +83,4 @@ class WishlistSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         book_id = validated_data.pop("book_id")
-        user = self.context["request"].user
-        return Wishlist.objects.create(user=user, book_id=book_id, **validated_data)
+        return Wishlist.objects.create(book_id=book_id, **validated_data)

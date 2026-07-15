@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 
-function Sortby() {
-  const [selected, setSelected] = useState("popularity");
+function Sortby({ sort, onSortChange }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
   useEffect(() => {
@@ -18,8 +17,8 @@ function Sortby() {
       <label className="text-gray-800" >Sort by:</label>
 
       <select
-        value={selected}
-        onChange={(e) => setSelected(e.target.value)}
+        value={sort}
+        onChange={(e) => onSortChange(e.target.value)}
         className="border rounded px-2 py-1"
       >
         {isMobile && (

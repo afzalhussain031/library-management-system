@@ -1,25 +1,43 @@
 import React from "react";
 import BookCard from "./bookcard";
+import { catalog, circulation } from "../../../services/api";
 
-const books = [
-  { id: 1, title: "Atomic Habits", author: "James Clear" },
-  { id: 2, title: "Clean Code", author: "Robert C. Martin" },
-  { id: 3, title: "1984", author: "George Orwell" },
-  { id: 4, title: "Python Crash Course", author: "Eric Matthes" },
-  { id: 5, title: "Deep Work", author: "Cal Newport" },
-  
+const BookList = ({ items, setItems }) => {
+  const handleReserve = async (bookId, wishlistId) => {
+    try {
+      await circulation.createReservation({ book: bookId });
+      await catalog.removeFromWishlist(wishlistId);
+      setItems((prev) => prev.filter((item) => item.id !== wishlistId));
+      alert("Book reserved successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reserve the book.");
+    }
+  };
 
-];
+  const handleRemove = async (wishlistId) => {
+    try {
+      await catalog.removeFromWishlist(wishlistId);
+      setItems((prev) => prev.filter((item) => item.id !== wishlistId));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove from wishlist.");
+    }
+  };
 
-const BookList = () => {
   return (
     <div>
-      {books.map((book, index) => (
-        <BookCard key={book.id} title={book.title} author={book.author} />
+      {items.map((item) => (
+        <BookCard 
+          key={item.id} 
+          title={item.book?.title} 
+          author={item.book?.author} 
+          onReserve={() => handleReserve(item.book?.id, item.id)}
+          onRemove={() => handleRemove(item.id)}
+        />
       ))}
     </div>
-   
-  )}
-    
+  );
+};
 
 export default BookList;

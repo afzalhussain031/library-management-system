@@ -69,8 +69,8 @@ export const dashboard = {
 
 // ===================== CATALOG =====================
 export const catalog = {
-  getBooks: () =>
-    client.get('/books/'),
+  getBooks: (params) =>
+    client.get('/books/', { params }),
   
   addBook: (data) =>
     client.post('/books/', data),
@@ -94,7 +94,13 @@ export const catalog = {
     client.post('/publishers/', data),
   
   getWishlist: () =>
-    client.get('/wishlist/')
+    client.get('/wishlist/'),
+
+  addToWishlist: (data) =>
+    client.post('/wishlist/', data),
+
+  removeFromWishlist: (id) =>
+    client.delete(`/wishlist/${id}/`)
 }
 
 // ===================== INVENTORY =====================
@@ -125,6 +131,7 @@ export const billing = {
 export const circulation = {
   // Existing ones...
   getReservations: () => client.get('/reservations/'),
+  createReservation: (data) => client.post('/reservations/', data),
   
   // New endpoints for Kanban
   updateReservationStatus: (id, status, extraData = {}) => client.patch(`/reservations/${id}/`, { status, ...extraData }),
