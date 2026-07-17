@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { dashboard } from "../../../services/api";
 import { ArrowRight } from "lucide-react";
 import { useApi } from "../../../hook/useApi";
@@ -5,6 +6,7 @@ import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonText } from "../../common/Skeleton";
 
 export default function BorrowedList() {
+  const navigate = useNavigate();
   const { data, isLoading: loading, error } = useApi(dashboard.getBorrowedBooks, []);
   const loansList = Array.isArray(data) ? data : data?.results || [];
   
@@ -13,9 +15,9 @@ export default function BorrowedList() {
     .filter(loan => !loan.returned_at)
     .slice(0, 3) // Show only first 3
     .map(loan => ({
-      title: loan.copy?.book?.title || "Unknown Title",
-      author: loan.copy?.book?.author || "Unknown Author",
-      date: new Date(loan.borrowed_at).toLocaleDateString("en-GB", {
+      title: loan.book_title || "Unknown Title",
+      author: loan.book_author || "Unknown Author",
+      date: new Date(loan.due_at).toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
         year: "numeric"
@@ -38,7 +40,10 @@ export default function BorrowedList() {
     <div className="bg-white p-4 rounded-4xl shadow-sm text-gray-900 h-full">
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-semibold text-gray-900">My Borrowed Books</h2>
-        <button className="text-sm text-gray-600 hover:text-black flex items-center gap-1">
+        <button 
+          onClick={() => navigate('/my-loans')}
+          className="text-sm text-gray-600 hover:text-black flex items-center gap-1 cursor-pointer"
+        >
           See All →
         </button>
       </div>

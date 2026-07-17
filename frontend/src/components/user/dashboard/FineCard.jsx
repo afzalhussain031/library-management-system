@@ -1,9 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import { dashboard } from "../../../services/api";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonAvatar, SkeletonText } from "../../common/Skeleton";
 
 export default function FineCard() {
+  const navigate = useNavigate();
   const { data, isLoading: loading, error } = useApi(dashboard.getFines, []);
   
   const finesList = Array.isArray(data) ? data : data?.results || [];
@@ -34,7 +36,10 @@ export default function FineCard() {
     <div className="bg-white p-6 rounded-4xl shadow-md border border-gray-100">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-900">Fines Pending</h2>
-        <button className="text-sm text-gray-600 hover:text-black cursor-pointer shrink-0 transition-all duration-200 flex items-center gap-1">
+        <button 
+          onClick={() => navigate('/my-fines')}
+          className="text-sm text-gray-600 hover:text-black cursor-pointer shrink-0 transition-all duration-200 flex items-center gap-1"
+        >
           View All →
         </button>
       </div>
