@@ -25,7 +25,10 @@ export default function Notifications() {
     <div className="bg-white p-2 rounded-3xl shadow-md border border-gray-100">
       <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition cursor-pointer">
         <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
-        <button className="text-sm text-gray-600 hover:text-black flex items-center gap-1">
+        <button 
+          onClick={() => document.dispatchEvent(new Event('openNotificationDropdown'))}
+          className="text-sm text-gray-600 hover:text-black flex items-center gap-1 cursor-pointer"
+        >
           View All →
         </button>
       </div>

@@ -2,6 +2,7 @@ import { Bell, SlidersHorizontal, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import profileImg from "../../assets/profile.jpg";
+import NotificationDropdown from "./NotificationDropdown";
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
@@ -49,9 +50,7 @@ const Navbar = () => {
             </div>
           )}
 
-          <button className="relative">
-            <Bell size={20} />
-          </button>
+          <NotificationDropdown />
 
           <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-2">
             <img
