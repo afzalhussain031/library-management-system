@@ -45,9 +45,16 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener("openNotificationDropdown", handleOpenNotification);
   }, []);
 
-  const handleRemoveNotification = (e, indexToRemove) => {
+  const handleRemoveNotification = async (e, indexToRemove, notifId) => {
     e.stopPropagation(); // prevent closing if clicking inside
-    setLocalNotifications(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    try {
+      if (notifId) {
+        await dashboard.markNotificationRead(notifId);
+      }
+      setLocalNotifications(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
   };
 
   const unreadCount = localNotifications.length;
@@ -111,7 +118,7 @@ export default function NotificationDropdown() {
                   </div>
                   
                   <button 
-                    onClick={(e) => handleRemoveNotification(e, idx)}
+                    onClick={(e) => handleRemoveNotification(e, idx, notif.id)}
                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                     title="Remove"
                   >
@@ -125,7 +132,12 @@ export default function NotificationDropdown() {
           {localNotifications.length > 0 && (
             <div className="p-3 border-t border-gray-100 bg-gray-50">
               <button 
-                onClick={() => setLocalNotifications([])}
+                onClick={() => {
+                  localNotifications.forEach(notif => {
+                    if (notif.id) dashboard.markNotificationRead(notif.id).catch(() => {});
+                  });
+                  setLocalNotifications([]);
+                }}
                 className="w-full py-2 text-sm text-gray-600 hover:text-gray-900 font-medium cursor-pointer"
               >
                 Clear all

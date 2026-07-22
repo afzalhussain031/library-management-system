@@ -64,7 +64,10 @@ export const dashboard = {
     client.get('/fines/'),
   
   getNotifications: () =>
-    client.get('/notifications/')
+    client.get('/notifications/'),
+    
+  markNotificationRead: (id) =>
+    client.post(`/notifications/${id}/mark_read/`)
 }
 
 // ===================== CATALOG =====================
@@ -141,5 +144,6 @@ export const circulation = {
   issueBook: (data) => client.post('/loans/', data),
   returnBook: (loanId, paidNow = false) => client.post(`/loans/${loanId}/return_loan/`, { paid_now: paidNow }),
   calculateFine: (loanId) => client.get(`/loans/${loanId}/calculate_fine/`),
-  getUserLoans: (userId) => client.get(`/loans/?user_id=${userId}`)
+  getUserLoans: (userId) => client.get(`/loans/?user_id=${userId}`),
+  renewLoan: (loanId) => client.post(`/loans/${loanId}/renew/`)
 }

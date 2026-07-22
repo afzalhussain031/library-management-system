@@ -1,13 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { dashboard } from "../../../services/api";
+import { dashboard, circulation } from "../../../services/api";
 import { ArrowRight } from "lucide-react";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonText } from "../../common/Skeleton";
+import { toast } from "react-hot-toast";
 
 export default function BorrowedList() {
   const navigate = useNavigate();
-  const { data, isLoading: loading, error } = useApi(dashboard.getBorrowedBooks, []);
+  const { data, isLoading: loading, error, refetch } = useApi(dashboard.getBorrowedBooks, []);
   const loansList = Array.isArray(data) ? data : data?.results || [];
   
   // Filter only active loans (not returned)
@@ -15,6 +16,7 @@ export default function BorrowedList() {
     .filter(loan => !loan.returned_at)
     .slice(0, 3) // Show only first 3
     .map(loan => ({
+      id: loan.id,
       title: loan.book_title || "Unknown Title",
       author: loan.book_author || "Unknown Author",
       date: new Date(loan.due_at).toLocaleDateString("en-GB", {
@@ -25,6 +27,27 @@ export default function BorrowedList() {
     }));
 
 
+
+  const handleRenew = async (loanId) => {
+    const toastId = toast.loading("Renewing book...");
+    try {
+      const response = await circulation.renewLoan(loanId);
+      toast.success(`Loan renewed. New Due Date: ${new Date(response.data.due_at).toLocaleDateString()}`, { id: toastId });
+      refetch();
+    } catch (err) {
+      let errorMsg = "Failed to renew book";
+      if (err.response?.data) {
+          if (Array.isArray(err.response.data)) {
+              errorMsg = err.response.data[0];
+          } else if (err.response.data.detail) {
+              errorMsg = err.response.data.detail;
+          } else if (err.response.data.message) {
+              errorMsg = err.response.data.message;
+          }
+      }
+      toast.error(errorMsg, { id: toastId });
+    }
+  };
 
   // Remove early loading return
 
@@ -73,7 +96,10 @@ export default function BorrowedList() {
 
             <div className="text-right">
               <p className="text-sm text-gray-600">{book.date}</p>
-              <button className="bg-yellow-400 px-4 py-1 rounded-full text-sm mt-1 text-black font-medium hover:bg-yellow-500 transition hover:scale-[1.01] cursor-pointer">
+              <button 
+                onClick={() => handleRenew(book.id)}
+                className="bg-yellow-400 px-4 py-1 rounded-full text-sm mt-1 text-black font-medium hover:bg-yellow-500 transition hover:scale-[1.01] cursor-pointer"
+              >
                 Renew
               </button>
             </div>

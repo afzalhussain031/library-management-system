@@ -11,6 +11,7 @@ from rest_framework import status
 from common.permissions.base import IsStaffOrReadOnly
 from apps.billing.models import Fine
 from apps.inventory.models import BookCopy
+from apps.notifications.utils import create_student_notification
 
 from .models import Loan, Reservation
 from .serializers import LoanSerializer, ReservationSerializer
@@ -41,6 +42,13 @@ class LoanViewSet(viewsets.ModelViewSet):
         loan = serializer.save()
         copy.status = BookCopy.LOANED
         copy.save(update_fields=["status"])
+        
+        create_student_notification(
+            user=loan.borrower,
+            notif_type="book_issued",
+            title="Book Issued",
+            message=f"You have successfully borrowed '{copy.book.title}'. It is due on {loan.due_at.strftime('%Y-%m-%d')}."
+        )
         return loan
 
     def perform_update(self, serializer):
@@ -49,13 +57,27 @@ class LoanViewSet(viewsets.ModelViewSet):
         if loan.returned_at and loan.copy.status != BookCopy.AVAILABLE:
             loan.copy.status = BookCopy.AVAILABLE
             loan.copy.save(update_fields=["status"])
+            
+            create_student_notification(
+                user=loan.borrower,
+                notif_type="book_returned",
+                title="Book Returned",
+                message=f"You have successfully returned '{loan.copy.book.title}'."
+            )
 
             if loan.returned_at > loan.due_at and not hasattr(loan, "fine"):
                 overdue_days = max((loan.returned_at.date() - loan.due_at.date()).days, 1)
-                Fine.objects.create(
+                fine = Fine.objects.create(
                     loan=loan,
                     amount=overdue_days * 10,
                     reason="Overdue return",
+                )
+                
+                create_student_notification(
+                    user=loan.borrower,
+                    notif_type="fine_created",
+                    title="Fine Generated",
+                    message=f"An overdue fine of ₹{fine.amount} has been added to your account for returning '{loan.copy.book.title}' late."
                 )
 
     @action(detail=True, methods=["get"])
@@ -82,6 +104,13 @@ class LoanViewSet(viewsets.ModelViewSet):
 
         loan.copy.status = BookCopy.AVAILABLE
         loan.copy.save(update_fields=["status"])
+        
+        create_student_notification(
+            user=loan.borrower,
+            notif_type="book_returned",
+            title="Book Returned",
+            message=f"You have successfully returned '{loan.copy.book.title}'."
+        )
 
         if loan.returned_at > loan.due_at and not hasattr(loan, "fine"):
             overdue_days = max((loan.returned_at.date() - loan.due_at.date()).days, 1)
@@ -97,6 +126,14 @@ class LoanViewSet(viewsets.ModelViewSet):
                 reason="Overdue return",
                 status=fine_status
             )
+            
+            create_student_notification(
+                user=loan.borrower,
+                notif_type="fine_created",
+                title="Fine Generated",
+                message=f"An overdue fine of ₹{fine.amount} has been added to your account for returning '{loan.copy.book.title}' late."
+            )
+            
             msg = "Book returned. Fine marked as paid." if fine_status == Fine.PAID else "Book returned. Fine added to account."
             return Response(
                 {"detail": msg, "fine_id": fine.id, "fine_status": fine_status},
@@ -105,14 +142,34 @@ class LoanViewSet(viewsets.ModelViewSet):
 
         return Response({"detail": "Book returned successfully."}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def renew(self, request, pk=None):
         loan = self.get_object()
+        
+        # Rule 0: Must own the loan or be staff
+        if not (request.user.is_staff or getattr(request.user, 'is_librarian_staff', False) or request.user == loan.borrower):
+            return Response({"detail": "You can only renew your own books."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Rule 1: Cannot renew if returned or overdue
         if loan.returned_at:
             raise ValidationError({"detail": "Returned loans cannot be renewed."})
             
         if timezone.now() > loan.due_at:
             raise ValidationError({"detail": "Overdue loans cannot be renewed. Please return the book and clear your fines."})
+
+        # Rule 2: Max 2 renewals
+        if loan.renewed_count >= 2:
+            raise ValidationError({"detail": "Maximum renewal limit (2 times) reached for this book."})
+
+        # Rule 3: Check for unpaid fines
+        has_unpaid_fines = Fine.objects.filter(loan__borrower=request.user, status=Fine.PENDING).exists()
+        if has_unpaid_fines:
+            raise ValidationError({"detail": "Cannot renew. You have unpaid fines on your account."})
+
+        # Rule 4: Check if another user has reserved this book
+        has_reservations = Reservation.objects.filter(book=loan.copy.book, status=Reservation.PENDING).exists()
+        if has_reservations:
+            raise ValidationError({"detail": "Cannot renew. Another student is waiting for this book."})
 
         loan.renewed_count += 1
         loan.due_at = loan.due_at + timedelta(days=14)
@@ -163,6 +220,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
             # Change the physical copy's status to prevent theft
             instance.allocated_copy.status = BookCopy.RESERVED
             instance.allocated_copy.save(update_fields=['status'])
+            
+            create_student_notification(
+                user=instance.user,
+                notif_type="reservation_ready",
+                title="Reservation Ready!",
+                message=f"Good news! Your reserved book '{instance.book.title}' is now available. Please pick it up from the library."
+            )
         # 2. Handling Cancellation/Denial
         elif instance.status == Reservation.CANCELLED and instance.allocated_copy:
             # Release the locked copy back to the library
@@ -173,6 +237,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
             # Unlink it from the reservation
             instance.allocated_copy = None
             instance.save(update_fields=['allocated_copy'])
+            
+            create_student_notification(
+                user=instance.user,
+                notif_type="reservation_cancelled",
+                title="Reservation Cancelled",
+                message=f"Your reservation for '{instance.book.title}' has been cancelled by the library."
+            )
 
     @action(detail=True, methods=["post"])
     def fulfill(self, request, pk=None):
@@ -206,5 +277,12 @@ class ReservationViewSet(viewsets.ModelViewSet):
         # 4. Mark reservation as fulfilled
         reservation.status = Reservation.FULFILLED
         reservation.save(update_fields=['status'])
+        
+        create_student_notification(
+            user=reservation.user,
+            notif_type="book_issued",
+            title="Book Issued",
+            message=f"You have successfully borrowed '{locked_copy.book.title}'. It is due on {due_date.strftime('%Y-%m-%d')}."
+        )
         
         return Response({"detail": "Book issued and reservation fulfilled!"}, status=status.HTTP_200_OK)
