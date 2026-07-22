@@ -3,6 +3,7 @@ import { dashboard } from "../../../services/api";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonAvatar, SkeletonText } from "../../common/Skeleton";
+import { toast } from 'react-hot-toast';
 
 export default function FineCard() {
   const navigate = useNavigate();
@@ -65,7 +66,16 @@ export default function FineCard() {
           </div>
         </div>
 
-        <button className="bg-yellow-400 px-4 py-2 rounded-full text-sm text-black font-medium hover:bg-yellow-500 transition hover:scale-[1.01] cursor-pointer">
+        <button 
+          onClick={() => toast("Payment mechanism is coming soon! 🚀", {
+            icon: '💳',
+            style: {
+              borderRadius: '10px',
+              background: '#333',
+              color: '#fff',
+            },
+          })}
+          className="bg-yellow-400 px-4 py-2 rounded-full text-sm text-black font-medium hover:bg-yellow-500 transition hover:scale-[1.01] cursor-pointer">
           Pay Now
         </button>
       </div>
