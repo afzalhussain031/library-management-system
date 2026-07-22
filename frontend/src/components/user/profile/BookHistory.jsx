@@ -1,16 +1,27 @@
 import { useState } from "react";
 import { SkeletonText } from "../../common/Skeleton";
+import { useApi } from "../../../hook/useApi";
+import { dashboard } from "../../../services/api";
 
-export default function BookHistory({ isLoading }) {
-
+export default function BookHistory({ isLoading: parentLoading }) {
   const [activeTab, setActiveTab] = useState("borrowed");
 
-  const books = Array(8).fill({
-    title: "A Brief History o..",
-    author: "by Stephen Hawk..",
-    id: "#423532",
-    date: "12-Dec-22",
-  });
+  const { data: loansData, isLoading: loansLoading } = useApi(dashboard.getBorrowedBooks, null);
+  const { data: finesData, isLoading: finesLoading } = useApi(dashboard.getFines, null);
+
+  const isLoading = parentLoading || loansLoading || finesLoading;
+
+  const loans = loansData || [];
+  const borrowedLoans = loans.filter(loan => !loan.returned_at);
+  const returnedLoans = loans.filter(loan => loan.returned_at);
+  
+  // Filter out paid fines, keeping only pending
+  const fines = (finesData || []).filter(fine => fine.status === "pending" || fine.status === "unpaid");
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" });
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 h-full flex flex-col">
@@ -138,23 +149,25 @@ export default function BookHistory({ isLoading }) {
                 </div>
               </div>
             ))
-          ) : books.map((book, i) => (
+          ) : borrowedLoans.length === 0 ? (
+            <div className="text-center text-gray-500 py-4 text-sm">No borrowed books</div>
+          ) : borrowedLoans.map((loan, i) => (
             <div
-              key={i}
+              key={loan.id || i}
               className="flex items-start justify-between border-b border-gray-100 pb-4"
             >
 
               <div>
                 <p className="font-semibold text-gray-900 text-sm">
-                  {book.title}
+                  {loan.book_title}
                 </p>
 
                 <p className="text-xs text-gray-500">
-                  {book.author}
+                  {loan.book_author}
                 </p>
 
                 <p className="text-[10px] text-gray-400 mt-1">
-                  {book.id}
+                  #{loan.book_id}
                 </p>
               </div>
 
@@ -164,7 +177,7 @@ export default function BookHistory({ isLoading }) {
                 </p>
 
                 <p className="text-xs font-semibold text-gray-900 mt-1">
-                  {book.date}
+                  {formatDate(loan.issued_at)}
                 </p>
               </div>
 
@@ -187,23 +200,25 @@ export default function BookHistory({ isLoading }) {
                 </div>
               </div>
             ))
-          ) : books.map((book, i) => (
+          ) : returnedLoans.length === 0 ? (
+            <div className="text-center text-gray-500 py-4 text-sm">No returned books</div>
+          ) : returnedLoans.map((loan, i) => (
             <div
-              key={i}
+              key={loan.id || i}
               className="flex items-start justify-between border-b border-gray-100 pb-4"
             >
 
               <div>
                 <p className="font-semibold text-gray-900 text-sm">
-                  {book.title}
+                  {loan.book_title}
                 </p>
 
                 <p className="text-xs text-gray-500">
-                  {book.author}
+                  {loan.book_author}
                 </p>
 
                 <p className="text-[10px] text-gray-400 mt-1">
-                  {book.id}
+                  #{loan.book_id}
                 </p>
               </div>
 
@@ -213,7 +228,7 @@ export default function BookHistory({ isLoading }) {
                 </p>
 
                 <p className="text-xs font-semibold text-gray-900 mt-1">
-                  {book.date}
+                  {formatDate(loan.returned_at)}
                 </p>
               </div>
 
@@ -241,24 +256,26 @@ export default function BookHistory({ isLoading }) {
                 <SkeletonText className="h-6 w-16 rounded-full" />
               </div>
             ))
-          ) : books.map((book, i) => (
+          ) : fines.length === 0 ? (
+            <div className="text-center text-gray-500 py-4 text-sm">No pending fines</div>
+          ) : fines.map((fine, i) => (
             <div
-              key={i}
+              key={fine.id || i}
               className="flex items-center justify-between border-b border-gray-100 pb-4"
             >
 
               {/* Left */}
               <div>
                 <p className="font-semibold text-gray-900 text-sm">
-                  {book.title}
+                  {fine.loan_book_title || "Unknown Book"}
                 </p>
 
                 <p className="text-xs text-gray-500">
-                  {book.author}
+                  {fine.loan_book_author || "Unknown Author"}
                 </p>
 
                 <p className="text-[10px] text-gray-400 mt-1">
-                  {book.id}
+                  #{fine.loan_copy_barcode || "N/A"}
                 </p>
               </div>
 
@@ -269,7 +286,7 @@ export default function BookHistory({ isLoading }) {
                 </p>
 
                 <p className="text-xs font-semibold text-red-500 mt-1">
-                  12-Dec-22
+                  {formatDate(fine.loan_due_at)}
                 </p>
               </div>
 
@@ -280,7 +297,7 @@ export default function BookHistory({ isLoading }) {
                 </p>
 
                 <p className="text-xs font-semibold text-red-500 mt-1">
-                  ₹ 40
+                  ₹ {fine.amount}
                 </p>
               </div>
 
@@ -303,7 +320,7 @@ export default function BookHistory({ isLoading }) {
           </button>
         )}
 
-        <button className="bg-yellow-100 hover:bg-yellow-200 transition px-4 py-1.5 rounded-full text-sm text-gray-700">
+        <button className="bg-yellow-100 hover:bg-yellow-200 transition px-4 py-1.5 rounded-full text-sm text-gray-700 hidden">
           1-25 of 21 →
         </button>
 

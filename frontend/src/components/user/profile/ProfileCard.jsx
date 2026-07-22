@@ -32,9 +32,9 @@ export default function ProfileCard({ userData, isLoading }) {
           {isLoading ? <SkeletonText className="h-6 w-32" /> : userName}
         </h2>
 
-        <p className="text-sm text-gray-500 mt-1 flex justify-center">
+        <div className="text-sm text-gray-500 mt-1 flex justify-center">
           {isLoading ? <SkeletonText className="h-4 w-40" /> : `${role} • ${department}`}
-        </p>
+        </div>
 
         <button className="mt-4 bg-yellow-400 px-4 py-1.5 rounded-full text-sm font-medium text-gray-900 contrast-more:text-black cursor-pointer transition hover:bg-gray-10 hover:scale-[1.01]">
           Active Member

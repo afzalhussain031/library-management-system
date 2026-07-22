@@ -10,16 +10,16 @@ export default function InfoSection({ title, data, fine, isLoading }) {
           <div key={i} className="min-w-0">
             <p className="text-xs text-gray-500 mb-1">{label}</p>
 
-            <p className="text-sm font-medium text-gray-900 break-all mt-1">
+            <div className="text-sm font-medium text-gray-900 break-all mt-1">
               {isLoading ? <SkeletonText className="h-5 w-3/4" /> : value}
-            </p>
+            </div>
           </div>
         ))}
       </div>
 
-      {fine && (
+      {fine > 0 && (
         <button className="mt-5 bg-orange-100 text-orange-600 px-4 py-1.5 rounded-full text-sm font-medium h-full">
-          ₹450 Pending Fine
+          ₹{fine} Pending Fine
         </button>
       )}
     </div>
