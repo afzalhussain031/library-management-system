@@ -51,10 +51,15 @@ export default function Books() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4">
-        <div className="py-2">
+        <div className="py-2 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-800">
-            Books
+            {filter === 'Recommended' ? 'Recommended Books' : 'Books'}
           </h1>
+          {filter === 'Recommended' && (
+            <span className={`text-xs px-3 py-1 rounded-full font-medium ${wishlistData && (Array.isArray(wishlistData) ? wishlistData.length > 0 : wishlistData?.results?.length > 0) ? 'bg-pink-100 text-pink-700' : 'bg-amber-100 text-amber-800'}`}>
+              {wishlistData && (Array.isArray(wishlistData) ? wishlistData.length > 0 : wishlistData?.results?.length > 0) ? 'Personalized based on Wishlist' : 'Popular Choices (Most Loaned)'}
+            </span>
+          )}
         </div>
 
         {isLoading ? (

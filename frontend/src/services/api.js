@@ -74,6 +74,9 @@ export const dashboard = {
 export const catalog = {
   getBooks: (params) =>
     client.get('/books/', { params }),
+
+  getRecommendations: () =>
+    client.get('/books/recommendations/'),
   
   addBook: (data) =>
     client.post('/books/', data),
