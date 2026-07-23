@@ -8,9 +8,6 @@ export default function Recommended() {
   const navigate = useNavigate();
   const { data, isLoading: loading, error } = useApi(catalog.getRecommendations, null);
   
-  const title = data?.title || "Recommended For You";
-  const reason = data?.reason || "";
-  const isWishlistBased = data?.recommendation_type === "wishlist";
   const bookList = data?.results || [];
 
   const recommendedBooks = bookList.slice(0, 5).map(book => ({
@@ -31,13 +28,8 @@ export default function Recommended() {
   return (
     <div className="bg-white p-5 rounded-4xl shadow-md border border-gray-100 h-full flex flex-col justify-between">
       <div>
-        <div className="flex justify-between items-center mb-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${isWishlistBased ? 'bg-pink-100 text-pink-700' : 'bg-amber-100 text-amber-800'}`}>
-              {isWishlistBased ? 'Based on Wishlist' : 'Most Popular'}
-            </span>
-          </div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Recommendations</h2>
           <button 
             onClick={() => navigate('/user/books')}
             className="text-sm text-gray-600 hover:text-black flex items-center gap-1 hover:scale-105 transition cursor-pointer"
@@ -45,7 +37,6 @@ export default function Recommended() {
             View All →
           </button>
         </div>
-        {reason && <p className="text-xs text-gray-500 mb-3">{reason}</p>}
 
         <div className="flex gap-4 items-center overflow-x-auto pt-1 pb-2">
           {loading ? (
