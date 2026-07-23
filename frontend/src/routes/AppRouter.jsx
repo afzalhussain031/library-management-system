@@ -19,6 +19,8 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import Circulation from "../pages/admin/Circulation";
 import FinesAndPayments from "../pages/admin/FinesAndPayments";
 import Reservations from '../pages/admin/Reservations';
+import Settings from '../pages/shared/Settings';
+import Help from '../pages/shared/Help';
 
 
 // ==========================================
@@ -62,6 +64,8 @@ const AppRouter = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<UserProfile />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/help" element={<Help />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/books" element={<Books />} />
           <Route path="/my-loans" element={<MyLoans />} />
