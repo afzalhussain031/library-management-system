@@ -31,13 +31,13 @@ export default function Recommended() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Recommendations</h2>
           <button 
-            onClick={() => navigate('/user/books')}
+            onClick={() => navigate('/books', { state: { initialFilter: 'Recommended' } })}
             className="text-sm text-gray-600 hover:text-black flex items-center gap-1 hover:scale-105 transition cursor-pointer"
           >
             View All →
           </button>
         </div>
-
+ 
         <div className="flex gap-4 items-center overflow-x-auto pt-1 pb-2">
           {loading ? (
             [1, 2, 3, 4].map(key => (
@@ -47,7 +47,7 @@ export default function Recommended() {
             recommendedBooks.map((book) => (
               <div
                 key={book.id}
-                onClick={() => navigate('/user/books')}
+                onClick={() => navigate('/books', { state: { initialFilter: 'Recommended' } })}
                 title={`${book.title} ${book.author ? `by ${book.author}` : ''}`}
                 className="w-25 min-w-20 h-29 bg-gray-100 border border-gray-200 rounded-md flex items-center justify-center text-[10px] text-center font-medium text-gray-700 cursor-pointer shrink-0 transition-all duration-200 hover:bg-yellow-400 hover:text-black hover:shadow-md p-2"
               >
@@ -59,9 +59,9 @@ export default function Recommended() {
               </div>
             ))
           )}
-
+ 
           <div 
-            onClick={() => navigate('/user/books')}
+            onClick={() => navigate('/books', { state: { initialFilter: 'Recommended' } })}
             className="text-xl text-gray-400 cursor-pointer hover:text-black transition pl-1"
           >
             →

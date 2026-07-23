@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react"
+import { useLocation } from "react-router-dom";
 
 
 
@@ -11,7 +12,8 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 
 
 export default function Books() {
-  const [filter, setFilter] = useState('AllBooks');
+  const location = useLocation();
+  const [filter, setFilter] = useState(location.state?.initialFilter || 'AllBooks');
   const [sort, setSort] = useState('popularity');
 
   const fetchBooks = useCallback(() => {
