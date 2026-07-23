@@ -115,6 +115,20 @@ def populate():
         {"title": "Sapiens: A Brief History", "author": "Yuval Noah Harari", "date": "2015-02-10", "isbn": "9780062316097", "cat": "History", "pub": "HarperCollins"},
         {"title": "Meditations", "author": "Marcus Aurelius", "date": "2002-05-14", "isbn": "9780812968255", "cat": "Philosophy", "pub": "Penguin Random House"},
         {"title": "Thinking, Fast and Slow", "author": "Daniel Kahneman", "date": "2011-10-25", "isbn": "9780374275631", "cat": "Business & Economics", "pub": "Simon & Schuster"},
+        
+        # Additional Books
+        {"title": "Refactoring", "author": "Martin Fowler", "date": "2018-11-20", "isbn": "9780134757599", "cat": "Computer Science", "pub": "Pearson Education"},
+        {"title": "Code Complete", "author": "Steve McConnell", "date": "2004-06-19", "isbn": "9780735619678", "cat": "Computer Science", "pub": "Pearson Education"},
+        {"title": "Foundation", "author": "Isaac Asimov", "date": "1951-06-01", "isbn": "9780553293357", "cat": "Science Fiction", "pub": "Penguin Random House"},
+        {"title": "Neuromancer", "author": "William Gibson", "date": "1984-07-01", "isbn": "9780441569595", "cat": "Science Fiction", "pub": "Penguin Random House"},
+        {"title": "The Republic", "author": "Plato", "date": "1901-01-01", "isbn": "9780140455113", "cat": "Philosophy", "pub": "Penguin Random House"},
+        {"title": "Thus Spoke Zarathustra", "author": "Friedrich Nietzsche", "date": "1883-01-01", "isbn": "9780140441185", "cat": "Philosophy", "pub": "Penguin Random House"},
+        {"title": "Guns, Germs, and Steel", "author": "Jared Diamond", "date": "1997-03-01", "isbn": "9780393317558", "cat": "History", "pub": "HarperCollins"},
+        {"title": "The Silk Roads", "author": "Peter Frankopan", "date": "2015-08-27", "isbn": "9781101912379", "cat": "History", "pub": "HarperCollins"},
+        {"title": "A Brief History of Time", "author": "Stephen Hawking", "date": "1988-04-01", "isbn": "9780553380163", "cat": "Physics", "pub": "Penguin Random House"},
+        {"title": "Linear Algebra and Its Applications", "author": "Gilbert Strang", "date": "2005-01-01", "isbn": "9780030105678", "cat": "Mathematics", "pub": "Pearson Education"},
+        {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald", "date": "1925-04-10", "isbn": "9780743273565", "cat": "Fiction", "pub": "Simon & Schuster"},
+        {"title": "1984", "author": "George Orwell", "date": "1949-06-08", "isbn": "9780451524935", "cat": "Fiction", "pub": "HarperCollins"},
     ]
     
     books = {}
@@ -147,6 +161,20 @@ def populate():
         {"book": "Dune", "accession": "CPY-008", "status": BookCopy.LOANED},
         {"book": "Sapiens: A Brief History", "accession": "CPY-009", "status": BookCopy.LOANED},
         {"book": "Thinking, Fast and Slow", "accession": "CPY-010", "status": BookCopy.LOANED},
+        
+        # New copies
+        {"book": "Refactoring", "accession": "CPY-011", "status": BookCopy.AVAILABLE},
+        {"book": "Code Complete", "accession": "CPY-012", "status": BookCopy.AVAILABLE},
+        {"book": "Foundation", "accession": "CPY-013", "status": BookCopy.AVAILABLE},
+        {"book": "Neuromancer", "accession": "CPY-014", "status": BookCopy.AVAILABLE},
+        {"book": "The Republic", "accession": "CPY-015", "status": BookCopy.AVAILABLE},
+        {"book": "Thus Spoke Zarathustra", "accession": "CPY-016", "status": BookCopy.AVAILABLE},
+        {"book": "Guns, Germs, and Steel", "accession": "CPY-017", "status": BookCopy.AVAILABLE},
+        {"book": "The Silk Roads", "accession": "CPY-018", "status": BookCopy.AVAILABLE},
+        {"book": "A Brief History of Time", "accession": "CPY-019", "status": BookCopy.AVAILABLE},
+        {"book": "Linear Algebra and Its Applications", "accession": "CPY-020", "status": BookCopy.AVAILABLE},
+        {"book": "The Great Gatsby", "accession": "CPY-021", "status": BookCopy.AVAILABLE},
+        {"book": "1984", "accession": "CPY-022", "status": BookCopy.AVAILABLE},
     ]
 
     copies = {}
