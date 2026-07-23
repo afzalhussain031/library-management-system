@@ -24,8 +24,15 @@ export default function Books() {
 
   const fetchWishlist = useCallback(() => catalog.getWishlist(), []);
 
-  const { data, isLoading, error } = useApi(fetchBooks, []);
-  const { data: wishlistData } = useApi(fetchWishlist, []);
+  const { data, isLoading, error, refetch: refetchBooks } = useApi(fetchBooks, []);
+  const { data: wishlistData, refetch: refetchWishlist } = useApi(fetchWishlist, []);
+
+  const handleWishlistToggle = useCallback(() => {
+    refetchWishlist();
+    if (filter === 'Recommended') {
+      refetchBooks();
+    }
+  }, [refetchWishlist, refetchBooks, filter]);
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
@@ -60,7 +67,7 @@ export default function Books() {
         {isLoading ? (
           <div className="p-4 text-gray-600">Loading books...</div>
         ) : (
-          <BookList books={books} wishlistMap={wishlistMap} />
+          <BookList books={books} wishlistMap={wishlistMap} onWishlistToggle={handleWishlistToggle} />
         )}
       </div>
       <div className="flex justify-center pb-1">

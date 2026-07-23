@@ -17,7 +17,7 @@ class BookViewSet(viewsets.ModelViewSet):
     def _get_recommended_queryset_and_meta(self, user):
         """
         Calculates book recommendations based on user status:
-        - If user has wishlist items (Regular User): recommends books matching categories/authors of wishlisted books + wishlisted books, sorted by popularity.
+        - If user has wishlist items (Regular User): recommends books matching categories/authors of wishlisted books (excluding wishlisted books themselves), sorted by popularity.
         - If user has no wishlist items (New User): recommends top most loaned books.
         Returns (queryset, meta_dict).
         """
@@ -30,13 +30,16 @@ class BookViewSet(viewsets.ModelViewSet):
             categories = list(Book.objects.filter(id__in=wishlist_book_ids).values_list('category_id', flat=True).distinct())
             authors = list(Book.objects.filter(id__in=wishlist_book_ids).values_list('author', flat=True).distinct())
 
+            # Find books in same categories or by same authors, excluding already wishlisted books
             matching_qs = Book.objects.filter(
-                Q(category_id__in=categories) | Q(author__in=authors) | Q(id__in=wishlist_book_ids)
+                Q(category_id__in=categories) | Q(author__in=authors)
+            ).exclude(
+                id__in=wishlist_book_ids
             ).annotate(loan_count=Count('copies__loans')).order_by('-loan_count', '-id').distinct()
 
-            # If matching count is small, fallback to top loaned books
+            # If matching count is small, fallback to top loaned books (still excluding wishlisted books)
             if matching_qs.count() < 4:
-                queryset = Book.objects.annotate(loan_count=Count('copies__loans')).order_by('-loan_count', '-id')
+                queryset = Book.objects.exclude(id__in=wishlist_book_ids).annotate(loan_count=Count('copies__loans')).order_by('-loan_count', '-id')
             else:
                 queryset = matching_qs
 

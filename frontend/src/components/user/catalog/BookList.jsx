@@ -1,7 +1,7 @@
 import React from "react";
 import BookCard from "./bookcard";
 
-const BookList = ({ books = [], wishlistMap = {} }) => {
+const BookList = ({ books = [], wishlistMap = {}, onWishlistToggle }) => {
   return (
     <div>
       {books.length === 0 ? (
@@ -14,6 +14,7 @@ const BookList = ({ books = [], wishlistMap = {} }) => {
             title={book.title} 
             author={book.author} 
             initialWishlistId={wishlistMap[book.id] || null}
+            onWishlistToggle={onWishlistToggle}
           />
         ))
       )}
