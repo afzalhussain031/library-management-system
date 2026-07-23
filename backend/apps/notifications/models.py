@@ -12,12 +12,13 @@ class Notification(models.Model):
         ("fine_created", "Fine Created"),
         ("fine_paid", "Fine Paid"),
         ("reservation_ready", "Reservation Ready"),
+        ("reservation_cancelled", "Reservation Cancelled"),
     ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
     )
-    notification_type = models.CharField(max_length=20, choices=TYPES)
+    notification_type = models.CharField(max_length=50, choices=TYPES)
     title = models.CharField(max_length=255)
     message = models.TextField()
     read = models.BooleanField(default=False)

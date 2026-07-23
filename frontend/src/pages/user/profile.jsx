@@ -1,5 +1,5 @@
 import { useAuth } from "../../context/AuthContext";
-import { profile } from "../../services/api";
+import { profile, dashboard } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
 
@@ -10,8 +10,9 @@ import BookHistory from "../../components/user/profile/BookHistory";
 export default function UserProfile() {
   const { currentUser } = useAuth(); // Get current user from context
   const { data: profileData, isLoading: loading, error } = useApi(profile.get, null);
+  const { data: statsData, isLoading: statsLoading, error: statsError } = useApi(dashboard.getStats, null);
 
-  if (error) return <ErrorMessage message={error} />;
+  if (error || statsError) return <ErrorMessage message={error || statsError} />;
   
   const safeProfile = profileData || {};
 
@@ -48,20 +49,20 @@ export default function UserProfile() {
           <InfoSection
             title="Library Information"
             data={[
-              ["Books Currently Borrowed", "3 Books"],
-              ["Total Borrowed", "18 Books"],
-              ["Membership ID", "LIB-009876"],
-              ["Valid Till", "31 Dec 2026"],
+              ["Books Currently Borrowed", statsData?.library_information?.currently_borrowed != null ? `${statsData.library_information.currently_borrowed} Books` : "N/A"],
+              ["Total Borrowed", statsData?.library_information?.total_borrowed != null ? `${statsData.library_information.total_borrowed} Books` : "N/A"],
+              ["Membership ID", safeProfile.user_id ? `LIB-${safeProfile.user_id}` : "N/A"],
+              ["Valid Till", statsData?.library_information?.membership_valid_till ? new Date(statsData.library_information.membership_valid_till).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "N/A"],
             ]}
-            fine={true}
-            isLoading={loading}
+            fine={statsData?.library_information?.pending_fines || 0}
+            isLoading={loading || statsLoading}
           />
 
         </div>
 
         {/* RIGHT SIDE */}
         <div className="lg:col-span-2">
-          <BookHistory isLoading={loading} />
+          <BookHistory isLoading={loading || statsLoading} />
         </div>
 
       </div>
