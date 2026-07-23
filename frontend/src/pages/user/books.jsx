@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react"
+import { useLocation } from "react-router-dom";
 
 
 
@@ -11,7 +12,8 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 
 
 export default function Books() {
-  const [filter, setFilter] = useState('AllBooks');
+  const location = useLocation();
+  const [filter, setFilter] = useState(location.state?.initialFilter || 'AllBooks');
   const [sort, setSort] = useState('popularity');
 
   const fetchBooks = useCallback(() => {
@@ -24,8 +26,15 @@ export default function Books() {
 
   const fetchWishlist = useCallback(() => catalog.getWishlist(), []);
 
-  const { data, isLoading, error } = useApi(fetchBooks, []);
-  const { data: wishlistData } = useApi(fetchWishlist, []);
+  const { data, isLoading, error, refetch: refetchBooks } = useApi(fetchBooks, []);
+  const { data: wishlistData, refetch: refetchWishlist } = useApi(fetchWishlist, []);
+
+  const handleWishlistToggle = useCallback(() => {
+    refetchWishlist();
+    if (filter === 'Recommended') {
+      refetchBooks();
+    }
+  }, [refetchWishlist, refetchBooks, filter]);
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
@@ -51,16 +60,16 @@ export default function Books() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4">
-        <div className="py-2">
+        <div className="py-2 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-800">
-            Books
+            {filter === 'Recommended' ? 'Recommendations' : 'Books'}
           </h1>
         </div>
 
         {isLoading ? (
           <div className="p-4 text-gray-600">Loading books...</div>
         ) : (
-          <BookList books={books} wishlistMap={wishlistMap} />
+          <BookList books={books} wishlistMap={wishlistMap} onWishlistToggle={handleWishlistToggle} />
         )}
       </div>
       <div className="flex justify-center pb-1">

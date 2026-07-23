@@ -4,7 +4,7 @@ import { catalog } from "../../../services/api";
 
 
 
-const BookCard = ({ id, title, author, initialWishlistId }) => {
+const BookCard = ({ id, title, author, initialWishlistId, onWishlistToggle }) => {
   
   const [wishlistId, setWishlistId] = useState(initialWishlistId);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -25,6 +25,9 @@ const BookCard = ({ id, title, author, initialWishlistId }) => {
       } else {
         const response = await catalog.addToWishlist({ book_id: id });
         setWishlistId(response.id || response.data?.id);
+      }
+      if (onWishlistToggle) {
+        onWishlistToggle();
       }
     } catch (error) {
       console.error("Failed to update wishlist:", error);
