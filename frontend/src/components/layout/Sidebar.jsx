@@ -51,7 +51,10 @@ export default function LMSSidebar({ open, onClose, onToggle, onOpenLendModal })
 
     // User Routes
     if (path === "/dashboard" || path === "/") return "Dashboard";
-    if (path === "/books") return "Browse Books";
+    if (path.startsWith("/books")) return "Browse Catalog";
+    if (path.startsWith("/my-loans")) return "My Loans";
+    if (path.startsWith("/my-reservations")) return "My Reservations";
+    if (path.startsWith("/my-fines")) return "Fines & Payments";
     if (path.startsWith("/wishlist")) return "Wishlist";
     
     // Shared Routes
