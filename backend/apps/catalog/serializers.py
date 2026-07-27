@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Book, Category, Publisher, Wishlist
+from .models import Book, Category, Publisher, Wishlist, Language
 from apps.inventory.models import BookCopy 
 from apps.circulation.models import Loan, Reservation
 from django.utils import timezone
@@ -12,6 +12,12 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class LanguageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Language
+        fields = "__all__"
+
+
 class PublisherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publisher
@@ -21,12 +27,16 @@ class PublisherSerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     publisher = PublisherSerializer(read_only=True)
+    language = LanguageSerializer(read_only=True)
     
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True, required=False, allow_null=True
     )
     publisher_id = serializers.PrimaryKeyRelatedField(
         queryset=Publisher.objects.all(), source="publisher", write_only=True, required=False, allow_null=True
+    )
+    language_id = serializers.PrimaryKeyRelatedField(
+        queryset=Language.objects.all(), source="language", write_only=True, required=False, allow_null=True
     )
     
     added_by = serializers.PrimaryKeyRelatedField(read_only=True)
