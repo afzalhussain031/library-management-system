@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Heart, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
-import { catalog } from "../../../services/api";
+import { catalog, circulation } from "../../../services/api";
 
-const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle }) => {
+const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservationUpdate }) => {
   const [wishlistId, setWishlistId] = useState(initialWishlistId);
   const [isUpdating, setIsUpdating] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -33,6 +33,70 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle }) => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleCancelHold = async (e) => {
+    e.stopPropagation();
+    if (isUpdating || book.user_interaction?.type !== 'reserved') return;
+    setIsUpdating(true);
+    try {
+      await circulation.updateReservationStatus(book.user_interaction.id, 'cancelled');
+      if (onReservationUpdate) {
+        onReservationUpdate();
+      }
+    } catch (error) {
+      console.error("Failed to cancel hold:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+
+
+  const renderActionButton = () => {
+    if (book.user_interaction?.type === 'reading') {
+      return (
+        <button 
+           className="px-4 py-1.5 bg-gray-100 text-gray-500 font-bold text-[12px] rounded-full cursor-not-allowed"
+           onClick={(e) => { e.stopPropagation(); }}
+           disabled
+        >
+           Currently Reading
+        </button>
+      );
+    }
+
+    if (book.user_interaction?.type === 'reserved') {
+      return (
+        <button 
+           className="px-4 py-1.5 bg-[#FFF4F4] text-[#F64E60] border border-[#F64E60]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE2E5] transition-colors"
+           onClick={handleCancelHold}
+           disabled={isUpdating}
+        >
+           Cancel Hold
+        </button>
+      );
+    }
+
+    if (book.available_copies > 0) {
+      return (
+        <button 
+           className="px-4 py-1.5 bg-[#EAF2FF] text-[#4386F5] font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors"
+           onClick={(e) => { e.stopPropagation(); /* Optional: handle reserve */ }}
+        >
+           Reserve
+        </button>
+      );
+    }
+
+    return (
+      <button 
+         className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 font-bold text-[12px] rounded-full hover:bg-gray-50 transition-colors"
+         onClick={(e) => { e.stopPropagation(); /* Optional: handle waitlist */ }}
+      >
+         Join Waitlist
+      </button>
+    );
   };
 
   const statusPill = () => {
@@ -70,7 +134,9 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle }) => {
           </div>
         </div>
         <div className="w-[240px] shrink-0 pr-4">
-          <p className="font-bold text-[#1C2434] text-[14px] truncate">{book.title}</p>
+          <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center">
+            <span className="truncate">{book.title}</span>
+          </p>
           <p className="text-[12px] text-gray-500 truncate">by {book.author}</p>
         </div>
         <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium pr-2">
@@ -87,30 +153,18 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle }) => {
         </div>
 
         <div className="flex-1 min-w-[160px] flex items-center justify-end gap-4 pr-2">
-          <button 
-             className={`cursor-pointer transition-transform hover:scale-110 ${isUpdating ? "opacity-50" : ""}`}
-             onClick={handleLikeClick}
-             disabled={isUpdating}
-             title={liked ? "Remove from Wishlist" : "Add to Wishlist"}
-          >
-             <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
-          </button>
-          
-          {book.available_copies > 0 ? (
+          {book.user_interaction?.type !== 'reading' && (
             <button 
-               className="px-4 py-1.5 bg-[#EAF2FF] text-[#4386F5] font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors"
-               onClick={(e) => { e.stopPropagation(); /* Optional: handle reserve */ }}
+               className={`cursor-pointer transition-transform hover:scale-110 ${isUpdating ? "opacity-50" : ""}`}
+               onClick={handleLikeClick}
+               disabled={isUpdating}
+               title={liked ? "Remove from Wishlist" : "Add to Wishlist"}
             >
-               Reserve
-            </button>
-          ) : (
-            <button 
-               className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 font-bold text-[12px] rounded-full hover:bg-gray-50 transition-colors"
-               onClick={(e) => { e.stopPropagation(); /* Optional: handle waitlist */ }}
-            >
-               Join Waitlist
+               <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
             </button>
           )}
+          
+          {renderActionButton()}
 
           <button className="text-gray-400 hover:text-gray-700 transition-colors ml-2">
              {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -128,7 +182,9 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle }) => {
              {book.title ? book.title.charAt(0).toUpperCase() : <BookOpen size={24} />}
           </div>
           <div className="flex-1 min-w-0">
-             <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate">{book.title}</p>
+             <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center">
+               <span className="truncate">{book.title}</span>
+             </p>
              <p className="text-[12px] text-gray-500 mb-2 truncate">by {book.author}</p>
              <div className="mb-2">
                  {statusPill()}
@@ -144,28 +200,16 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle }) => {
              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />} Details
            </button>
            <div className="flex items-center gap-4">
-             <button 
-                className={`cursor-pointer transition-transform ${isUpdating ? "opacity-50" : ""}`}
-                onClick={handleLikeClick}
-                disabled={isUpdating}
-             >
-                <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
-             </button>
-             {book.available_copies > 0 ? (
+             {book.user_interaction?.type !== 'reading' && (
                <button 
-                  className="px-4 py-1.5 bg-[#EAF2FF] text-[#4386F5] font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors"
-                  onClick={(e) => { e.stopPropagation(); }}
+                  className={`cursor-pointer transition-transform ${isUpdating ? "opacity-50" : ""}`}
+                  onClick={handleLikeClick}
+                  disabled={isUpdating}
                >
-                  Reserve
-               </button>
-             ) : (
-               <button 
-                  className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 font-bold text-[12px] rounded-full hover:bg-gray-50 transition-colors"
-                  onClick={(e) => { e.stopPropagation(); }}
-               >
-                  Join Waitlist
+                  <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
                </button>
              )}
+             {renderActionButton()}
            </div>
         </div>
       </div>

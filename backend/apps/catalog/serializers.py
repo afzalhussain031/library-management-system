@@ -40,6 +40,8 @@ class BookSerializer(serializers.ModelSerializer):
     overdue_copies = serializers.SerializerMethodField()
     requests_count = serializers.SerializerMethodField()
     returned_copies = serializers.SerializerMethodField()
+    
+    user_interaction = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
@@ -71,6 +73,23 @@ class BookSerializer(serializers.ModelSerializer):
     def get_returned_copies(self, obj):
         # Counts loans for this book that HAVE been returned
         return Loan.objects.filter(copy__book=obj, returned_at__isnull=False).count()
+
+    def get_user_interaction(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+            
+        user = request.user
+        
+        loan = Loan.objects.filter(borrower=user, copy__book=obj, returned_at__isnull=True).first()
+        if loan:
+            return {'type': 'reading', 'id': loan.id}
+            
+        reservation = Reservation.objects.filter(user=user, book=obj, status__in=[Reservation.PENDING, Reservation.READY]).first()
+        if reservation:
+            return {'type': 'reserved', 'id': reservation.id}
+            
+        return None
 
 class WishlistSerializer(serializers.ModelSerializer):
     book = BookSerializer(read_only=True)

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { catalog } from "../../services/api";
+import { catalog, dashboard, circulation } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import BookList from "../../components/user/catalog/BookList";
@@ -19,6 +19,10 @@ export default function Books() {
   const handleWishlistToggle = useCallback(() => {
     refetchWishlist();
   }, [refetchWishlist]);
+
+  const handleReservationUpdate = useCallback(() => {
+    refetchBooks(); // Update copies count and user interaction
+  }, [refetchBooks]);
 
   const rawBooks = Array.isArray(rawBooksData) ? rawBooksData : rawBooksData?.results || [];
 
@@ -41,6 +45,8 @@ export default function Books() {
     });
     return map;
   }, [wishlistData]);
+
+
 
   // Filtering Logic
   const filteredBooks = useMemo(() => {
@@ -151,6 +157,7 @@ export default function Books() {
            isLoading={isLoading} 
            wishlistMap={wishlistMap} 
            onWishlistToggle={handleWishlistToggle} 
+           onReservationUpdate={handleReservationUpdate}
          />
       </div>
 

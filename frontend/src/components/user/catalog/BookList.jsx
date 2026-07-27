@@ -1,7 +1,7 @@
 import React from "react";
 import BookCard from "./BookCard";
 
-const BookList = ({ books = [], isLoading = false, wishlistMap = {}, onWishlistToggle }) => {
+const BookList = ({ books = [], isLoading = false, wishlistMap = {}, onWishlistToggle, onReservationUpdate }) => {
   return (
     <div className="w-full">
       {/* Desktop Table View Header */}
@@ -48,6 +48,7 @@ const BookList = ({ books = [], isLoading = false, wishlistMap = {}, onWishlistT
               idx={idx}
               initialWishlistId={wishlistMap[book.id] || null}
               onWishlistToggle={onWishlistToggle}
+              onReservationUpdate={onReservationUpdate}
             />
           ))
         )}
