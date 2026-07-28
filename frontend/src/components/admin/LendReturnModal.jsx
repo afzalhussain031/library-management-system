@@ -462,6 +462,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
               form="circulation-form"
               type="submit"
               isLoading={isSubmitting}
+              loadingText={activeTab === 'lend' ? 'Issuing...' : 'Returning...'}
               className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
             >
               {activeTab === 'lend' ? 'Confirm Issue' : 'Confirm Return'}

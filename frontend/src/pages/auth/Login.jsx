@@ -203,6 +203,7 @@ export default function Login() {
               <Button
                 type="submit"
                 isLoading={isSubmitting}
+                loadingText="Logging in..."
                 // handleSubmit validates form before calling handleFormSubmit
                 // If validation fails, nothing happens (onSubmit not called)
                 // If validation passes, handleFormSubmit is called

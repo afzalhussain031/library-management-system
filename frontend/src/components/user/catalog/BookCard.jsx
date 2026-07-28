@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Heart, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
+import { Heart, ChevronDown, ChevronUp, BookOpen, Loader2 } from "lucide-react";
 import { catalog, circulation } from "../../../services/api";
 import { toast } from "react-hot-toast";
 const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservationUpdate }) => {
@@ -74,11 +74,12 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservatio
     if (book.user_interaction?.type === 'reserved') {
       return (
         <button 
-           className="px-4 py-1.5 bg-[#FFF4F4] text-[#F64E60] border border-[#F64E60]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE2E5] transition-colors"
+           className="px-4 py-1.5 bg-[#FFF4F4] text-[#F64E60] border border-[#F64E60]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE2E5] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
            onClick={handleCancelHold}
            disabled={isUpdating}
         >
-           Cancel Hold
+           {isUpdating && <Loader2 size={12} className="animate-spin" />}
+           {isUpdating ? "Cancelling..." : "Cancel Hold"}
         </button>
       );
     }
@@ -160,12 +161,16 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservatio
         <div className="flex-1 min-w-[160px] flex items-center justify-end gap-4 pr-2">
           {book.user_interaction?.type !== 'reading' && (
             <button 
-               className={`cursor-pointer transition-transform hover:scale-110 ${isUpdating ? "opacity-50" : ""}`}
+               className={`cursor-pointer flex items-center justify-center transition-transform hover:scale-110 ${isUpdating ? "opacity-50" : ""}`}
                onClick={handleLikeClick}
                disabled={isUpdating}
                title={liked ? "Remove from Wishlist" : "Add to Wishlist"}
             >
-               <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
+               {isUpdating ? (
+                 <Loader2 size={20} className="animate-spin text-gray-400" />
+               ) : (
+                 <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
+               )}
             </button>
           )}
           
@@ -207,11 +212,15 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservatio
            <div className="flex items-center gap-4">
              {book.user_interaction?.type !== 'reading' && (
                <button 
-                  className={`cursor-pointer transition-transform ${isUpdating ? "opacity-50" : ""}`}
+                  className={`cursor-pointer flex items-center justify-center transition-transform ${isUpdating ? "opacity-50" : ""}`}
                   onClick={handleLikeClick}
                   disabled={isUpdating}
                >
-                  <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
+                  {isUpdating ? (
+                    <Loader2 size={20} className="animate-spin text-gray-400" />
+                  ) : (
+                    <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
+                  )}
                </button>
              )}
              {renderActionButton()}
