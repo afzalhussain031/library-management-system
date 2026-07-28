@@ -40,6 +40,7 @@ class BookSerializer(serializers.ModelSerializer):
     overdue_copies = serializers.SerializerMethodField()
     requests_count = serializers.SerializerMethodField()
     returned_copies = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
@@ -71,6 +72,11 @@ class BookSerializer(serializers.ModelSerializer):
     def get_returned_copies(self, obj):
         # Counts loans for this book that HAVE been returned
         return Loan.objects.filter(copy__book=obj, returned_at__isnull=False).count()
+
+    def get_cover_image(self, obj):
+        if obj.isbn:
+            return f"https://covers.openlibrary.org/b/isbn/{obj.isbn}-M.jpg"
+        return None
 
 class WishlistSerializer(serializers.ModelSerializer):
     book = BookSerializer(read_only=True)
