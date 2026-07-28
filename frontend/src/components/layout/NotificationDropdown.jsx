@@ -3,6 +3,7 @@ import { Bell, X } from "lucide-react";
 import { dashboard } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import { SkeletonAvatar, SkeletonText } from "../common/Skeleton";
+import { toast } from "react-hot-toast";
 
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,6 +55,7 @@ export default function NotificationDropdown() {
       setLocalNotifications(prev => prev.filter((_, idx) => idx !== indexToRemove));
     } catch (err) {
       console.error("Failed to mark notification as read", err);
+      toast.error("Failed to dismiss notification");
     }
   };
 

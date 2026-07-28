@@ -139,17 +139,11 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
             <Button
               form="add-member-form"
               type="submit"
-              disabled={isSubmitting}
+              isLoading={isSubmitting}
+              loadingText="Saving..."
               className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
             >
-              {isSubmitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader size={16} className="animate-spin text-slate-700" />
-                  Saving...
-                </span>
-              ) : (
-                'Save Member'
-              )}
+              Save Member
             </Button>
           </div>
 

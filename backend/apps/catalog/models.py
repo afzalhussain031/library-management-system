@@ -24,6 +24,16 @@ class Publisher(models.Model):
         return self.name
 
 
+class Language(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        db_table = "library_language"
+
+    def __str__(self):
+        return self.name
+
+
 class Book(models.Model):
     title = models.CharField(max_length=255)
     author = models.CharField(max_length=255)
@@ -49,6 +59,13 @@ class Book(models.Model):
         null=True,
         blank=True,
         related_name="added_books",
+    )
+    language = models.ForeignKey(
+        Language,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="books",
     )
 
     class Meta:

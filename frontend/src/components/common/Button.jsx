@@ -1,7 +1,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-const Button = ({ children, isLoading, disabled, className = "", type = "button", ...props }) => {
+const Button = ({ children, isLoading, loadingText = "Processing...", disabled, className = "", type = "button", ...props }) => {
   return (
     <button
       type={type}
@@ -12,7 +12,7 @@ const Button = ({ children, isLoading, disabled, className = "", type = "button"
       {isLoading ? (
         <div className="flex items-center justify-center gap-2">
           <Loader2 size={16} className="animate-spin" />
-          <span>Processing...</span>
+          <span>{loadingText}</span>
         </div>
       ) : (
         children

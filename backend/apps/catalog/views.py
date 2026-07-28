@@ -6,8 +6,8 @@ from django.db.models import Count, Q
 
 from common.permissions.base import IsStaffOrReadOnly
 
-from .models import Book, Category, Publisher, Wishlist
-from .serializers import BookSerializer, CategorySerializer, PublisherSerializer, WishlistSerializer
+from .models import Book, Category, Publisher, Wishlist, Language
+from .serializers import BookSerializer, CategorySerializer, PublisherSerializer, WishlistSerializer, LanguageSerializer
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -68,6 +68,23 @@ class BookViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(copies__status='available').distinct()
             elif filter_param.lower() == 'recommended':
                 queryset, _ = self._get_recommended_queryset_and_meta(self.request.user)
+
+        # Faceted Filtering
+        categories = self.request.query_params.getlist('category')
+        if categories:
+            queryset = queryset.filter(category__name__in=categories)
+            
+        authors = self.request.query_params.getlist('author')
+        if authors:
+            queryset = queryset.filter(author__in=authors)
+            
+        years = self.request.query_params.getlist('year')
+        if years:
+            queryset = queryset.filter(published_date__year__in=years)
+            
+        languages = self.request.query_params.getlist('language')
+        if languages:
+            queryset = queryset.filter(language__name__in=languages)
                 
         # Sorting
         sort_param = self.request.query_params.get('sort')
@@ -99,6 +116,12 @@ class BookViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsStaffOrReadOnly]
+
+
+class LanguageViewSet(viewsets.ModelViewSet):
+    queryset = Language.objects.all()
+    serializer_class = LanguageSerializer
     permission_classes = [IsStaffOrReadOnly]
 
 
