@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import profileImg from "../../assets/profile.jpg";
 import NotificationDropdown from "./NotificationDropdown";
+import { toast } from "react-hot-toast";
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
@@ -11,9 +12,11 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      toast.success("Logged out successfully");
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
+      toast.error("Logout failed");
     }
   };
 

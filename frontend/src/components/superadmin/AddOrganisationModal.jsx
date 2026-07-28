@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addOrganisationSchema } from '../../schemas/formSchemas'
 import { X, Building, AlertCircle } from 'lucide-react'
-
+import { toast } from 'react-hot-toast'
 const AddOrganisationModal = ({ onClose, onAdd }) => {
   // ====== REACT HOOK FORM SETUP ======
   const {
@@ -37,10 +37,12 @@ const AddOrganisationModal = ({ onClose, onAdd }) => {
       }
 
       onAdd(newOrg)
+      toast.success("Organisation added successfully!")
       reset()
       onClose()
     } catch (err) {
       console.error('Error:', err)
+      toast.error("Failed to add organisation")
     }
   }
 
