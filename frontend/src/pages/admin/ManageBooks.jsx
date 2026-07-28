@@ -256,7 +256,7 @@ const Books = () => {
                 filteredBooks.map((book, idx) => (
                   <div
                   key={book.id}
-                  className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-200 overflow-hidden"
+                  className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 overflow-hidden"
                 >
                   {/* Main Row */}
                   <div
@@ -401,7 +401,7 @@ const Books = () => {
               </div>
            ) : (
              filteredBooks.map((book) => (
-                <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3">
+                <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80">
                   <div className="flex gap-4">
                     {/* Thumbnail placeholder */}
                     <div className="w-16 h-24 bg-[#EAEAEA] flex items-center justify-center text-[10px] text-gray-400 font-medium rounded-md shrink-0">

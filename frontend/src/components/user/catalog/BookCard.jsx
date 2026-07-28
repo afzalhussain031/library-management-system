@@ -127,10 +127,10 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservatio
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-200 overflow-hidden mb-3">
+    <div className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 overflow-hidden mb-3">
       {/* Desktop Row View */}
       <div 
-        className="hidden lg:flex items-center px-6 py-4 cursor-pointer hover:bg-white/80 transition-colors"
+        className="hidden lg:flex items-center px-6 py-4 cursor-pointer transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="w-[80px] shrink-0">

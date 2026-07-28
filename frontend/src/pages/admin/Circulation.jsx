@@ -196,7 +196,7 @@ const Circulation = () => {
                 </div>
               ) : (
                 filteredLoans.map((loan) => (
-                  <div key={loan.id} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4">
+                  <div key={loan.id} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80">
                     <div className="w-[80px] shrink-0 text-[13px] font-medium text-gray-400">
                       #{loan.id}
                     </div>
