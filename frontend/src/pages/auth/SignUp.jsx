@@ -340,6 +340,7 @@ export default function SignUp() {
               <Button
                 type="submit"
                 isLoading={isSubmitting}
+                loadingText="Registering..."
                 className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-200 disabled:text-gray-400 active:scale-[0.98] transition-all duration-200 py-3 rounded-full text-sm font-semibold text-gray-900"
               >
                 Register

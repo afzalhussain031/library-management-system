@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../components/user/wishlist/Navbar";
 import BookList from "../../components/user/wishlist/BookList";
 import { catalog, circulation } from "../../services/api";
-
+import { toast } from "react-hot-toast";
 export default function Wishlist() {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,6 +22,7 @@ export default function Wishlist() {
       setError(null);
     } catch (err) {
       setError("Failed to fetch wishlist items.");
+      toast.error(err.response?.data?.message || "Failed to fetch wishlist items.");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -44,10 +45,10 @@ export default function Wishlist() {
         )
       );
       setWishlistItems([]);
-      alert("All books reserved successfully!");
+      toast.success("All books reserved successfully!");
     } catch (err) {
       console.error("Error reserving all books:", err);
-      alert("Failed to reserve some books. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to reserve some books. Please try again.");
     } finally {
       setIsReservingAll(false);
     }
