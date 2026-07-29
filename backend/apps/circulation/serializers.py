@@ -159,6 +159,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             "pickup_location",
             "loan_id",
             "fulfilled_at",
+            "cancellation_reason",
+            "cancelled_at",
         ]
 
     # 3. Define how to fetch the name

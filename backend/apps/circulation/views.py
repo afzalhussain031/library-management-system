@@ -228,15 +228,20 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 message=f"Good news! Your reserved book '{instance.book.title}' is now available. Please pick it up from the library."
             )
         # 2. Handling Cancellation/Denial
-        elif instance.status == Reservation.CANCELLED and instance.allocated_copy:
-            # Release the locked copy back to the library
-            released_copy = instance.allocated_copy
-            released_copy.status = BookCopy.AVAILABLE
-            released_copy.save(update_fields=['status'])
-            
-            # Unlink it from the reservation
-            instance.allocated_copy = None
-            instance.save(update_fields=['allocated_copy'])
+        elif instance.status == Reservation.CANCELLED and old_status != Reservation.CANCELLED:
+            if not instance.cancelled_at:
+                instance.cancelled_at = timezone.now()
+                instance.save(update_fields=['cancelled_at'])
+
+            if instance.allocated_copy:
+                # Release the locked copy back to the library
+                released_copy = instance.allocated_copy
+                released_copy.status = BookCopy.AVAILABLE
+                released_copy.save(update_fields=['status'])
+                
+                # Unlink it from the reservation
+                instance.allocated_copy = None
+                instance.save(update_fields=['allocated_copy'])
             
             create_student_notification(
                 user=instance.user,

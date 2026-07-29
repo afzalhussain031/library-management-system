@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../hook/useApi';
 import { circulation } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus, ExternalLink } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus, ExternalLink, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const FILTER_STATUSES = ['ALL', 'PENDING', 'READY', 'FULFILLED', 'CANCELLED'];
@@ -32,12 +32,29 @@ export default function MyReservations() {
     setProcessingHoldId(id);
     const toastId = toast.loading("Cancelling hold...");
     try {
-      await circulation.updateReservationStatus(id, 'cancelled');
+      await circulation.updateReservationStatus(id, 'cancelled', { cancellation_reason: 'Cancelled by you' });
       toast.success("Hold cancelled successfully", { id: toastId });
       refetch();
     } catch (error) {
       console.error("Failed to cancel hold:", error);
       toast.error(error.response?.data?.message || "Failed to cancel hold", { id: toastId });
+    } finally {
+      setProcessingHoldId(null);
+    }
+  };
+
+  const handleReserveAgain = async (e, bookId) => {
+    e.stopPropagation();
+    if (processingHoldId) return;
+    setProcessingHoldId(`reserve-${bookId}`);
+    const toastId = toast.loading("Reserving...");
+    try {
+      await circulation.createReservation({ book: bookId });
+      toast.success("Reserved successfully", { id: toastId });
+      refetch();
+    } catch (error) {
+      console.error("Failed to reserve again:", error);
+      toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to reserve", { id: toastId });
     } finally {
       setProcessingHoldId(null);
     }
@@ -294,14 +311,27 @@ export default function MyReservations() {
                                  #{reservation.queue_position} in line
                              </div>
                           )}
+                          {isReady && reservation.pickup_location && (
+                             <div className="mt-1 flex items-start gap-1 text-gray-500">
+                                <MapPin size={12} className="mt-0.5 shrink-0" />
+                                <span className="text-[11px] leading-tight">Pickup at: <span className="font-medium">{reservation.pickup_location}</span></span>
+                             </div>
+                          )}
                         </>
                       );
                     })()}
                   </div>
                   <div className="w-[120px] shrink-0 flex flex-col gap-1">
                     {getStatusBadge(reservation.status)}
+                    {isCancelled && (
+                       <div className="mt-1 flex items-start gap-1 text-[#F64E60] max-w-full">
+                          <span className="text-[10px] leading-tight line-clamp-2" title={reservation.cancellation_reason}>
+                            {reservation.cancellation_reason || 'Cancelled'}
+                          </span>
+                       </div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-[100px] flex items-center justify-end">
+                  <div className="flex-1 min-w-[100px] flex items-center justify-end gap-2">
                     {(isPending || isReady) && (
                       <button 
                          className="px-4 py-1.5 bg-[#FFF4F4] text-[#F64E60] border border-[#F64E60]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE2E5] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
@@ -311,6 +341,30 @@ export default function MyReservations() {
                          {isProcessing && <Loader2 size={12} className="animate-spin" />}
                          {isProcessing ? "Cancelling..." : "Cancel Hold"}
                       </button>
+                    )}
+                    {isReady && (
+                      <button 
+                        className="px-4 py-1.5 bg-blue-50 text-[#3699FF] border border-blue-200 font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={(e) => handleExtendPickup(e, reservation.id)}
+                        disabled={isProcessing || reservation.is_extended}
+                      >
+                        <CalendarPlus size={14} />
+                        {reservation.is_extended ? "Extended" : "Extend 24h"}
+                      </button>
+                    )}
+                    {isCancelled && (
+                       <button 
+                         className="px-4 py-1.5 bg-red-50 text-[#F64E60] border border-red-200 font-bold text-[12px] rounded-full hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                         onClick={(e) => handleReserveAgain(e, reservation.book_id)}
+                         disabled={isProcessing}
+                       >
+                         {processingHoldId === `reserve-${reservation.book_id}` ? (
+                           <Loader2 size={14} className="animate-spin" />
+                         ) : (
+                           <RefreshCw size={14} />
+                         )}
+                         Reserve Again
+                       </button>
                     )}
                     {isFulfilled && reservation.loan_id && (
                       <button 
@@ -324,7 +378,7 @@ export default function MyReservations() {
                          View Loan Details
                       </button>
                     )}
-                    <button className="text-gray-400 hover:text-gray-700 transition-colors ml-4 hidden lg:block">
+                    <button className="text-gray-400 hover:text-gray-700 transition-colors ml-2 hidden lg:block shrink-0">
                       {expandedId === reservation.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                   </div>
@@ -341,8 +395,15 @@ export default function MyReservations() {
                          <span className="truncate">{reservation.book_title || "Unknown Title"}</span>
                        </p>
                        <p className="text-[12px] text-gray-500 mb-2 truncate">by {reservation.book_author || "Unknown Author"}</p>
-                       <div className="mb-2 flex flex-wrap gap-2 items-center">
-                           {getStatusBadge(reservation.status)}
+                       <div className="mb-2 flex flex-col gap-1">
+                           <div className="flex flex-wrap gap-2 items-center">
+                               {getStatusBadge(reservation.status)}
+                           </div>
+                           {isCancelled && (
+                               <div className="text-[#F64E60] text-[11px] leading-tight mt-0.5">
+                                   {reservation.cancellation_reason || 'Cancelled'}
+                               </div>
+                           )}
                        </div>
                     </div>
                   </div>
@@ -378,13 +439,29 @@ export default function MyReservations() {
                                      #{reservation.queue_position} in line
                                  </div>
                               )}
+                              {isReady && reservation.pickup_location && (
+                                 <div className="mt-2 flex items-start gap-1 text-gray-500 bg-gray-50 px-2 py-1.5 rounded-md border border-gray-100">
+                                    <MapPin size={12} className="mt-0.5 shrink-0" />
+                                    <span className="text-[11px] leading-tight">Pickup at: <span className="font-medium">{reservation.pickup_location}</span></span>
+                                 </div>
+                              )}
                             </>
                           );
                         })()}
                      </div>
 
-                     {(isPending || isReady) && (
-                       <div className="flex justify-end mt-1 w-full">
+                     <div className="flex flex-col gap-2 mt-3 w-full">
+                       {isReady && (
+                           <button 
+                             className="w-full px-4 py-1.5 bg-blue-50 text-[#3699FF] border border-blue-200 font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                             onClick={(e) => handleExtendPickup(e, reservation.id)}
+                             disabled={isProcessing || reservation.is_extended}
+                           >
+                             <CalendarPlus size={14} />
+                             {reservation.is_extended ? "Extended" : "Request 24h Extension"}
+                           </button>
+                       )}
+                       {(isPending || isReady) && (
                           <button 
                              className="w-full px-4 py-1.5 bg-[#FFF4F4] text-[#F64E60] border border-[#F64E60]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE2E5] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                              onClick={(e) => handleCancelHold(e, reservation.id)}
@@ -393,11 +470,22 @@ export default function MyReservations() {
                              {isProcessing && <Loader2 size={12} className="animate-spin" />}
                              {isProcessing ? "Cancelling..." : "Cancel Hold"}
                           </button>
-                       </div>
-                     )}
-                     
-                     {isFulfilled && reservation.loan_id && (
-                       <div className="flex justify-end mt-1 w-full">
+                       )}
+                       {isCancelled && (
+                           <button 
+                             className="w-full px-4 py-1.5 bg-red-50 text-[#F64E60] border border-red-200 font-bold text-[12px] rounded-full hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                             onClick={(e) => handleReserveAgain(e, reservation.book_id)}
+                             disabled={isProcessing}
+                           >
+                             {processingHoldId === `reserve-${reservation.book_id}` ? (
+                               <Loader2 size={14} className="animate-spin" />
+                             ) : (
+                               <RefreshCw size={14} />
+                             )}
+                             Reserve Again
+                           </button>
+                       )}
+                       {isFulfilled && reservation.loan_id && (
                           <button 
                              className="w-full px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                              onClick={(e) => {
@@ -408,35 +496,14 @@ export default function MyReservations() {
                              <ExternalLink size={14} />
                              View Loan Details
                           </button>
-                       </div>
-                     )}
+                       )}
+                     </div>
                   </div>
                   <div className="flex items-center justify-center pt-2 pb-1 border-t border-gray-100/50 text-gray-400 mt-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider mr-1">Details</span>
                     {expandedId === reservation.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </div>
                 </div>
-
-                {/* Action Banner for Ready State */}
-                {isReady && (
-                   <div className="w-full bg-[#F3F6F9] px-4 lg:px-6 py-3 border-t border-[#E4E6EF] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                      <div className="flex items-center gap-2 text-gray-700">
-                         <div className="bg-white p-1.5 rounded-full text-[#3699FF] shadow-sm">
-                            <MapPin size={14} />
-                         </div>
-                         <span className="text-[12px] font-bold whitespace-nowrap">Pickup at:</span>
-                         <span className="text-[12px]">{reservation.pickup_location}</span>
-                      </div>
-                      <button 
-                        className="w-full sm:w-auto px-4 py-1.5 bg-white text-[#3699FF] border border-[#E4E6EF] font-bold text-[12px] rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={(e) => handleExtendPickup(e, reservation.id)}
-                        disabled={isProcessing || reservation.is_extended}
-                      >
-                        <CalendarPlus size={14} />
-                        {reservation.is_extended ? "Extended" : "Request 24h Extension"}
-                      </button>
-                   </div>
-                )}
 
                 {/* Expanded Content */}
                 {expandedId === reservation.id && (
