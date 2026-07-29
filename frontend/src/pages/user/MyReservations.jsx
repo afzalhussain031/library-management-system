@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../hook/useApi';
 import { circulation } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const FILTER_STATUSES = ['ALL', 'PENDING', 'READY', 'FULFILLED', 'CANCELLED'];
@@ -15,6 +16,7 @@ const formatWaitTime = (days) => {
 };
 
 export default function MyReservations() {
+  const navigate = useNavigate();
   const { data: reservations, isLoading, error, refetch } = useApi(circulation.getReservations, []);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [expandedId, setExpandedId] = useState(null);
@@ -73,6 +75,74 @@ export default function MyReservations() {
       default:
         return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-500 flex items-center gap-1 w-fit">{status}</span>;
     }
+  };
+
+  const getTimelineData = (reservation) => {
+    const status = reservation.status.toLowerCase();
+    const reservedAt = new Date(reservation.reserved_at);
+    let endDate = null;
+    let endLabel = '';
+    let percent = 0;
+    let color = 'bg-gray-300';
+
+    if (status === 'fulfilled' && reservation.fulfilled_at) {
+        endDate = new Date(reservation.fulfilled_at);
+        endLabel = 'Fulfilled On';
+        percent = 100;
+        color = 'bg-[#1BC5BD]';
+    } else if (status === 'cancelled') {
+        endDate = new Date(reservation.reserved_at);
+        endLabel = 'Cancelled';
+        percent = 100;
+        color = 'bg-[#F64E60]';
+    } else if (status === 'ready' && reservation.expires_at) {
+        endDate = new Date(reservation.expires_at);
+        endLabel = 'Pick Up By';
+        
+        const now = new Date().getTime();
+        const start = reservedAt.getTime();
+        const end = endDate.getTime();
+        
+        if (now >= end) {
+            percent = 100;
+            color = 'bg-red-500';
+        } else {
+            const totalDuration = end - start;
+            const elapsed = now - start;
+            percent = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 100;
+            percent = Math.min(Math.max(percent, 0), 100);
+            
+            const hoursLeft = (end - now) / (1000 * 60 * 60);
+            if (hoursLeft <= 24) {
+                color = 'bg-orange-500';
+            } else {
+                color = 'bg-[#1BC5BD]';
+            }
+        }
+    } else if (status === 'pending') {
+        endLabel = 'Est. Ready';
+        if (reservation.estimated_wait_days != null) {
+            endDate = new Date(reservedAt);
+            endDate.setDate(endDate.getDate() + reservation.estimated_wait_days);
+            
+            const now = new Date().getTime();
+            const start = reservedAt.getTime();
+            const end = endDate.getTime();
+            
+            if (now >= end) {
+                percent = 100;
+                color = 'bg-[#E0B220]';
+            } else {
+                const totalDuration = end - start;
+                const elapsed = now - start;
+                percent = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 100;
+                percent = Math.min(Math.max(percent, 0), 100);
+                color = 'bg-[#E0B220]';
+            }
+        }
+    }
+
+    return { reservedAt, endDate, endLabel, percent, color };
   };
 
   const filteredReservations = reservations?.filter(reservation => {
@@ -171,6 +241,7 @@ export default function MyReservations() {
             const isReady = reservation.status.toLowerCase() === 'ready';
             const isPending = reservation.status.toLowerCase() === 'pending';
             const isCancelled = reservation.status.toLowerCase() === 'cancelled';
+            const isFulfilled = reservation.status.toLowerCase() === 'fulfilled';
             const isProcessing = processingHoldId === reservation.id;
 
             return (
@@ -194,42 +265,38 @@ export default function MyReservations() {
                     <p className="text-[12px] text-gray-500 truncate">{reservation.book_author || "Unknown Author"}</p>
                   </div>
                   <div className="w-[200px] shrink-0 flex flex-col gap-1 pr-4">
-                     <div className="text-[12px] text-gray-500">
-                        <span className="block text-[9px] text-gray-400 uppercase tracking-wider mb-0.5">Reserved On</span>
-                        <span className="font-medium">{new Date(reservation.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                     </div>
-                     {isPending && reservation.queue_position && (
-                         <div className="mt-1">
-                             <div className="text-[12px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block border border-blue-100">
-                                 You are #{reservation.queue_position} in line
+                    {(() => {
+                      const timeline = getTimelineData(reservation);
+                      return (
+                        <>
+                          <div className="flex justify-between items-center text-[12px]">
+                            <div className="text-gray-500">
+                              <span className="block text-[9px] text-gray-400 uppercase tracking-wider mb-0.5">Reserved</span>
+                              <span className="font-medium">{timeline.reservedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                            </div>
+                            <div className="text-right text-gray-500">
+                              <span className="block text-[9px] uppercase tracking-wider mb-0.5 text-gray-400">
+                                {timeline.endLabel}
+                              </span>
+                              <span className="font-medium">{timeline.endDate ? timeline.endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'}</span>
+                            </div>
+                          </div>
+                          {timeline.endLabel && timeline.endLabel !== 'Cancelled' && (
+                            <div className="w-full bg-gray-200 h-1.5 rounded-full mt-1">
+                              <div 
+                                className={`h-1.5 rounded-full ${timeline.color}`} 
+                                style={{ width: `${timeline.percent}%` }}
+                              ></div>
+                            </div>
+                          )}
+                          {isPending && reservation.queue_position && (
+                             <div className="mt-1 text-[11px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 w-fit">
+                                 #{reservation.queue_position} in line
                              </div>
-                             {reservation.estimated_wait_days != null && (
-                                 <div className="text-[11px] text-gray-500 mt-1 ml-1 font-medium">
-                                     Est. wait: {formatWaitTime(reservation.estimated_wait_days)}
-                                 </div>
-                             )}
-                         </div>
-                     )}
-                     {isReady && reservation.expires_at && (
-                        <div className="mt-1">
-                            {(() => {
-                                const expires = new Date(reservation.expires_at);
-                                const now = new Date();
-                                const hoursLeft = (expires - now) / (1000 * 60 * 60);
-                                const isUrgent = hoursLeft > 0 && hoursLeft <= 24;
-                                const isExpired = hoursLeft <= 0;
-                                return (
-                                    <div className="flex flex-col gap-0.5">
-                                      <span className="block text-[9px] text-gray-400 uppercase tracking-wider mt-1">Pick up by</span>
-                                      <span className={`text-[11px] font-bold flex items-center gap-1 ${isExpired ? 'text-red-600' : isUrgent ? 'text-orange-600' : 'text-gray-700'}`}>
-                                          <CalendarClock size={12} />
-                                          {expires.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {expires.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                                      </span>
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                     )}
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="w-[120px] shrink-0 flex flex-col gap-1">
                     {getStatusBadge(reservation.status)}
@@ -243,6 +310,18 @@ export default function MyReservations() {
                       >
                          {isProcessing && <Loader2 size={12} className="animate-spin" />}
                          {isProcessing ? "Cancelling..." : "Cancel Hold"}
+                      </button>
+                    )}
+                    {isFulfilled && reservation.loan_id && (
+                      <button 
+                         className="px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                         onClick={(e) => {
+                             e.stopPropagation();
+                             navigate(`/my-loans?loanId=${reservation.loan_id}`);
+                         }}
+                      >
+                         <ExternalLink size={14} />
+                         View Loan Details
                       </button>
                     )}
                     <button className="text-gray-400 hover:text-gray-700 transition-colors ml-4 hidden lg:block">
@@ -269,45 +348,40 @@ export default function MyReservations() {
                   </div>
                   
                   <div className="flex flex-col pt-4 mt-2 border-t border-gray-100/50">
-                     <div className="flex justify-between items-start w-full mb-2 text-[12px]">
-                       <div className="text-gray-500">
-                         <span className="block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Reserved On</span>
-                         <span className="font-medium">{new Date(reservation.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                       </div>
-                       {isPending && reservation.queue_position && (
-                           <div className="text-right flex flex-col items-end">
-                               <div className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                                   #{reservation.queue_position} in line
-                               </div>
-                               {reservation.estimated_wait_days != null && (
-                                   <div className="text-[10px] text-gray-500 mt-1 font-medium">
-                                       Wait: {formatWaitTime(reservation.estimated_wait_days)}
-                                   </div>
-                               )}
-                           </div>
-                       )}
+                     <div className="flex flex-col w-full mb-3 text-[12px]">
+                        {(() => {
+                          const timeline = getTimelineData(reservation);
+                          return (
+                            <>
+                              <div className="flex justify-between items-center">
+                                <div className="text-gray-500">
+                                  <span className="block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Reserved</span>
+                                  <span className="font-medium">{timeline.reservedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                </div>
+                                <div className="text-right text-gray-500">
+                                  <span className="block text-[10px] uppercase tracking-wider mb-0.5 text-gray-400">
+                                    {timeline.endLabel}
+                                  </span>
+                                  <span className="font-medium">{timeline.endDate ? timeline.endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'}</span>
+                                </div>
+                              </div>
+                              {timeline.endLabel && timeline.endLabel !== 'Cancelled' && (
+                                <div className="w-full bg-gray-200 h-1.5 rounded-full mt-2">
+                                  <div 
+                                    className={`h-1.5 rounded-full ${timeline.color}`} 
+                                    style={{ width: `${timeline.percent}%` }}
+                                  ></div>
+                                </div>
+                              )}
+                              {isPending && reservation.queue_position && (
+                                 <div className="mt-2 text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 w-fit">
+                                     #{reservation.queue_position} in line
+                                 </div>
+                              )}
+                            </>
+                          );
+                        })()}
                      </div>
-
-                     {isReady && reservation.expires_at && (
-                         <div className="mb-3 w-full bg-slate-50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
-                            {(() => {
-                                const expires = new Date(reservation.expires_at);
-                                const now = new Date();
-                                const hoursLeft = (expires - now) / (1000 * 60 * 60);
-                                const isUrgent = hoursLeft > 0 && hoursLeft <= 24;
-                                const isExpired = hoursLeft <= 0;
-                                return (
-                                    <>
-                                      <span className="block text-[10px] text-gray-500 font-medium">Pick up by:</span>
-                                      <span className={`text-[11px] font-bold flex items-center gap-1 ${isExpired ? 'text-red-600' : isUrgent ? 'text-orange-600' : 'text-gray-700'}`}>
-                                          <CalendarClock size={12} />
-                                          {expires.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {expires.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                                      </span>
-                                    </>
-                                );
-                            })()}
-                         </div>
-                     )}
 
                      {(isPending || isReady) && (
                        <div className="flex justify-end mt-1 w-full">
@@ -318,6 +392,21 @@ export default function MyReservations() {
                           >
                              {isProcessing && <Loader2 size={12} className="animate-spin" />}
                              {isProcessing ? "Cancelling..." : "Cancel Hold"}
+                          </button>
+                       </div>
+                     )}
+                     
+                     {isFulfilled && reservation.loan_id && (
+                       <div className="flex justify-end mt-1 w-full">
+                          <button 
+                             className="w-full px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                             onClick={(e) => {
+                                 e.stopPropagation();
+                                 navigate(`/my-loans?loanId=${reservation.loan_id}`);
+                             }}
+                          >
+                             <ExternalLink size={14} />
+                             View Loan Details
                           </button>
                        </div>
                      )}

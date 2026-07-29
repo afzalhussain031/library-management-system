@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApi } from '../../hook/useApi';
 import { dashboard, circulation } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
@@ -8,6 +9,10 @@ import { toast } from 'react-hot-toast';
 const FILTER_STATUSES = ['ALL', 'ACTIVE', 'RETURNED', 'OVERDUE'];
 
 export default function MyLoans() {
+  const [searchParams] = useSearchParams();
+  const targetLoanId = searchParams.get('loanId');
+  const [highlightedId, setHighlightedId] = useState(null);
+
   const { data, isLoading, error, refetch } = useApi(dashboard.getBorrowedBooks, []);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [confirmingRenewalId, setConfirmingRenewalId] = useState(null);
@@ -20,6 +25,40 @@ export default function MyLoans() {
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
   const loansList = Array.isArray(data) ? data : data?.results || [];
+
+  const getLoanStatus = (loan) => {
+    if (loan.returned_at) return 'RETURNED';
+    const dueDate = new Date(loan.due_at);
+    if (dueDate < new Date()) return 'OVERDUE';
+    return 'ACTIVE';
+  };
+
+  useEffect(() => {
+    if (targetLoanId && loansList.length > 0) {
+      const loanIdNum = parseInt(targetLoanId, 10);
+      const targetLoan = loansList.find(l => l.id === loanIdNum);
+      if (targetLoan) {
+        setExpandedId(loanIdNum);
+        setHighlightedId(loanIdNum);
+        
+        const targetStatus = getLoanStatus(targetLoan);
+        if (targetStatus && statusFilter !== 'ALL' && targetStatus !== statusFilter) {
+             setStatusFilter('ALL'); 
+        }
+
+        setTimeout(() => {
+          const el = document.getElementById(`loan-${loanIdNum}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+
+        setTimeout(() => {
+          setHighlightedId(null);
+        }, 3000);
+      }
+    }
+  }, [targetLoanId, loansList.length, statusFilter]);
 
   const handleRenew = async (loanId) => {
     const toastId = toast.loading("Renewing book...");
@@ -41,13 +80,6 @@ export default function MyLoans() {
       }
       toast.error(errorMsg, { id: toastId });
     }
-  };
-
-  const getLoanStatus = (loan) => {
-    if (loan.returned_at) return 'RETURNED';
-    const dueDate = new Date(loan.due_at);
-    if (dueDate < new Date()) return 'OVERDUE';
-    return 'ACTIVE';
   };
 
   const getStatusBadge = (status) => {
@@ -224,7 +256,8 @@ export default function MyLoans() {
             return (
               <div 
                 key={loan.id} 
-                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 overflow-hidden cursor-pointer ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'}`}
+                id={`loan-${loan.id}`}
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 overflow-hidden cursor-pointer ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
                 onClick={() => toggleExpand(loan.id)}
               >
                 

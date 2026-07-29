@@ -129,6 +129,9 @@ class ReservationSerializer(serializers.ModelSerializer):
     
     expires_at = serializers.SerializerMethodField()
     pickup_location = serializers.SerializerMethodField()
+    
+    loan_id = serializers.SerializerMethodField()
+    fulfilled_at = serializers.SerializerMethodField()
 
     class Meta:
         model = Reservation
@@ -154,6 +157,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             "is_extended",
             "expires_at",
             "pickup_location",
+            "loan_id",
+            "fulfilled_at",
         ]
 
     # 3. Define how to fetch the name
@@ -195,4 +200,18 @@ class ReservationSerializer(serializers.ModelSerializer):
         if obj.allocated_copy and obj.allocated_copy.shelf_location:
             return f"Main Library, {obj.allocated_copy.shelf_location}"
         return "Main Library, Holds Desk"
+
+    def get_loan_id(self, obj):
+        if obj.status == Reservation.FULFILLED and obj.allocated_copy:
+            loan = Loan.objects.filter(copy=obj.allocated_copy, borrower=obj.user).order_by('-issued_at').first()
+            if loan:
+                return loan.id
+        return None
+
+    def get_fulfilled_at(self, obj):
+        if obj.status == Reservation.FULFILLED and obj.allocated_copy:
+            loan = Loan.objects.filter(copy=obj.allocated_copy, borrower=obj.user).order_by('-issued_at').first()
+            if loan:
+                return loan.issued_at
+        return None
 
