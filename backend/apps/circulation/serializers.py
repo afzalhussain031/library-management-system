@@ -16,6 +16,7 @@ class LoanSerializer(serializers.ModelSerializer):
     is_overdue = serializers.SerializerMethodField()
     overdue_days = serializers.SerializerMethodField()
     current_fine_estimate = serializers.SerializerMethodField()
+    renewal_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Loan
@@ -33,6 +34,7 @@ class LoanSerializer(serializers.ModelSerializer):
             "is_overdue",
             "overdue_days",
             "current_fine_estimate",
+            "renewal_status",
             "copy",
             "borrower",
         ]
@@ -68,6 +70,26 @@ class LoanSerializer(serializers.ModelSerializer):
     def get_current_fine_estimate(self, obj):
         DAILY_FINE_RATE = 10 # You can later move this to django settings if you want!
         return self.get_overdue_days(obj) * DAILY_FINE_RATE
+
+    def get_renewal_status(self, obj):
+        if obj.returned_at:
+            return {"can_renew": False, "reason": "Returned loans cannot be renewed."}
+        if timezone.now() > obj.due_at:
+            return {"can_renew": False, "reason": "Overdue loans cannot be renewed. Please return the book and clear your fines."}
+        if obj.renewed_count >= 2:
+            return {"can_renew": False, "reason": "Maximum renewal limit (2 times) reached for this book."}
+        
+        from apps.billing.models import Fine
+        has_unpaid_fines = Fine.objects.filter(loan__borrower=obj.borrower, status=Fine.PENDING).exists()
+        if has_unpaid_fines:
+            return {"can_renew": False, "reason": "Cannot renew. You have unpaid fines on your account."}
+            
+        from apps.circulation.models import Reservation
+        has_reservations = Reservation.objects.filter(book=obj.copy.book, status=Reservation.PENDING).exists()
+        if has_reservations:
+            return {"can_renew": False, "reason": "Cannot renew. Another student is waiting for this book."}
+            
+        return {"can_renew": True, "reason": ""}
 
 class ReservationSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)

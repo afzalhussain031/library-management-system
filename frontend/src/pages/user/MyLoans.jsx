@@ -10,6 +10,7 @@ const FILTER_STATUSES = ['ALL', 'ACTIVE', 'RETURNED', 'OVERDUE'];
 export default function MyLoans() {
   const { data, isLoading, error, refetch } = useApi(dashboard.getBorrowedBooks, []);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [confirmingRenewalId, setConfirmingRenewalId] = useState(null);
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
@@ -20,6 +21,7 @@ export default function MyLoans() {
     try {
       const response = await circulation.renewLoan(loanId);
       toast.success(`Loan renewed. New Due Date: ${new Date(response.data.due_at).toLocaleDateString()}`, { id: toastId });
+      setConfirmingRenewalId(null);
       refetch();
     } catch (err) {
       let errorMsg = "Failed to renew book";
@@ -164,12 +166,33 @@ export default function MyLoans() {
                   </div>
                   <div className="flex-1 min-w-[100px] flex items-center justify-end">
                     {!loan.returned_at && (
-                      <button 
-                        onClick={() => handleRenew(loan.id)}
-                        className="px-4 py-1.5 bg-[#FFF4E5] text-[#E58C17] border border-[#E58C17]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE8CC] transition-colors cursor-pointer"
-                      >
-                        Renew
-                      </button>
+                      <div className="flex flex-col items-end">
+                        {confirmingRenewalId === loan.id ? (
+                          <>
+                            <span className="text-[10px] text-gray-500 mb-1">Confirm renewal (+14 days)?</span>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleRenew(loan.id)} className="px-3 py-1 bg-green-500 text-white rounded-full text-[11px] font-bold hover:bg-green-600 transition-colors cursor-pointer">Yes</button>
+                              <button onClick={() => setConfirmingRenewalId(null)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-[11px] font-bold hover:bg-gray-300 transition-colors cursor-pointer">No</button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[10px] text-gray-400 mb-1 font-medium">{loan.renewed_count || 0} of 2 renewals used</span>
+                            <button 
+                              onClick={() => setConfirmingRenewalId(loan.id)}
+                              disabled={loan.renewal_status && !loan.renewal_status.can_renew}
+                              title={loan.renewal_status?.reason || ""}
+                              className={`px-4 py-1.5 font-bold text-[12px] rounded-full transition-colors ${
+                                !loan.renewal_status || loan.renewal_status.can_renew
+                                  ? 'bg-[#FFF4E5] text-[#E58C17] border border-[#E58C17]/20 hover:bg-[#FFE8CC] cursor-pointer'
+                                  : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                              }`}
+                            >
+                              Renew
+                            </button>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -216,12 +239,31 @@ export default function MyLoans() {
 
                      {!loan.returned_at && (
                        <div className="flex justify-end mt-1">
-                         <button 
-                           onClick={() => handleRenew(loan.id)}
-                           className="px-4 py-1.5 bg-[#FFF4E5] text-[#E58C17] border border-[#E58C17]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE8CC] transition-colors cursor-pointer w-full"
-                         >
-                           Renew Book
-                         </button>
+                          {confirmingRenewalId === loan.id ? (
+                            <div className="flex flex-col items-end w-full">
+                              <span className="text-[10px] text-gray-500 mb-1">Confirm renewal (+14 days)?</span>
+                              <div className="flex gap-2 w-full">
+                                <button onClick={() => handleRenew(loan.id)} className="flex-1 py-1.5 bg-green-500 text-white rounded-full text-[12px] font-bold hover:bg-green-600 transition-colors cursor-pointer">Yes</button>
+                                <button onClick={() => setConfirmingRenewalId(null)} className="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-full text-[12px] font-bold hover:bg-gray-300 transition-colors cursor-pointer">No</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-end w-full">
+                              <span className="text-[10px] text-gray-400 mb-1 font-medium">{loan.renewed_count || 0} of 2 renewals used</span>
+                              <button 
+                                onClick={() => setConfirmingRenewalId(loan.id)}
+                                disabled={loan.renewal_status && !loan.renewal_status.can_renew}
+                                title={loan.renewal_status?.reason || ""}
+                                className={`px-4 py-1.5 font-bold text-[12px] rounded-full transition-colors w-full ${
+                                  !loan.renewal_status || loan.renewal_status.can_renew
+                                    ? 'bg-[#FFF4E5] text-[#E58C17] border border-[#E58C17]/20 hover:bg-[#FFE8CC] cursor-pointer'
+                                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                                }`}
+                              >
+                                Renew Book
+                              </button>
+                            </div>
+                          )}
                        </div>
                      )}
                   </div>
