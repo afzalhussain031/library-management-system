@@ -3,7 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useApi } from '../../hook/useApi';
 import { dashboard, circulation, catalog } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CalendarPlus, Star, MessageSquare } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CalendarPlus, Star, MessageSquare, Search, Filter } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function MyLoans() {
@@ -13,7 +13,14 @@ export default function MyLoans() {
 
   const { data, isLoading, error, refetch } = useApi(dashboard.getBorrowedBooks, []);
   const [activeTab, setActiveTab] = useState('CURRENT');
+  const [subFilter, setSubFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const [confirmingRenewalId, setConfirmingRenewalId] = useState(null);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSubFilter('ALL');
+  };
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
   
@@ -240,51 +247,131 @@ export default function MyLoans() {
 
   const filteredLoans = loansList.filter(loan => {
     const status = getLoanStatus(loan);
+    
+    // 1. Tab Filter
+    let matchesTab = false;
     if (activeTab === 'CURRENT') {
-      return status === 'ACTIVE' || status === 'OVERDUE';
+      matchesTab = (status === 'ACTIVE' || status === 'OVERDUE');
     } else {
-      return status === 'RETURNED';
+      matchesTab = (status === 'RETURNED');
     }
+    
+    if (!matchesTab) return false;
+
+    // 2. Sub-filter check
+    if (subFilter !== 'ALL') {
+      if (activeTab === 'CURRENT') {
+        if (subFilter === 'OVERDUE' && status !== 'OVERDUE') return false;
+        if (subFilter === 'ACTIVE' && status !== 'ACTIVE') return false;
+        if (subFilter === 'DUE_SOON') {
+          if (status === 'OVERDUE') return false;
+          const due = new Date(loan.due_at).getTime();
+          const now = new Date().getTime();
+          const daysRemaining = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+          if (daysRemaining > 3) return false;
+        }
+      } else if (activeTab === 'HISTORY') {
+        const hasReviewed = !!userReviews[loan.book_id];
+        if (subFilter === 'REVIEWED' && !hasReviewed) return false;
+        if (subFilter === 'UNREVIEWED' && hasReviewed) return false;
+      }
+    }
+
+    // 3. Search Filter
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      const titleMatch = (loan.book_title || '').toLowerCase().includes(query);
+      const authorMatch = (loan.book_author || '').toLowerCase().includes(query);
+      return titleMatch || authorMatch;
+    }
+
+    return true;
   });
 
   return (
     <div className="p-6 bg-linear-to-r from-gray-100 to-yellow-100 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
+      {/* Top Header Row */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-800">My Loans</h1>
+        
+        {/* Search Bar */}
+        <div className="relative w-full md:w-64">
+          <input
+            type="text"
+            placeholder="Search title or author..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+          />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        </div>
       </div>
 
-      {/* Tabs (Pill style) */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button
-          onClick={() => setActiveTab('CURRENT')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === 'CURRENT'
-              ? 'bg-gray-800 text-white shadow-md'
-              : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
-          }`}
-        >
-          <span>Current Loans</span>
-          <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-            activeTab === 'CURRENT' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
-          }`}>
-            {tabCounts.CURRENT}
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab('HISTORY')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === 'HISTORY'
-              ? 'bg-gray-800 text-white shadow-md'
-              : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
-          }`}
-        >
-          <span>Reading History</span>
-          <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-            activeTab === 'HISTORY' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
-          }`}>
-            {tabCounts.HISTORY}
-          </span>
-        </button>
+      {/* Tabs and Filter Row */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        {/* Tabs (Pill style) */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleTabChange('CURRENT')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
+              activeTab === 'CURRENT'
+                ? 'bg-gray-800 text-white shadow-md'
+                : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
+            }`}
+          >
+            <span>Current Loans</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+              activeTab === 'CURRENT' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
+            }`}>
+              {tabCounts.CURRENT}
+            </span>
+          </button>
+          <button
+            onClick={() => handleTabChange('HISTORY')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
+              activeTab === 'HISTORY'
+                ? 'bg-gray-800 text-white shadow-md'
+                : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
+            }`}
+          >
+            <span>Reading History</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+              activeTab === 'HISTORY' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
+            }`}>
+              {tabCounts.HISTORY}
+            </span>
+          </button>
+        </div>
+
+        {/* Dropdown Filter */}
+        <div className="relative w-full md:w-48">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Filter size={16} className="text-gray-400" />
+          </div>
+          <select
+            value={subFilter}
+            onChange={(e) => setSubFilter(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm appearance-none cursor-pointer text-gray-600"
+          >
+            {activeTab === 'CURRENT' ? (
+              <>
+                <option value="ALL">All Current</option>
+                <option value="OVERDUE">Overdue</option>
+                <option value="ACTIVE">Active (Not Overdue)</option>
+                <option value="DUE_SOON">Due Soon (≤ 3 Days)</option>
+              </>
+            ) : (
+              <>
+                <option value="ALL">All History</option>
+                <option value="REVIEWED">Reviewed by Me</option>
+                <option value="UNREVIEWED">Needs Review</option>
+              </>
+            )}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <ChevronDown size={14} className="text-gray-400" />
+          </div>
+        </div>
       </div>
 
       {/* Desktop Header Row */}
@@ -681,12 +768,14 @@ export default function MyLoans() {
           <div className="text-center">
             <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-medium text-gray-800">
-              {activeTab === 'CURRENT' ? 'No Current Loans' : 'No Reading History'}
+              {searchQuery ? 'No Results Found' : activeTab === 'CURRENT' ? 'No Current Loans' : 'No Reading History'}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {activeTab === 'CURRENT' 
-                ? 'You do not have any active or overdue books at the moment.'
-                : 'You have not returned any books yet.'}
+              {searchQuery 
+                ? `No loans matching "${searchQuery}" in this tab.`
+                : activeTab === 'CURRENT' 
+                  ? 'You do not have any active or overdue books at the moment.'
+                  : 'You have not returned any books yet.'}
             </p>
           </div>
         </div>

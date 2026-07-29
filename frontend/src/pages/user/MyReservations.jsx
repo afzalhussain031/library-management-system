@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApi } from '../../hook/useApi';
 import { circulation } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus, ExternalLink, RefreshCw } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus, ExternalLink, RefreshCw, Search, Filter } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const FILTER_STATUSES = ['ALL', 'PENDING', 'READY', 'FULFILLED', 'CANCELLED'];
@@ -18,9 +18,16 @@ const formatWaitTime = (days) => {
 export default function MyReservations() {
   const navigate = useNavigate();
   const { data: reservations, isLoading, error, refetch } = useApi(circulation.getReservations, []);
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [activeTab, setActiveTab] = useState('ACTIVE');
+  const [subFilter, setSubFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [processingHoldId, setProcessingHoldId] = useState(null);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSubFilter('ALL');
+  };
 
   const toggleExpand = (id) => {
     setExpandedId(prev => prev === id ? null : id);
@@ -162,40 +169,132 @@ export default function MyReservations() {
     return { reservedAt, endDate, endLabel, percent, color };
   };
 
+  const tabCounts = {
+    ACTIVE: 0,
+    HISTORY: 0,
+  };
+
+  reservations?.forEach(res => {
+    const status = res.status.toUpperCase();
+    if (status === 'PENDING' || status === 'READY') {
+      tabCounts.ACTIVE++;
+    } else if (status === 'FULFILLED' || status === 'CANCELLED') {
+      tabCounts.HISTORY++;
+    }
+  });
+
   const filteredReservations = reservations?.filter(reservation => {
-    if (statusFilter === 'ALL') return true;
-    return reservation.status.toUpperCase() === statusFilter;
+    const status = reservation.status.toUpperCase();
+    
+    // 1. Tab Filter
+    let matchesTab = false;
+    if (activeTab === 'ACTIVE') {
+      matchesTab = (status === 'PENDING' || status === 'READY');
+    } else {
+      matchesTab = (status === 'FULFILLED' || status === 'CANCELLED');
+    }
+    
+    if (!matchesTab) return false;
+
+    // 2. Sub-filter (Dropdown) check
+    if (subFilter !== 'ALL') {
+      if (status !== subFilter) return false;
+    }
+
+    // 3. Search Filter
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      const titleMatch = (reservation.book_title || '').toLowerCase().includes(query);
+      const authorMatch = (reservation.book_author || '').toLowerCase().includes(query);
+      return titleMatch || authorMatch;
+    }
+
+    return true;
   }) || [];
 
   return (
     <div className="p-6 bg-linear-to-r from-gray-100 to-yellow-100 min-h-screen">
-      <div className="flex justify-between items-center mb-4">
+      {/* Top Header Row */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-800">My Reservations</h1>
+        
+        {/* Search Bar */}
+        <div className="relative w-full md:w-64">
+          <input
+            type="text"
+            placeholder="Search title or author..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm"
+          />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        </div>
       </div>
 
-      {/* Filter Pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {FILTER_STATUSES.map((status) => {
-           const count = status === 'ALL' ? (reservations?.length || 0) : (reservations?.filter(r => r.status.toUpperCase() === status).length || 0);
-           return (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
-                statusFilter === status 
-                  ? 'bg-gray-800 text-white shadow-md' 
-                  : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
-              }`}
-            >
-              <span>{status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-xs ${
-                statusFilter === status ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {count}
-              </span>
-            </button>
-           );
-        })}
+      {/* Tabs and Filter Row */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        {/* Tabs (Pill style) */}
+        <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => handleTabChange('ACTIVE')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
+            activeTab === 'ACTIVE'
+              ? 'bg-gray-800 text-white shadow-md'
+              : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
+          }`}
+        >
+          <span>Active Holds</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+            activeTab === 'ACTIVE' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
+          }`}>
+            {tabCounts.ACTIVE}
+          </span>
+        </button>
+        <button
+          onClick={() => handleTabChange('HISTORY')}
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
+            activeTab === 'HISTORY'
+              ? 'bg-gray-800 text-white shadow-md'
+              : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
+          }`}
+        >
+          <span>Hold History</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+            activeTab === 'HISTORY' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
+          }`}>
+            {tabCounts.HISTORY}
+          </span>
+        </button>
+        </div>
+
+        {/* Dropdown Filter */}
+        <div className="relative w-full md:w-48">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Filter size={16} className="text-gray-400" />
+          </div>
+          <select
+            value={subFilter}
+            onChange={(e) => setSubFilter(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm appearance-none cursor-pointer text-gray-600"
+          >
+            {activeTab === 'ACTIVE' ? (
+              <>
+                <option value="ALL">All Active</option>
+                <option value="READY">Ready for Pickup</option>
+                <option value="PENDING">Pending</option>
+              </>
+            ) : (
+              <>
+                <option value="ALL">All History</option>
+                <option value="FULFILLED">Fulfilled</option>
+                <option value="CANCELLED">Cancelled</option>
+              </>
+            )}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <ChevronDown size={14} className="text-gray-400" />
+          </div>
+        </div>
       </div>
 
       {/* Desktop Header Row */}
@@ -552,15 +651,27 @@ export default function MyReservations() {
           })}
         </div>
       ) : (
-        <div className="bg-white/40 backdrop-blur-xl rounded-[20px] shadow-sm border border-white min-h-[300px] flex flex-col items-center justify-center text-gray-500">
+        <div className="bg-white/40 backdrop-blur-xl rounded-[20px] shadow-sm border border-white min-h-[300px] flex flex-col items-center justify-center text-gray-500 p-6">
           <div className="text-center">
             <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-800">No Reservations Found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {statusFilter === 'ALL' 
-                ? 'When you reserve a book, it will appear here.'
-                : `You have no ${statusFilter.toLowerCase()} reservations.`}
+            <h3 className="text-lg font-medium text-gray-800">
+              {searchQuery ? 'No Results Found' : activeTab === 'ACTIVE' ? 'No Active Holds' : 'No Hold History'}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500 max-w-sm">
+              {searchQuery 
+                ? `No reservations matching "${searchQuery}" in this tab.`
+                : activeTab === 'ACTIVE'
+                  ? 'You do not have any pending or ready reservations at the moment. Browse the catalog to find your next read!'
+                  : 'Your past reservations will appear here once they are fulfilled or cancelled.'}
             </p>
+            {!searchQuery && activeTab === 'ACTIVE' && (
+              <button 
+                onClick={() => navigate('/catalog')}
+                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
+              >
+                Browse Catalog
+              </button>
+            )}
           </div>
         </div>
       )}
