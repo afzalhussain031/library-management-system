@@ -113,10 +113,18 @@ class ReservationSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source="book.title", read_only=True)
     book_author = serializers.CharField(source="book.author", read_only=True)
     book_id = serializers.IntegerField(source="book.id", read_only=True)
+    book_description = serializers.CharField(source="book.description", read_only=True)
+    book_isbn = serializers.CharField(source="book.isbn", read_only=True)
+    book_publisher = serializers.CharField(source="book.publisher.name", read_only=True)
+    book_category = serializers.CharField(source="book.category.name", read_only=True)
     
     # 1. Add the custom field
     user_name = serializers.SerializerMethodField()
     allocated_copy_barcode = serializers.CharField(source="allocated_copy.barcode", read_only=True)
+    
+    queue_position = serializers.SerializerMethodField()
+    estimated_wait_days = serializers.SerializerMethodField()
+    total_copies = serializers.SerializerMethodField()
 
     class Meta:
         model = Reservation
@@ -126,12 +134,19 @@ class ReservationSerializer(serializers.ModelSerializer):
             "book_id",
             "book_title",
             "book_author",
+            "book_description",
+            "book_isbn",
+            "book_publisher",
+            "book_category",
             "user",
             "user_name", # 2. Include the new field here
             "reserved_at",
             "status",
             "allocated_copy",
             "allocated_copy_barcode",
+            "queue_position",
+            "estimated_wait_days",
+            "total_copies",
         ]
 
     # 3. Define how to fetch the name
@@ -139,3 +154,24 @@ class ReservationSerializer(serializers.ModelSerializer):
         user = obj.user
         name = user.student_name or user.get_full_name()
         return name.strip() if name.strip() else user.user_id
+
+    def get_queue_position(self, obj):
+        if obj.status != Reservation.PENDING:
+            return None
+        return Reservation.objects.filter(
+            book=obj.book,
+            status=Reservation.PENDING,
+            reserved_at__lt=obj.reserved_at
+        ).count() + 1
+        
+    def get_total_copies(self, obj):
+        from apps.inventory.models import BookCopy
+        return BookCopy.objects.filter(book=obj.book).exclude(status=BookCopy.LOST).count()
+        
+    def get_estimated_wait_days(self, obj):
+        if obj.status != Reservation.PENDING:
+            return None
+        
+        queue_pos = self.get_queue_position(obj)
+        copies = max(self.get_total_copies(obj), 1)
+        return int(queue_pos * (14 / copies))

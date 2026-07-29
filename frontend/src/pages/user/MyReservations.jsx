@@ -2,28 +2,59 @@ import React, { useState } from 'react';
 import { useApi } from '../../hook/useApi';
 import { circulation } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const FILTER_STATUSES = ['ALL', 'PENDING', 'READY', 'FULFILLED', 'CANCELLED'];
 
+const formatWaitTime = (days) => {
+  if (days == null) return null;
+  if (days < 7) return "Less than a week";
+  const weeks = Math.max(1, Math.round(days / 7));
+  return `${weeks} week${weeks > 1 ? 's' : ''}`;
+};
+
 export default function MyReservations() {
-  const { data: reservations, isLoading, error } = useApi(circulation.getReservations, []);
+  const { data: reservations, isLoading, error, refetch } = useApi(circulation.getReservations, []);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [expandedId, setExpandedId] = useState(null);
+  const [processingHoldId, setProcessingHoldId] = useState(null);
+
+  const toggleExpand = (id) => {
+    setExpandedId(prev => prev === id ? null : id);
+  };
+
+  const handleCancelHold = async (e, id) => {
+    e.stopPropagation();
+    if (processingHoldId) return;
+    setProcessingHoldId(id);
+    const toastId = toast.loading("Cancelling hold...");
+    try {
+      await circulation.updateReservationStatus(id, 'cancelled');
+      toast.success("Hold cancelled successfully", { id: toastId });
+      refetch();
+    } catch (error) {
+      console.error("Failed to cancel hold:", error);
+      toast.error(error.response?.data?.message || "Failed to cancel hold", { id: toastId });
+    } finally {
+      setProcessingHoldId(null);
+    }
+  };
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
   const getStatusBadge = (status) => {
     switch (status.toLowerCase()) {
       case 'pending':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex items-center gap-1 w-fit"><Clock size={12}/> Pending</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF6DD] text-[#E0B220] flex items-center gap-1 w-fit"><Clock size={12}/> Pending</span>;
       case 'ready':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1 w-fit"><CheckCircle size={12}/> Ready for Pickup</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#C9F7F5] text-[#1BC5BD] flex items-center gap-1 w-fit"><CheckCircle size={12}/> Ready for Pickup</span>;
       case 'fulfilled':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex items-center gap-1 w-fit"><BookOpen size={12}/> Fulfilled</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-600 flex items-center gap-1 w-fit"><BookOpen size={12}/> Fulfilled</span>;
       case 'cancelled':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1 w-fit"><XCircle size={12}/> Cancelled</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FFE2E5] text-[#F64E60] flex items-center gap-1 w-fit"><XCircle size={12}/> Cancelled</span>;
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 w-fit">{status}</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-500 flex items-center gap-1 w-fit">{status}</span>;
     }
   };
 
@@ -40,64 +71,255 @@ export default function MyReservations() {
 
       {/* Filter Pills */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {FILTER_STATUSES.map((status) => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-              statusFilter === status 
-                ? 'bg-gray-800 text-white shadow-md' 
-                : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
-            }`}
-          >
-            {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
-          </button>
-        ))}
+        {FILTER_STATUSES.map((status) => {
+           const count = status === 'ALL' ? (reservations?.length || 0) : (reservations?.filter(r => r.status.toUpperCase() === status).length || 0);
+           return (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
+                statusFilter === status 
+                  ? 'bg-gray-800 text-white shadow-md' 
+                  : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
+              }`}
+            >
+              <span>{status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                statusFilter === status ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {count}
+              </span>
+            </button>
+           );
+        })}
       </div>
+
+      {/* Desktop Header Row */}
+      {(isLoading || filteredReservations.length > 0) && (
+        <div className="hidden lg:flex items-center px-6 pb-2 pt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+          <div className="w-[80px] shrink-0">Thumbnail</div>
+          <div className="w-[280px] shrink-0 pr-4">Title & Author</div>
+          <div className="w-[200px] shrink-0 pr-4">Timeline</div>
+          <div className="w-[120px] shrink-0">Status</div>
+          <div className="flex-1 min-w-[100px] text-right pr-10">Actions</div>
+        </div>
+      )}
       
       {isLoading ? (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 min-h-[300px] flex flex-col items-center justify-center text-gray-500">
-          <div className="animate-spin text-gray-400 mb-4">
-            <Clock size={32} />
-          </div>
-        </div>
-      ) : filteredReservations.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {filteredReservations.map((reservation) => (
-            <div key={reservation.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100 flex items-center justify-between gap-4">
-              
-              {/* Left Side: Icon, Title, Author */}
-              <div className="flex items-center gap-4 flex-1">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-lg hidden sm:block">
-                  <BookOpen size={24} />
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white overflow-hidden animate-pulse">
+              {/* Desktop Skeleton */}
+              <div className="hidden lg:flex items-center px-6 py-4">
+                <div className="w-[80px] shrink-0">
+                  <div className="w-[40px] h-[50px] bg-gray-200 rounded-sm"></div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 line-clamp-1" title={reservation.book_title}>
-                    {reservation.book_title}
-                  </h3>
-                  <p className="text-sm text-gray-500">{reservation.book_author}</p>
+                <div className="w-[280px] shrink-0 pr-4">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+                <div className="w-[200px] shrink-0 pr-4 flex flex-col gap-2">
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                </div>
+                <div className="w-[120px] shrink-0 flex flex-col gap-2">
+                  <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                </div>
+                <div className="flex-1 min-w-[100px] flex justify-end">
+                  <div className="h-8 bg-gray-200 rounded-full w-24"></div>
                 </div>
               </div>
-
-              {/* Right Side: Date and Status */}
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="text-sm text-gray-500">
-                  {new Date(reservation.reserved_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </span>
-                {getStatusBadge(reservation.status)}
-              </div>
               
+              {/* Mobile Skeleton */}
+              <div className="flex lg:hidden flex-col p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-24 bg-gray-200 rounded-md shrink-0"></div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
+                    <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+                  </div>
+                </div>
+                <div className="pt-4 mt-2 border-t border-gray-100/50 flex flex-col gap-2">
+                   <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                   <div className="h-8 bg-gray-200 rounded-full w-full mt-2"></div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
+      ) : filteredReservations.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {filteredReservations.map((reservation) => {
+            const isReady = reservation.status.toLowerCase() === 'ready';
+            const isPending = reservation.status.toLowerCase() === 'pending';
+            const isCancelled = reservation.status.toLowerCase() === 'cancelled';
+            const isProcessing = processingHoldId === reservation.id;
+
+            return (
+              <div 
+                key={reservation.id} 
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 overflow-hidden cursor-pointer ${isReady ? 'bg-green-50/50 border-l-4 border-green-500 border-y-white border-r-white hover:bg-green-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === reservation.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'}`}
+                onClick={() => toggleExpand(reservation.id)}
+              >
+                
+                {/* Desktop Row View */}
+                <div className="hidden lg:flex items-center px-6 py-4">
+                  <div className="w-[80px] shrink-0">
+                    <div className={`w-[40px] h-[50px] flex items-center justify-center text-[18px] font-bold rounded-sm shadow-sm bg-[#FEF6DD] text-[#E0B220]`}>
+                      {reservation.book_title ? reservation.book_title.charAt(0).toUpperCase() : <BookOpen size={20} />}
+                    </div>
+                  </div>
+                  <div className="w-[280px] shrink-0 pr-4">
+                    <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center" title={reservation.book_title || "Unknown Title"}>
+                      <span className="truncate">{reservation.book_title || "Unknown Title"}</span>
+                    </p>
+                    <p className="text-[12px] text-gray-500 truncate">{reservation.book_author || "Unknown Author"}</p>
+                  </div>
+                  <div className="w-[200px] shrink-0 flex flex-col gap-1 pr-4">
+                     <div className="text-[12px] text-gray-500">
+                        <span className="block text-[9px] text-gray-400 uppercase tracking-wider mb-0.5">Reserved On</span>
+                        <span className="font-medium">{new Date(reservation.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                     </div>
+                     {isPending && reservation.queue_position && (
+                         <div className="mt-1">
+                             <div className="text-[12px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block border border-blue-100">
+                                 You are #{reservation.queue_position} in line
+                             </div>
+                             {reservation.estimated_wait_days != null && (
+                                 <div className="text-[11px] text-gray-500 mt-1 ml-1 font-medium">
+                                     Est. wait: {formatWaitTime(reservation.estimated_wait_days)}
+                                 </div>
+                             )}
+                         </div>
+                     )}
+                  </div>
+                  <div className="w-[120px] shrink-0 flex flex-col gap-1">
+                    {getStatusBadge(reservation.status)}
+                  </div>
+                  <div className="flex-1 min-w-[100px] flex items-center justify-end">
+                    {(isPending || isReady) && (
+                      <button 
+                         className="px-4 py-1.5 bg-[#FFF4F4] text-[#F64E60] border border-[#F64E60]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE2E5] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                         onClick={(e) => handleCancelHold(e, reservation.id)}
+                         disabled={isProcessing}
+                      >
+                         {isProcessing && <Loader2 size={12} className="animate-spin" />}
+                         {isProcessing ? "Cancelling..." : "Cancel Hold"}
+                      </button>
+                    )}
+                    <button className="text-gray-400 hover:text-gray-700 transition-colors ml-4 hidden lg:block">
+                      {expandedId === reservation.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="flex lg:hidden flex-col p-4">
+                  <div className="flex gap-4">
+                    <div className={`w-16 h-24 flex items-center justify-center text-[24px] font-bold rounded-md shrink-0 shadow-sm bg-[#FEF6DD] text-[#E0B220]`}>
+                       {reservation.book_title ? reservation.book_title.charAt(0).toUpperCase() : <BookOpen size={24} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center" title={reservation.book_title || "Unknown Title"}>
+                         <span className="truncate">{reservation.book_title || "Unknown Title"}</span>
+                       </p>
+                       <p className="text-[12px] text-gray-500 mb-2 truncate">by {reservation.book_author || "Unknown Author"}</p>
+                       <div className="mb-2 flex flex-wrap gap-2 items-center">
+                           {getStatusBadge(reservation.status)}
+                       </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col pt-4 mt-2 border-t border-gray-100/50">
+                     <div className="flex justify-between items-start w-full mb-2 text-[12px]">
+                       <div className="text-gray-500">
+                         <span className="block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Reserved On</span>
+                         <span className="font-medium">{new Date(reservation.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                       </div>
+                       {isPending && reservation.queue_position && (
+                           <div className="text-right flex flex-col items-end">
+                               <div className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                                   #{reservation.queue_position} in line
+                               </div>
+                               {reservation.estimated_wait_days != null && (
+                                   <div className="text-[10px] text-gray-500 mt-1 font-medium">
+                                       Wait: {formatWaitTime(reservation.estimated_wait_days)}
+                                   </div>
+                               )}
+                           </div>
+                       )}
+                     </div>
+
+                     {(isPending || isReady) && (
+                       <div className="flex justify-end mt-1 w-full">
+                          <button 
+                             className="w-full px-4 py-1.5 bg-[#FFF4F4] text-[#F64E60] border border-[#F64E60]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE2E5] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                             onClick={(e) => handleCancelHold(e, reservation.id)}
+                             disabled={isProcessing}
+                          >
+                             {isProcessing && <Loader2 size={12} className="animate-spin" />}
+                             {isProcessing ? "Cancelling..." : "Cancel Hold"}
+                          </button>
+                       </div>
+                     )}
+                  </div>
+                  <div className="flex items-center justify-center pt-2 pb-1 border-t border-gray-100/50 text-gray-400 mt-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider mr-1">Details</span>
+                    {expandedId === reservation.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
+                </div>
+
+                {/* Expanded Content */}
+                {expandedId === reservation.id && (
+                  <div className="px-6 pb-6 pt-4 border-t border-gray-100/50 flex flex-col gap-6 animate-in slide-in-from-top-2">
+                     {/* Top Row: Description */}
+                     <div className="w-full">
+                         <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Description</h4>
+                         {reservation.book_description ? (
+                            <p className="text-[13px] text-gray-600 leading-relaxed max-w-4xl">
+                               {reservation.book_description}
+                            </p>
+                         ) : (
+                            <div className="bg-slate-50/50 rounded-xl p-4 border border-dashed border-slate-200">
+                               <p className="text-[13px] text-gray-400 italic">No description available for this title.</p>
+                            </div>
+                         )}
+                     </div>
+
+                     {/* Bottom Row: Metadata Details */}
+                     <div className="w-full bg-slate-50 rounded-xl p-5 border border-slate-100">
+                         <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4">Book Details</h4>
+                         <div className="flex flex-wrap gap-8 md:gap-12">
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">CATEGORY</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{reservation.book_category || 'Unknown'}</span>
+                            </div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">PUBLISHER</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{reservation.book_publisher || 'Unknown'}</span>
+                            </div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">ISBN</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{reservation.book_isbn || 'Unknown'}</span>
+                            </div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">LIBRARY INVENTORY</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{reservation.total_copies || 0} total copies owned</span>
+                            </div>
+                         </div>
+                     </div>
+                  </div>
+                )}
+                
+              </div>
+            );
+          })}
+        </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 min-h-[300px] flex flex-col items-center justify-center text-gray-500">
+        <div className="bg-white/40 backdrop-blur-xl rounded-[20px] shadow-sm border border-white min-h-[300px] flex flex-col items-center justify-center text-gray-500">
           <div className="text-center">
-            <Clock size={48} className="mx-auto mb-4 text-gray-300" />
+            <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-medium text-gray-800">No Reservations Found</h3>
             <p className="mt-1 text-sm text-gray-500">
               {statusFilter === 'ALL' 
