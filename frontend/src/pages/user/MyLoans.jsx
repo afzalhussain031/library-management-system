@@ -88,6 +88,20 @@ export default function MyLoans() {
     return { percent, color };
   };
 
+  const filterCounts = {
+    ALL: loansList.length,
+    ACTIVE: 0,
+    RETURNED: 0,
+    OVERDUE: 0,
+  };
+
+  loansList.forEach(loan => {
+    const status = getLoanStatus(loan);
+    if (filterCounts[status] !== undefined) {
+      filterCounts[status]++;
+    }
+  });
+
   const filteredLoans = loansList.filter(loan => {
     if (statusFilter === 'ALL') return true;
     return getLoanStatus(loan) === statusFilter;
@@ -105,22 +119,83 @@ export default function MyLoans() {
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
               statusFilter === status 
                 ? 'bg-gray-800 text-white shadow-md' 
                 : 'bg-white text-gray-600 hover:bg-gray-200 border border-gray-200 shadow-sm'
             }`}
           >
-            {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+            <span>{status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+              statusFilter === status ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'
+            }`}>
+              {filterCounts[status]}
+            </span>
           </button>
         ))}
       </div>
+
+      {/* Desktop Header Row */}
+      {(isLoading || filteredLoans.length > 0) && (
+        <div className="hidden lg:flex items-center px-6 pb-2 pt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+          <div className="w-[80px] shrink-0">Thumbnail</div>
+          <div className="w-[280px] shrink-0 pr-4">Title & Author</div>
+          <div className="w-[200px] shrink-0 pr-4">Timeline</div>
+          <div className="w-[120px] shrink-0">Status</div>
+          <div className="flex-1 min-w-[100px] text-right pr-10">Actions</div>
+        </div>
+      )}
       
       {isLoading ? (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 min-h-[300px] flex flex-col items-center justify-center text-gray-500">
-          <div className="animate-spin text-gray-400 mb-4">
-            <Clock size={32} />
-          </div>
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white overflow-hidden animate-pulse">
+              {/* Desktop Skeleton */}
+              <div className="hidden lg:flex items-center px-6 py-4">
+                <div className="w-[80px] shrink-0">
+                  <div className="w-[40px] h-[50px] bg-gray-200 rounded-sm"></div>
+                </div>
+                <div className="w-[280px] shrink-0 pr-4">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+                <div className="w-[200px] shrink-0 pr-4 flex flex-col gap-2">
+                  <div className="flex justify-between w-full">
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                  <div className="h-1.5 bg-gray-200 rounded-full w-full mt-1"></div>
+                </div>
+                <div className="w-[120px] shrink-0 flex flex-col gap-2">
+                  <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                </div>
+                <div className="flex-1 min-w-[100px] flex justify-end">
+                  <div className="h-8 bg-gray-200 rounded-full w-24"></div>
+                </div>
+              </div>
+              
+              {/* Mobile Skeleton */}
+              <div className="flex lg:hidden flex-col p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-24 bg-gray-200 rounded-md shrink-0"></div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
+                    <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+                  </div>
+                </div>
+                <div className="pt-4 mt-2 border-t border-gray-100/50 flex flex-col gap-2">
+                  <div className="flex justify-between w-full">
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                  <div className="h-1.5 bg-gray-200 rounded-full w-full"></div>
+                  <div className="h-8 bg-gray-200 rounded-full w-full mt-2"></div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredLoans.length > 0 ? (
         <div className="flex flex-col gap-3">
