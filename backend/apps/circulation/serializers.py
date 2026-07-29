@@ -7,6 +7,13 @@ class LoanSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source="copy.book.title", read_only=True)
     book_author = serializers.CharField(source="copy.book.author", read_only=True)
     book_id = serializers.IntegerField(source="copy.book.id", read_only=True)
+    book_description = serializers.CharField(source="copy.book.description", read_only=True)
+    book_isbn = serializers.CharField(source="copy.book.isbn", read_only=True)
+    book_publisher = serializers.CharField(source="copy.book.publisher.name", read_only=True)
+    book_category = serializers.CharField(source="copy.book.category.name", read_only=True)
+    copy_accession_number = serializers.CharField(source="copy.accession_number", read_only=True)
+    copy_condition = serializers.CharField(source="copy.condition", read_only=True)
+    copy_shelf_location = serializers.CharField(source="copy.shelf_location", read_only=True)
     issued_at = serializers.DateTimeField(read_only=True)
     
     # 1. Add the custom field
@@ -25,6 +32,13 @@ class LoanSerializer(serializers.ModelSerializer):
             "book_id",
             "book_title",
             "book_author",
+            "book_description",
+            "book_isbn",
+            "book_publisher",
+            "book_category",
+            "copy_accession_number",
+            "copy_condition",
+            "copy_shelf_location",
             "user_name",
             "issued_at",
             "due_at",

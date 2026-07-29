@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApi } from '../../hook/useApi';
 import { dashboard, circulation } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const FILTER_STATUSES = ['ALL', 'ACTIVE', 'RETURNED', 'OVERDUE'];
@@ -11,6 +11,11 @@ export default function MyLoans() {
   const { data, isLoading, error, refetch } = useApi(dashboard.getBorrowedBooks, []);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [confirmingRenewalId, setConfirmingRenewalId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
+
+  const toggleExpand = (id) => {
+    setExpandedId(prev => prev === id ? null : id);
+  };
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>;
 
@@ -142,7 +147,11 @@ export default function MyLoans() {
             }
 
             return (
-              <div key={loan.id} className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md overflow-hidden ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'}`}>
+              <div 
+                key={loan.id} 
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 overflow-hidden cursor-pointer ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'}`}
+                onClick={() => toggleExpand(loan.id)}
+              >
                 
                 {/* Desktop Row View */}
                 <div className="hidden lg:flex items-center px-6 py-4">
@@ -199,15 +208,15 @@ export default function MyLoans() {
                           <>
                             <span className="text-[10px] text-gray-500 mb-1">Confirm renewal (+14 days)?</span>
                             <div className="flex gap-2">
-                              <button onClick={() => handleRenew(loan.id)} className="px-3 py-1 bg-green-500 text-white rounded-full text-[11px] font-bold hover:bg-green-600 transition-colors cursor-pointer">Yes</button>
-                              <button onClick={() => setConfirmingRenewalId(null)} className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-[11px] font-bold hover:bg-gray-300 transition-colors cursor-pointer">No</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleRenew(loan.id); }} className="px-3 py-1 bg-green-500 text-white rounded-full text-[11px] font-bold hover:bg-green-600 transition-colors cursor-pointer">Yes</button>
+                              <button onClick={(e) => { e.stopPropagation(); setConfirmingRenewalId(null); }} className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-[11px] font-bold hover:bg-gray-300 transition-colors cursor-pointer">No</button>
                             </div>
                           </>
                         ) : (
                           <>
                             <span className="text-[10px] text-gray-400 mb-1 font-medium">{loan.renewed_count || 0} of 2 renewals used</span>
                             <button 
-                              onClick={() => setConfirmingRenewalId(loan.id)}
+                              onClick={(e) => { e.stopPropagation(); setConfirmingRenewalId(loan.id); }}
                               disabled={loan.renewal_status && !loan.renewal_status.can_renew}
                               title={loan.renewal_status?.reason || ""}
                               className={`px-4 py-1.5 font-bold text-[12px] rounded-full transition-colors ${
@@ -222,6 +231,9 @@ export default function MyLoans() {
                         )}
                       </div>
                     )}
+                    <button className="text-gray-400 hover:text-gray-700 transition-colors ml-4 hidden lg:block">
+                      {expandedId === loan.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
                   </div>
                 </div>
 
@@ -281,15 +293,15 @@ export default function MyLoans() {
                             <div className="flex flex-col items-end w-full">
                               <span className="text-[10px] text-gray-500 mb-1">Confirm renewal (+14 days)?</span>
                               <div className="flex gap-2 w-full">
-                                <button onClick={() => handleRenew(loan.id)} className="flex-1 py-1.5 bg-green-500 text-white rounded-full text-[12px] font-bold hover:bg-green-600 transition-colors cursor-pointer">Yes</button>
-                                <button onClick={() => setConfirmingRenewalId(null)} className="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-full text-[12px] font-bold hover:bg-gray-300 transition-colors cursor-pointer">No</button>
+                                <button onClick={(e) => { e.stopPropagation(); handleRenew(loan.id); }} className="flex-1 py-1.5 bg-green-500 text-white rounded-full text-[12px] font-bold hover:bg-green-600 transition-colors cursor-pointer">Yes</button>
+                                <button onClick={(e) => { e.stopPropagation(); setConfirmingRenewalId(null); }} className="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-full text-[12px] font-bold hover:bg-gray-300 transition-colors cursor-pointer">No</button>
                               </div>
                             </div>
                           ) : (
                             <div className="flex flex-col items-end w-full">
                               <span className="text-[10px] text-gray-400 mb-1 font-medium">{loan.renewed_count || 0} of 2 renewals used</span>
                               <button 
-                                onClick={() => setConfirmingRenewalId(loan.id)}
+                                onClick={(e) => { e.stopPropagation(); setConfirmingRenewalId(loan.id); }}
                                 disabled={loan.renewal_status && !loan.renewal_status.can_renew}
                                 title={loan.renewal_status?.reason || ""}
                                 className={`px-4 py-1.5 font-bold text-[12px] rounded-full transition-colors w-full ${
@@ -305,7 +317,62 @@ export default function MyLoans() {
                        </div>
                      )}
                   </div>
+                  <div className="flex items-center justify-center pt-2 pb-1 border-t border-gray-100/50 text-gray-400">
+                    <span className="text-[10px] font-bold uppercase tracking-wider mr-1">Details</span>
+                    {expandedId === loan.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
                 </div>
+
+                {/* Expanded Content */}
+                {expandedId === loan.id && (
+                  <div className="px-6 pb-6 pt-4 border-t border-gray-100/50 flex flex-col gap-6 animate-in slide-in-from-top-2">
+                     {/* Top Row: Description */}
+                     <div className="w-full">
+                         <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Description</h4>
+                         {loan.book_description ? (
+                            <p className="text-[13px] text-gray-600 leading-relaxed max-w-4xl">
+                               {loan.book_description}
+                            </p>
+                         ) : (
+                            <div className="bg-slate-50/50 rounded-xl p-4 border border-dashed border-slate-200">
+                               <p className="text-[13px] text-gray-400 italic">No description available for this title.</p>
+                            </div>
+                         )}
+                     </div>
+
+                     {/* Bottom Row: Metadata Details */}
+                     <div className="w-full bg-slate-50 rounded-xl p-5 border border-slate-100">
+                         <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4">Book & Copy Details</h4>
+                         <div className="flex flex-wrap gap-8 md:gap-12">
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">CATEGORY</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{loan.book_category || 'Unknown'}</span>
+                            </div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">PUBLISHER</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{loan.book_publisher || 'Unknown'}</span>
+                            </div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">ISBN</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{loan.book_isbn || 'Unknown'}</span>
+                            </div>
+                            <div className="w-px h-8 bg-gray-200 hidden md:block"></div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">COPY BARCODE</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{loan.copy_accession_number || 'N/A'}</span>
+                            </div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">CONDITION</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{loan.copy_condition || 'Good'}</span>
+                            </div>
+                            <div>
+                               <span className="block text-[11px] text-gray-500 font-medium mb-0.5">HOME SHELF (RETURN LOCATION)</span>
+                               <span className="block text-[13px] text-slate-800 font-bold">{loan.copy_shelf_location || 'Main Library'}</span>
+                            </div>
+                         </div>
+                     </div>
+                  </div>
+                )}
                 
               </div>
             );

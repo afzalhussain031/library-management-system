@@ -23,6 +23,7 @@ class BookCopy(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="copies")
     accession_number = models.CharField(max_length=50, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=AVAILABLE)
+    condition = models.CharField(max_length=100, blank=True, default="Good")
     shelf_location = models.CharField(max_length=100, blank=True)
     acquired_at = models.DateField(null=True, blank=True)
 
