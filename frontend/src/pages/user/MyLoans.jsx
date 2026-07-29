@@ -46,14 +46,39 @@ export default function MyLoans() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'ACTIVE':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1 w-fit"><CheckCircle size={12}/> Active</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#C9F7F5] text-[#1BC5BD] flex items-center gap-1 w-fit"><CheckCircle size={12}/> Active</span>;
       case 'RETURNED':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex items-center gap-1 w-fit"><BookOpen size={12}/> Returned</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-500 flex items-center gap-1 w-fit"><BookOpen size={12}/> Returned</span>;
       case 'OVERDUE':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1 w-fit"><AlertTriangle size={12}/> Overdue</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FFE2E5] text-[#F64E60] flex items-center gap-1 w-fit"><AlertTriangle size={12}/> Overdue</span>;
       default:
         return null;
     }
+  };
+
+  const getLoanProgress = (loan) => {
+    if (loan.returned_at) return { percent: 100, color: 'bg-gray-300' };
+    
+    const issued = new Date(loan.issued_at).getTime();
+    const due = new Date(loan.due_at).getTime();
+    const now = new Date().getTime();
+    
+    if (now >= due) return { percent: 100, color: 'bg-red-500' };
+    
+    const totalDuration = due - issued;
+    const elapsed = now - issued;
+    
+    let percent = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 100;
+    percent = Math.min(Math.max(percent, 0), 100);
+    
+    const daysRemaining = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+    
+    let color = 'bg-green-500';
+    if (daysRemaining <= 3) {
+      color = 'bg-yellow-400';
+    }
+    
+    return { percent, color };
   };
 
   const filteredLoans = loansList.filter(loan => {
@@ -91,48 +116,120 @@ export default function MyLoans() {
           </div>
         </div>
       ) : filteredLoans.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {filteredLoans.map((loan) => (
-            <div key={loan.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100 flex items-center justify-between gap-4">
-              
-              {/* Left Side: Icon, Title, Author */}
-              <div className="flex items-center gap-4 flex-1">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-lg hidden sm:block">
-                  <BookOpen size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800 line-clamp-1" title={loan.book_title || "Unknown Title"}>
-                    {loan.book_title || "Unknown Title"}
-                  </h3>
-                  <p className="text-sm text-gray-500">{loan.book_author || "Unknown Author"}</p>
-                </div>
-              </div>
+        <div className="flex flex-col gap-3">
+          {filteredLoans.map((loan) => {
+            const isOverdue = getLoanStatus(loan) === 'OVERDUE';
+            const progress = getLoanProgress(loan);
 
-              {/* Right Side: Date, Status and Renew Button */}
-              <div className="flex flex-col items-end gap-1 shrink-0 min-w-[120px]">
-                <span className="text-sm text-gray-500 font-medium">
-                  {loan.returned_at ? 'Returned: ' : 'Due: '}
-                  {new Date(loan.returned_at || loan.due_at).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                  })}
-                </span>
-                <div className="flex items-center gap-2 mt-1">
-                  {getStatusBadge(getLoanStatus(loan))}
-                  {!loan.returned_at && (
-                    <button 
-                      onClick={() => handleRenew(loan.id)}
-                      className="bg-yellow-400 px-3 py-0.5 rounded-full text-xs text-black font-medium hover:bg-yellow-500 transition hover:scale-[1.01] cursor-pointer"
-                    >
-                      Renew
-                    </button>
-                  )}
+            return (
+              <div key={loan.id} className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md overflow-hidden ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'}`}>
+                
+                {/* Desktop Row View */}
+                <div className="hidden lg:flex items-center px-6 py-4">
+                  <div className="w-[80px] shrink-0">
+                    <div className={`w-[40px] h-[50px] flex items-center justify-center text-[18px] font-bold rounded-sm shadow-sm ${isOverdue ? 'bg-red-100 text-red-500' : 'bg-[#FEF6DD] text-[#E0B220]'}`}>
+                      {isOverdue ? <AlertTriangle size={20} /> : (loan.book_title ? loan.book_title.charAt(0).toUpperCase() : <BookOpen size={20} />)}
+                    </div>
+                  </div>
+                  <div className="w-[280px] shrink-0 pr-4">
+                    <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center" title={loan.book_title || "Unknown Title"}>
+                      <span className="truncate">{loan.book_title || "Unknown Title"}</span>
+                    </p>
+                    <p className="text-[12px] text-gray-500 truncate">{loan.book_author || "Unknown Author"}</p>
+                  </div>
+                  <div className="w-[200px] shrink-0 flex flex-col gap-1 pr-4">
+                    <div className="flex justify-between items-center text-[12px]">
+                      <div className="text-gray-500">
+                        <span className="block text-[9px] text-gray-400 uppercase tracking-wider mb-0.5">Borrowed</span>
+                        <span className="font-medium">{new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      <div className={`text-right ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                        <span className={`block text-[9px] uppercase tracking-wider mb-0.5 ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
+                          {loan.returned_at ? 'Returned' : 'Due Date'}
+                        </span>
+                        <span className="font-medium">{new Date(loan.returned_at || loan.due_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+                    {!loan.returned_at && (
+                      <div className="w-full bg-gray-200 h-1.5 rounded-full mt-1">
+                        <div 
+                          className={`h-1.5 rounded-full ${progress.color}`} 
+                          style={{ width: `${progress.percent}%` }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="w-[120px] shrink-0">
+                    {getStatusBadge(getLoanStatus(loan))}
+                  </div>
+                  <div className="flex-1 min-w-[100px] flex items-center justify-end">
+                    {!loan.returned_at && (
+                      <button 
+                        onClick={() => handleRenew(loan.id)}
+                        className="px-4 py-1.5 bg-[#FFF4E5] text-[#E58C17] border border-[#E58C17]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE8CC] transition-colors cursor-pointer"
+                      >
+                        Renew
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="flex lg:hidden flex-col p-4">
+                  <div className="flex gap-4">
+                    <div className={`w-16 h-24 flex items-center justify-center text-[24px] font-bold rounded-md shrink-0 shadow-sm ${isOverdue ? 'bg-red-100 text-red-500' : 'bg-[#FEF6DD] text-[#E0B220]'}`}>
+                       {isOverdue ? <AlertTriangle size={24} /> : (loan.book_title ? loan.book_title.charAt(0).toUpperCase() : <BookOpen size={24} />)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center" title={loan.book_title || "Unknown Title"}>
+                         <span className="truncate">{loan.book_title || "Unknown Title"}</span>
+                       </p>
+                       <p className="text-[12px] text-gray-500 mb-2 truncate">by {loan.book_author || "Unknown Author"}</p>
+                       <div className="mb-2">
+                           {getStatusBadge(getLoanStatus(loan))}
+                       </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col pt-4 mt-2 border-t border-gray-100/50">
+                     <div className="flex justify-between items-center w-full mb-2 text-[12px]">
+                       <div className="text-gray-500">
+                         <span className="block text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Borrowed On</span>
+                         <span className="font-medium">{new Date(loan.issued_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                       </div>
+                       <div className={`text-right ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                         <span className={`block text-[10px] uppercase tracking-wider mb-0.5 ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
+                           {loan.returned_at ? 'Returned' : 'Due Date'}
+                         </span>
+                         <span className="font-medium">{new Date(loan.returned_at || loan.due_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                       </div>
+                     </div>
+                     
+                     {!loan.returned_at && (
+                       <div className="w-full bg-gray-200 h-1.5 rounded-full mb-3">
+                         <div 
+                           className={`h-1.5 rounded-full ${progress.color}`} 
+                           style={{ width: `${progress.percent}%` }}
+                         ></div>
+                       </div>
+                     )}
+
+                     {!loan.returned_at && (
+                       <div className="flex justify-end mt-1">
+                         <button 
+                           onClick={() => handleRenew(loan.id)}
+                           className="px-4 py-1.5 bg-[#FFF4E5] text-[#E58C17] border border-[#E58C17]/20 font-bold text-[12px] rounded-full hover:bg-[#FFE8CC] transition-colors cursor-pointer w-full"
+                         >
+                           Renew Book
+                         </button>
+                       </div>
+                     )}
+                  </div>
+                </div>
+                
               </div>
-              
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 min-h-[300px] flex flex-col items-center justify-center text-gray-500">
