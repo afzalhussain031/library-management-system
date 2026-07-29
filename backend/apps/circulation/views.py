@@ -65,7 +65,7 @@ class LoanViewSet(viewsets.ModelViewSet):
                 message=f"You have successfully returned '{loan.copy.book.title}'."
             )
 
-            if loan.returned_at > loan.due_at and not hasattr(loan, "fine"):
+            if loan.returned_at.date() > loan.due_at.date() and not hasattr(loan, "fine"):
                 overdue_days = max((loan.returned_at.date() - loan.due_at.date()).days, 1)
                 fine = Fine.objects.create(
                     loan=loan,
@@ -87,7 +87,7 @@ class LoanViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Loan already closed.", "fine_amount": 0}, status=status.HTTP_400_BAD_REQUEST)
         
         now = timezone.now()
-        if now > loan.due_at:
+        if now.date() > loan.due_at.date():
             overdue_days = max((now.date() - loan.due_at.date()).days, 1)
             fine_amount = overdue_days * 10
             return Response({"overdue": True, "overdue_days": overdue_days, "fine_amount": fine_amount}, status=status.HTTP_200_OK)
@@ -112,7 +112,7 @@ class LoanViewSet(viewsets.ModelViewSet):
             message=f"You have successfully returned '{loan.copy.book.title}'."
         )
 
-        if loan.returned_at > loan.due_at and not hasattr(loan, "fine"):
+        if loan.returned_at.date() > loan.due_at.date() and not hasattr(loan, "fine"):
             overdue_days = max((loan.returned_at.date() - loan.due_at.date()).days, 1)
             
             # Use lower() to handle string conversions from frontend if needed, but bool is safer
@@ -154,7 +154,7 @@ class LoanViewSet(viewsets.ModelViewSet):
         if loan.returned_at:
             raise ValidationError({"detail": "Returned loans cannot be renewed."})
             
-        if timezone.now() > loan.due_at:
+        if timezone.now().date() > loan.due_at.date():
             raise ValidationError({"detail": "Overdue loans cannot be renewed. Please return the book and clear your fines."})
 
         # Rule 2: Max 2 renewals
@@ -286,3 +286,27 @@ class ReservationViewSet(viewsets.ModelViewSet):
         )
         
         return Response({"detail": "Book issued and reservation fulfilled!"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"])
+    def extend_pickup(self, request, pk=None):
+        """Allows a user to extend the pickup deadline by 24 hours (once)."""
+        reservation = self.get_object()
+        
+        if reservation.status != Reservation.READY:
+            return Response({"error": "Only READY reservations can be extended."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if reservation.is_extended:
+            return Response({"error": "This reservation has already been extended once."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        reservation.is_extended = True
+        reservation.save(update_fields=["is_extended"])
+        
+        # We can send a notification as well
+        create_student_notification(
+            user=reservation.user,
+            notif_type="reservation_extended",
+            title="Reservation Extended",
+            message=f"Your pickup deadline for '{reservation.book.title}' has been extended by 24 hours."
+        )
+        
+        return Response({"detail": "Pickup deadline extended successfully."}, status=status.HTTP_200_OK)

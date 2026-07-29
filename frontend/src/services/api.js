@@ -142,6 +142,7 @@ export const circulation = {
   // New endpoints for Kanban
   updateReservationStatus: (id, status, extraData = {}) => client.patch(`/reservations/${id}/`, { status, ...extraData }),
   fulfillReservation: (id) => client.post(`/reservations/${id}/fulfill/`),
+  extendPickup: (id) => client.post(`/reservations/${id}/extend_pickup/`),
   
   // New endpoints for manual Lend/Return
   issueBook: (data) => client.post('/loans/', data),

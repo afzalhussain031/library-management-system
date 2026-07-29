@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApi } from '../../hook/useApi';
 import { circulation } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const FILTER_STATUSES = ['ALL', 'PENDING', 'READY', 'FULFILLED', 'CANCELLED'];
@@ -36,6 +36,23 @@ export default function MyReservations() {
     } catch (error) {
       console.error("Failed to cancel hold:", error);
       toast.error(error.response?.data?.message || "Failed to cancel hold", { id: toastId });
+    } finally {
+      setProcessingHoldId(null);
+    }
+  };
+
+  const handleExtendPickup = async (e, id) => {
+    e.stopPropagation();
+    if (processingHoldId) return;
+    setProcessingHoldId(id);
+    const toastId = toast.loading("Requesting extension...");
+    try {
+      await circulation.extendPickup(id);
+      toast.success("Extension granted", { id: toastId });
+      refetch();
+    } catch (error) {
+      console.error("Failed to extend pickup:", error);
+      toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to request extension", { id: toastId });
     } finally {
       setProcessingHoldId(null);
     }
@@ -193,6 +210,26 @@ export default function MyReservations() {
                              )}
                          </div>
                      )}
+                     {isReady && reservation.expires_at && (
+                        <div className="mt-1">
+                            {(() => {
+                                const expires = new Date(reservation.expires_at);
+                                const now = new Date();
+                                const hoursLeft = (expires - now) / (1000 * 60 * 60);
+                                const isUrgent = hoursLeft > 0 && hoursLeft <= 24;
+                                const isExpired = hoursLeft <= 0;
+                                return (
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="block text-[9px] text-gray-400 uppercase tracking-wider mt-1">Pick up by</span>
+                                      <span className={`text-[11px] font-bold flex items-center gap-1 ${isExpired ? 'text-red-600' : isUrgent ? 'text-orange-600' : 'text-gray-700'}`}>
+                                          <CalendarClock size={12} />
+                                          {expires.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {expires.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                      </span>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                     )}
                   </div>
                   <div className="w-[120px] shrink-0 flex flex-col gap-1">
                     {getStatusBadge(reservation.status)}
@@ -251,6 +288,27 @@ export default function MyReservations() {
                        )}
                      </div>
 
+                     {isReady && reservation.expires_at && (
+                         <div className="mb-3 w-full bg-slate-50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+                            {(() => {
+                                const expires = new Date(reservation.expires_at);
+                                const now = new Date();
+                                const hoursLeft = (expires - now) / (1000 * 60 * 60);
+                                const isUrgent = hoursLeft > 0 && hoursLeft <= 24;
+                                const isExpired = hoursLeft <= 0;
+                                return (
+                                    <>
+                                      <span className="block text-[10px] text-gray-500 font-medium">Pick up by:</span>
+                                      <span className={`text-[11px] font-bold flex items-center gap-1 ${isExpired ? 'text-red-600' : isUrgent ? 'text-orange-600' : 'text-gray-700'}`}>
+                                          <CalendarClock size={12} />
+                                          {expires.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {expires.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                      </span>
+                                    </>
+                                );
+                            })()}
+                         </div>
+                     )}
+
                      {(isPending || isReady) && (
                        <div className="flex justify-end mt-1 w-full">
                           <button 
@@ -269,6 +327,27 @@ export default function MyReservations() {
                     {expandedId === reservation.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </div>
                 </div>
+
+                {/* Action Banner for Ready State */}
+                {isReady && (
+                   <div className="w-full bg-[#F3F6F9] px-4 lg:px-6 py-3 border-t border-[#E4E6EF] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className="flex items-center gap-2 text-gray-700">
+                         <div className="bg-white p-1.5 rounded-full text-[#3699FF] shadow-sm">
+                            <MapPin size={14} />
+                         </div>
+                         <span className="text-[12px] font-bold whitespace-nowrap">Pickup at:</span>
+                         <span className="text-[12px]">{reservation.pickup_location}</span>
+                      </div>
+                      <button 
+                        className="w-full sm:w-auto px-4 py-1.5 bg-white text-[#3699FF] border border-[#E4E6EF] font-bold text-[12px] rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={(e) => handleExtendPickup(e, reservation.id)}
+                        disabled={isProcessing || reservation.is_extended}
+                      >
+                        <CalendarPlus size={14} />
+                        {reservation.is_extended ? "Extended" : "Request 24h Extension"}
+                      </button>
+                   </div>
+                )}
 
                 {/* Expanded Content */}
                 {expandedId === reservation.id && (

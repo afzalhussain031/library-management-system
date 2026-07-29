@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Loan, Reservation
 from apps.catalog.models import Book
 from django.utils import timezone
+from datetime import timedelta
 
 class LoanSerializer(serializers.ModelSerializer):
     book_title = serializers.CharField(source="copy.book.title", read_only=True)
@@ -64,8 +65,8 @@ class LoanSerializer(serializers.ModelSerializer):
         # A book is not overdue if it has been returned
         if obj.returned_at:
             return False
-        # It's overdue if the current server time is past the due date
-        return timezone.now() > obj.due_at
+        # It's overdue if the current server time is past the due date (comparing just the dates)
+        return timezone.now().date() > obj.due_at.date()
     
     def get_overdue_days(self, obj):
         if not self.get_is_overdue(obj):
@@ -88,7 +89,7 @@ class LoanSerializer(serializers.ModelSerializer):
     def get_renewal_status(self, obj):
         if obj.returned_at:
             return {"can_renew": False, "reason": "Returned loans cannot be renewed."}
-        if timezone.now() > obj.due_at:
+        if timezone.now().date() > obj.due_at.date():
             return {"can_renew": False, "reason": "Overdue loans cannot be renewed. Please return the book and clear your fines."}
         if obj.renewed_count >= 2:
             return {"can_renew": False, "reason": "Maximum renewal limit (2 times) reached for this book."}
@@ -125,6 +126,9 @@ class ReservationSerializer(serializers.ModelSerializer):
     queue_position = serializers.SerializerMethodField()
     estimated_wait_days = serializers.SerializerMethodField()
     total_copies = serializers.SerializerMethodField()
+    
+    expires_at = serializers.SerializerMethodField()
+    pickup_location = serializers.SerializerMethodField()
 
     class Meta:
         model = Reservation
@@ -147,6 +151,9 @@ class ReservationSerializer(serializers.ModelSerializer):
             "queue_position",
             "estimated_wait_days",
             "total_copies",
+            "is_extended",
+            "expires_at",
+            "pickup_location",
         ]
 
     # 3. Define how to fetch the name
@@ -175,3 +182,17 @@ class ReservationSerializer(serializers.ModelSerializer):
         queue_pos = self.get_queue_position(obj)
         copies = max(self.get_total_copies(obj), 1)
         return int(queue_pos * (14 / copies))
+
+    def get_expires_at(self, obj):
+        if not obj.ready_at:
+            return None
+        base_days = 2
+        if obj.is_extended:
+            base_days += 1
+        return obj.ready_at + timedelta(days=base_days)
+
+    def get_pickup_location(self, obj):
+        if obj.allocated_copy and obj.allocated_copy.shelf_location:
+            return f"Main Library, {obj.allocated_copy.shelf_location}"
+        return "Main Library, Holds Desk"
+

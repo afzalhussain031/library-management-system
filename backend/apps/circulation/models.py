@@ -49,6 +49,7 @@ class Reservation(models.Model):
     )
     reserved_at = models.DateTimeField(auto_now_add=True)
     ready_at = models.DateTimeField(null=True, blank=True) # NEW: For tracking expiration
+    is_extended = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
     allocated_copy = models.ForeignKey(
         BookCopy, 
