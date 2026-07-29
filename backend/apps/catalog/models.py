@@ -95,3 +95,26 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.user.user_id} - {self.book.title}"
+
+class Review(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    review_text = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "library_review"
+        unique_together = ("user", "book")
+
+    def __str__(self):
+        return f"{self.user.user_id} - {self.book.title} ({self.rating}/5)"

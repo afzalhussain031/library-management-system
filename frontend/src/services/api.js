@@ -106,7 +106,19 @@ export const catalog = {
     client.post('/wishlist/', data),
 
   removeFromWishlist: (id) =>
-    client.delete(`/wishlist/${id}/`)
+    client.delete(`/wishlist/${id}/`),
+    
+  getReviews: (params) =>
+    client.get('/reviews/', { params }),
+    
+  addReview: (data) =>
+    client.post('/reviews/', data),
+    
+  updateReview: (id, data) =>
+    client.patch(`/reviews/${id}/`, data),
+    
+  deleteReview: (id) =>
+    client.delete(`/reviews/${id}/`)
 }
 
 // ===================== INVENTORY =====================
