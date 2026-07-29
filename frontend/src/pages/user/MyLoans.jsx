@@ -121,7 +121,25 @@ export default function MyLoans() {
         <div className="flex flex-col gap-3">
           {filteredLoans.map((loan) => {
             const isOverdue = getLoanStatus(loan) === 'OVERDUE';
+            const isActive = getLoanStatus(loan) === 'ACTIVE';
             const progress = getLoanProgress(loan);
+
+            let daysRemainingBadge = null;
+            if (isActive && !loan.returned_at) {
+              const due = new Date(loan.due_at).getTime();
+              const now = new Date().getTime();
+              const daysRemaining = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+              
+              if (daysRemaining === 0) {
+                 daysRemainingBadge = { text: 'Due Today', colorClass: 'text-yellow-600 bg-yellow-50 border-yellow-100' };
+              } else if (daysRemaining > 0) {
+                 const isSoon = daysRemaining <= 3;
+                 daysRemainingBadge = { 
+                   text: `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`, 
+                   colorClass: isSoon ? 'text-yellow-600 bg-yellow-50 border-yellow-100' : 'text-green-600 bg-green-50 border-green-100' 
+                 };
+              }
+            }
 
             return (
               <div key={loan.id} className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md overflow-hidden ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'}`}>
@@ -161,8 +179,18 @@ export default function MyLoans() {
                       </div>
                     )}
                   </div>
-                  <div className="w-[120px] shrink-0">
+                  <div className="w-[120px] shrink-0 flex flex-col gap-1">
                     {getStatusBadge(getLoanStatus(loan))}
+                    {loan.current_fine_estimate > 0 && !loan.returned_at && (
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 w-fit">
+                         <span>Late Fine: ₹{loan.current_fine_estimate} ({loan.overdue_days} {loan.overdue_days === 1 ? 'day' : 'days'})</span>
+                      </div>
+                    )}
+                    {daysRemainingBadge && (
+                      <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded border w-fit ${daysRemainingBadge.colorClass}`}>
+                        <span>{daysRemainingBadge.text}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-[100px] flex items-center justify-end">
                     {!loan.returned_at && (
@@ -208,8 +236,18 @@ export default function MyLoans() {
                          <span className="truncate">{loan.book_title || "Unknown Title"}</span>
                        </p>
                        <p className="text-[12px] text-gray-500 mb-2 truncate">by {loan.book_author || "Unknown Author"}</p>
-                       <div className="mb-2">
+                       <div className="mb-2 flex flex-wrap gap-2 items-center">
                            {getStatusBadge(getLoanStatus(loan))}
+                           {loan.current_fine_estimate > 0 && !loan.returned_at && (
+                             <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 flex items-center">
+                               Late Fine: ₹{loan.current_fine_estimate} ({loan.overdue_days} {loan.overdue_days === 1 ? 'day' : 'days'})
+                             </span>
+                           )}
+                           {daysRemainingBadge && (
+                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded border flex items-center ${daysRemainingBadge.colorClass}`}>
+                               {daysRemainingBadge.text}
+                             </span>
+                           )}
                        </div>
                     </div>
                   </div>
