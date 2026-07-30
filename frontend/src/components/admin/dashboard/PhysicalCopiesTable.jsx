@@ -12,10 +12,6 @@ const PhysicalCopiesTable = ({ bookId }) => {
   // State for inline Add Row
   const [newCopy, setNewCopy] = useState({ accession_number: "", shelf_location: "" });
 
-  useEffect(() => {
-    fetchCopies();
-  }, [bookId]);
-
   const fetchCopies = async () => {
     setIsLoading(true);
     try {
@@ -27,6 +23,10 @@ const PhysicalCopiesTable = ({ bookId }) => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCopies();
+  }, [bookId]);
 
   const handleAddCopy = async () => {
     if (!newCopy.accession_number.trim()) {

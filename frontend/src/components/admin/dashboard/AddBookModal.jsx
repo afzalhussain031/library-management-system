@@ -66,6 +66,25 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
     name: "copies",
   });
 
+  const fetchOptions = async () => {
+    setIsLoadingOptions(true);
+    try {
+      const [bookRes, catRes, pubRes] = await Promise.all([
+        catalog.getBooks(),
+        catalog.getCategories(),
+        catalog.getPublishers(),
+      ]);
+      setBooksList(bookRes.data || []);
+      setCategories(catRes.data.map((c) => ({ label: c.name, value: c.id })));
+      setPublishers(pubRes.data.map((p) => ({ label: p.name, value: p.id })));
+    } catch (error) {
+      console.error("Failed to fetch options", error);
+      toast.error("Failed to load catalog data");
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  };
+
   // NEW: Refactored useEffect to handle Edit Mode
   useEffect(() => {
     if (isOpen) {
@@ -92,25 +111,6 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
       }
     }
   }, [isOpen, bookToEdit, setValue, reset]);
-
-  const fetchOptions = async () => {
-    setIsLoadingOptions(true);
-    try {
-      const [bookRes, catRes, pubRes] = await Promise.all([
-        catalog.getBooks(),
-        catalog.getCategories(),
-        catalog.getPublishers(),
-      ]);
-      setBooksList(bookRes.data || []);
-      setCategories(catRes.data.map((c) => ({ label: c.name, value: c.id })));
-      setPublishers(pubRes.data.map((p) => ({ label: p.name, value: p.id })));
-    } catch (error) {
-      console.error("Failed to fetch options", error);
-      toast.error("Failed to load catalog data");
-    } finally {
-      setIsLoadingOptions(false);
-    }
-  };
 
   const handleTitleChange = (selectedOption) => {
     setValue("title", selectedOption, { shouldValidate: true });
