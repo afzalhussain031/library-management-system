@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Book, Category, Publisher, Wishlist, Language
+from .models import Book, Category, Publisher, Wishlist, Language, Review
 from apps.inventory.models import BookCopy 
 from apps.circulation.models import Loan, Reservation
 from django.utils import timezone
@@ -118,3 +118,18 @@ class WishlistSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         book_id = validated_data.pop("book_id")
         return Wishlist.objects.create(book_id=book_id, **validated_data)
+
+class ReviewSerializer(serializers.ModelSerializer):
+    book_id = serializers.IntegerField(write_only=True)
+    user_id = serializers.CharField(source='user.user_id', read_only=True)
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "book_id", "user_id", "user_name", "rating", "review_text", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "user_id", "user_name"]
+
+    def create(self, validated_data):
+        book_id = validated_data.pop("book_id")
+        # user is passed in perform_create in the ViewSet
+        return Review.objects.create(book_id=book_id, **validated_data)

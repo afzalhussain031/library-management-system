@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 import LendReturnModal from '../admin/LendReturnModal'
+import { WishlistProvider } from '../../context/WishlistContext'
 
 
 function PageLoader() {
@@ -18,33 +19,35 @@ export default function DashboardLayout() {
   const [isLendModalOpen, setIsLendModalOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-linear-to-r from-gray-100 to-yellow-100 overflow-hidden">
-      
-      {/* Sidebar Component */}
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onToggle={() => setSidebarOpen(prev => !prev)}
-        onOpenLendModal={() => setIsLendModalOpen(true)}
-      />
+    <WishlistProvider>
+      <div className="flex h-screen bg-linear-to-r from-gray-100 to-yellow-100 overflow-hidden">
+        
+        {/* Sidebar Component */}
+        <Sidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onToggle={() => setSidebarOpen(prev => !prev)}
+          onOpenLendModal={() => setIsLendModalOpen(true)}
+        />
 
-      {/* Main area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden p-3 md:pl-0 gap-3">
-        <Topbar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
+        {/* Main area */}
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden p-3 md:pl-0 gap-3">
+          <Topbar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto no-scrollbar">
-          <Suspense fallback={<PageLoader />}>
-            <Outlet />
-          </Suspense>
-        </main>
+          {/* Page content */}
+          <main className="flex-1 overflow-y-auto no-scrollbar">
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
+          </main>
+        </div>
+        
+        {/* Global Circulation Modal */}
+        <LendReturnModal 
+          open={isLendModalOpen} 
+          onClose={() => setIsLendModalOpen(false)} 
+        />
       </div>
-      
-      {/* Global Circulation Modal */}
-      <LendReturnModal 
-        open={isLendModalOpen} 
-        onClose={() => setIsLendModalOpen(false)} 
-      />
-    </div>
+    </WishlistProvider>
   )
 }

@@ -227,7 +227,7 @@ const Books = () => {
                      <div className="w-[80px] shrink-0">
                        <SkeletonCard className="w-[40px] h-[50px] rounded-sm" />
                      </div>
-                     <div className="w-[240px] shrink-0 pr-4 space-y-2">
+                     <div className="w-[240px] shr,ink-0 pr-4 space-y-2">
                        <SkeletonText className="h-4 w-3/4" />
                        <SkeletonText className="h-3 w-1/2" />
                      </div>

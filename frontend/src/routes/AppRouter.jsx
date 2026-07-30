@@ -8,7 +8,7 @@ import Login from '../pages/auth/Login';
 import SignUp from '../pages/auth/SignUp';
 import Dashboard from '../pages/user/Dashboard';
 import UserProfile from "../pages/user/Profile";
-import Wishlist from "../pages/user/Wishlist";
+
 import Books from "../pages/user/Books";
 import MyLoans from "../pages/user/MyLoans";
 import MyReservations from "../pages/user/MyReservations";
@@ -66,7 +66,7 @@ const AppRouter = () => {
           <Route path="/profile" element={<UserProfile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
-          <Route path="/wishlist" element={<Wishlist />} />
+
           <Route path="/books" element={<Books />} />
           <Route path="/my-loans" element={<MyLoans />} />
           <Route path="/my-reservations" element={<MyReservations />} />
