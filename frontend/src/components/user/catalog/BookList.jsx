@@ -13,6 +13,7 @@ const BookList = ({ books = [], wishlistMap = {}, onWishlistToggle }) => {
             id={book.id}
             title={book.title} 
             author={book.author} 
+            coverImage={book.cover_image}
             initialWishlistId={wishlistMap[book.id] || null}
             onWishlistToggle={onWishlistToggle}
           />

@@ -32,6 +32,7 @@ const BookList = ({ items, setItems }) => {
           key={item.id} 
           title={item.book?.title} 
           author={item.book?.author} 
+          coverImage={item.book?.cover_image}
           onReserve={() => handleReserve(item.book?.id, item.id)}
           onRemove={() => handleRemove(item.id)}
         />
