@@ -308,7 +308,7 @@ export default function Books() {
       {/* List Container */}
       <div className="w-full pb-8">
          <BookList 
-           books={finalBooks} 
+           books={filteredBooks} 
            isLoading={isLoading} 
            onReservationUpdate={handleReservationUpdate}
          />
