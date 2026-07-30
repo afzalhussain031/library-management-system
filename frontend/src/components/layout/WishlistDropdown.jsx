@@ -3,6 +3,7 @@ import { Bookmark, X, CheckCircle, Clock, Trash2, BookmarkPlus, Loader2 } from "
 import { useWishlist } from "../../context/WishlistContext";
 import { toast } from "react-hot-toast";
 import { circulation, catalog } from "../../services/api";
+import BookThumbnail from "../common/BookThumbnail";
 
 export default function WishlistDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -104,13 +105,13 @@ export default function WishlistDropdown() {
                 return (
                   <div key={item.id} className="flex gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100 group hover:shadow-md transition-shadow">
                     {/* Thumbnail */}
-                    <div className="w-12 h-16 shrink-0 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
-                      {coverUrl ? (
-                        <img src={coverUrl} alt={item.book?.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <BookmarkPlus size={16} className="text-gray-300" />
-                      )}
-                    </div>
+                    <BookThumbnail 
+                      title={item.book?.title} 
+                      coverImage={coverUrl} 
+                      isbn={item.book?.isbn} 
+                      hoverExpand={false} 
+                      className="w-12 h-16 rounded" 
+                    />
                     
                     {/* Details */}
                     <div className="flex flex-col flex-1 min-w-0 py-0.5">
