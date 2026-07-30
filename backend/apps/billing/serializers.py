@@ -11,6 +11,7 @@ class FineSerializer(serializers.ModelSerializer):
     borrower_id = serializers.CharField(source="loan.borrower.id", read_only=True)
     loan_due_at = serializers.DateTimeField(source="loan.due_at", read_only=True)
     loan_returned_at = serializers.DateTimeField(source="loan.returned_at", read_only=True)
+    loan_issued_at = serializers.DateTimeField(source="loan.issued_at", read_only=True)
     loan_copy_barcode = serializers.CharField(source="loan.copy.barcode", read_only=True)
     is_paid = serializers.SerializerMethodField()
 
@@ -24,6 +25,7 @@ class FineSerializer(serializers.ModelSerializer):
             "borrower_name",
             "borrower_email",
             "borrower_id",
+            "loan_issued_at",
             "loan_due_at",
             "loan_returned_at",
             "loan_copy_barcode",
