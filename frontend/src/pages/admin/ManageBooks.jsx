@@ -257,7 +257,7 @@ const Books = () => {
                 filteredBooks.map((book, idx) => (
                   <div
                   key={book.id}
-                   className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative"
+                    className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative hover:z-30"
                 >
                   {/* Main Row */}
                   <div
@@ -272,6 +272,7 @@ const Books = () => {
                         title={book.title} 
                         coverImage={book.cover_image} 
                         isbn={book.isbn} 
+                        author={book.author}
                         hoverExpand={true} 
                       />
                     </div>
@@ -407,13 +408,14 @@ const Books = () => {
              filteredBooks.map((book) => (
                 <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80">
                   <div className="flex gap-4">
-                     <BookThumbnail 
-                       title={book.title} 
-                       coverImage={book.cover_image} 
-                       isbn={book.isbn} 
-                       hoverExpand={false} 
-                       className="w-16 h-24 text-[14px] rounded-md"
-                     />
+                      <BookThumbnail 
+                        title={book.title} 
+                        coverImage={book.cover_image} 
+                        isbn={book.isbn} 
+                        author={book.author}
+                        hoverExpand={false} 
+                        className="w-16 h-24 text-[14px] rounded-md"
+                      />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate">{book.title}</p>
                       <p className="text-[12px] text-gray-500 mb-2 truncate">by {book.author}</p>

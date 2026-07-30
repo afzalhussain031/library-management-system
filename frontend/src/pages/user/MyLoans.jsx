@@ -465,7 +465,7 @@ export default function MyLoans() {
               <div 
                 key={loan.id} 
                 id={`loan-${loan.id}`}
-                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
                 onClick={() => toggleExpand(loan.id)}
               >
                 
@@ -475,6 +475,7 @@ export default function MyLoans() {
                     <BookThumbnail 
                       title={loan.book_title} 
                       isbn={loan.book_isbn} 
+                      author={loan.book_author}
                       hoverExpand={true} 
                       className={isOverdue ? "border-red-400 border-2" : ""}
                     />
@@ -597,6 +598,7 @@ export default function MyLoans() {
                     <BookThumbnail 
                       title={loan.book_title} 
                       isbn={loan.book_isbn} 
+                      author={loan.book_author}
                       hoverExpand={false} 
                       className={`w-16 h-24 text-[24px] rounded-md ${isOverdue ? "border-red-400 border-2" : ""}`}
                     />

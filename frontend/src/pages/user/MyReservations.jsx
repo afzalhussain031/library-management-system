@@ -364,7 +364,7 @@ export default function MyReservations() {
             return (
               <div 
                 key={reservation.id} 
-                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer ${isReady ? 'bg-green-50/50 border-l-4 border-green-500 border-y-white border-r-white hover:bg-green-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === reservation.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'}`}
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 ${isReady ? 'bg-green-50/50 border-l-4 border-green-500 border-y-white border-r-white hover:bg-green-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === reservation.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'}`}
                 onClick={() => toggleExpand(reservation.id)}
               >
                 
@@ -374,6 +374,7 @@ export default function MyReservations() {
                     <BookThumbnail 
                       title={reservation.book_title} 
                       isbn={reservation.book_isbn} 
+                      author={reservation.book_author}
                       hoverExpand={true} 
                     />
                   </div>
@@ -492,6 +493,7 @@ export default function MyReservations() {
                     <BookThumbnail 
                       title={reservation.book_title} 
                       isbn={reservation.book_isbn} 
+                      author={reservation.book_author}
                       hoverExpand={false} 
                       className="w-16 h-24 text-[24px] rounded-md"
                     />

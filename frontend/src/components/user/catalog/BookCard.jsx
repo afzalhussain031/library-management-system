@@ -121,7 +121,7 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative mb-3">
+    <div className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative mb-3 hover:z-30">
       {/* Desktop Row View */}
       <div 
         className="hidden lg:flex items-center px-6 py-4 cursor-pointer transition-colors"
@@ -132,6 +132,7 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
             title={book.title} 
             coverImage={book.cover_image} 
             isbn={book.isbn} 
+            author={book.author}
             hoverExpand={true} 
           />
         </div>
@@ -188,6 +189,7 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
             title={book.title} 
             coverImage={book.cover_image} 
             isbn={book.isbn} 
+            author={book.author}
             hoverExpand={false} 
             className="w-16 h-24 text-[24px] rounded-md"
           />
