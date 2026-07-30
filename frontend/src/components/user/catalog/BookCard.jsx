@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Heart, ChevronDown, ChevronUp, BookOpen, Loader2 } from "lucide-react";
-import { catalog, circulation } from "../../../services/api";
+import { circulation } from "../../../services/api";
 import { toast } from "react-hot-toast";
-const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservationUpdate }) => {
-  const [wishlistId, setWishlistId] = useState(initialWishlistId);
+import { useWishlist } from "../../../context/WishlistContext";
+
+const BookCard = ({ book, idx, onReservationUpdate }) => {
+  const { wishlistItems, addToWishlist, removeFromWishlist } = useWishlist();
   const [isUpdating, setIsUpdating] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    setWishlistId(initialWishlistId);
-  }, [initialWishlistId]);
-
-  const liked = !!wishlistId;
+  // Check if book is in the global wishlist
+  const wishlistItem = wishlistItems.find(item => item.book?.id === book.id);
+  const liked = !!wishlistItem;
 
   const handleLikeClick = async (e) => {
     e.stopPropagation();
@@ -19,20 +19,12 @@ const BookCard = ({ book, idx, initialWishlistId, onWishlistToggle, onReservatio
     setIsUpdating(true);
     try {
       if (liked) {
-        await catalog.removeFromWishlist(wishlistId);
-        setWishlistId(null);
-        toast.success("Removed from wishlist");
+        await removeFromWishlist(wishlistItem.id);
       } else {
-        const response = await catalog.addToWishlist({ book_id: book.id });
-        setWishlistId(response.id || response.data?.id);
-        toast.success("Added to wishlist");
-      }
-      if (onWishlistToggle) {
-        onWishlistToggle();
+        await addToWishlist(book.id);
       }
     } catch (error) {
       console.error("Failed to update wishlist:", error);
-      toast.error(error.response?.data?.message || "Failed to update wishlist");
     } finally {
       setIsUpdating(false);
     }

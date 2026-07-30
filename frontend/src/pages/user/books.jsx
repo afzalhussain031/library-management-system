@@ -24,14 +24,9 @@ export default function Books() {
 
 
   const fetchBooks = useCallback(() => catalog.getBooks({ sort: 'popularity' }), []);
-  const fetchWishlist = useCallback(() => catalog.getWishlist(), []);
+
 
   const { data: rawBooksData, isLoading, error, refetch: refetchBooks } = useApi(fetchBooks, []);
-  const { data: wishlistData, refetch: refetchWishlist } = useApi(fetchWishlist, []);
-
-  const handleWishlistToggle = useCallback(() => {
-    refetchWishlist();
-  }, [refetchWishlist]);
 
   const handleReservationUpdate = useCallback(() => {
     refetchBooks(); // Update copies count and user interaction
@@ -48,16 +43,7 @@ export default function Books() {
      };
   }, [rawBooks]);
 
-  const wishlistMap = useMemo(() => {
-    const map = {};
-    const items = Array.isArray(wishlistData) ? wishlistData : wishlistData?.results || [];
-    items.forEach(item => {
-      if (item.book && item.book.id) {
-        map[item.book.id] = item.id;
-      }
-    });
-    return map;
-  }, [wishlistData]);
+
 
   // Derived filter options
   const availableCategories = useMemo(() => {
@@ -322,10 +308,8 @@ export default function Books() {
       {/* List Container */}
       <div className="w-full pb-8">
          <BookList 
-           books={filteredBooks} 
+           books={finalBooks} 
            isLoading={isLoading} 
-           wishlistMap={wishlistMap} 
-           onWishlistToggle={handleWishlistToggle} 
            onReservationUpdate={handleReservationUpdate}
          />
       </div>

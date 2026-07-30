@@ -1,5 +1,4 @@
 import test from '../components/common/test'
-import Wishlist from '../pages/user/wishlist';
 import Books from '../pages/user/books';
 // ── Shared pages (multiple roles) ──────────────────────────────────────────
 const Dashboard = test
@@ -8,7 +7,7 @@ const Unauthorized = test
 
 // ── User pages ─────────────────────────────────────────────────────────────
 const UserProfile =test
-const UserOrders  = Wishlist
+const UserOrders  = test
 const UserReports = Books
 const HelpCenter  = test
 // ── Admin pages ────────────────────────────────────────────────────────────
