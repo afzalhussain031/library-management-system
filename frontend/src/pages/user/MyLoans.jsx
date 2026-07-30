@@ -3,7 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useApi } from '../../hook/useApi';
 import { dashboard, circulation, catalog } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Clock, BookOpen, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CalendarPlus, Star, MessageSquare, Search, Filter } from 'lucide-react';
+import { Clock, BookOpen, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CalendarPlus, Star, MessageSquare, Search, Filter, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function MyLoans() {
@@ -16,6 +16,32 @@ export default function MyLoans() {
   const [subFilter, setSubFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmingRenewalId, setConfirmingRenewalId] = useState(null);
+
+  const { data: finesDataRaw, isLoading: isLoadingFines, error: finesError } = useApi(dashboard.getFines, []);
+  const [payingId, setPayingId] = useState(null);
+
+  const finesList = Array.isArray(finesDataRaw) ? finesDataRaw : finesDataRaw?.results || [];
+  const pendingFines = finesList.filter(fine => fine.status === 'pending');
+  const totalAmount = pendingFines.reduce((sum, fine) => sum + (fine.amount || 0), 0);
+  const payableFines = pendingFines.filter(fine => !fine.is_accrued);
+  const payableAmount = payableFines.reduce((sum, fine) => sum + (fine.amount || 0), 0);
+
+  const handlePayFine = async (fineId) => {
+    toast("Payment mechanism is coming soon! 🚀", {
+      icon: '💳',
+      style: {
+        borderRadius: '10px',
+        background: '#333',
+        color: '#fff',
+      },
+    });
+  };
+
+  const handlePayAll = async () => {
+    for (const fine of payableFines) {
+      await handlePayFine(fine.id);
+    }
+  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -234,6 +260,7 @@ export default function MyLoans() {
   const tabCounts = {
     CURRENT: 0,
     HISTORY: 0,
+    FINES: pendingFines.length,
   };
 
   loansList.forEach(loan => {
@@ -341,9 +368,27 @@ export default function MyLoans() {
               {tabCounts.HISTORY}
             </span>
           </button>
+          <button
+            onClick={() => handleTabChange('FINES')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 ${
+              activeTab === 'FINES'
+                ? 'bg-red-500 text-white shadow-md'
+                : 'bg-white text-gray-600 hover:bg-red-50 border border-gray-200 shadow-sm'
+            }`}
+          >
+            <span>Fines & Payments</span>
+            {tabCounts.FINES > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                activeTab === 'FINES' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-600'
+              }`}>
+                {tabCounts.FINES}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Dropdown Filter */}
+        {activeTab !== 'FINES' && (
         <div className="relative w-full md:w-48">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Filter size={16} className="text-gray-400" />
@@ -372,8 +417,86 @@ export default function MyLoans() {
             <ChevronDown size={14} className="text-gray-400" />
           </div>
         </div>
+        )}
       </div>
 
+      {/* Main Content Area */}
+      {activeTab === 'FINES' ? (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 min-h-[300px] flex flex-col">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h2 className="text-lg font-bold text-gray-800">Your Fines</h2>
+            {totalAmount > 0 && (
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Total Debt: <span className="font-bold text-gray-700">₹{totalAmount}</span></p>
+                </div>
+                <button 
+                  onClick={handlePayAll}
+                  disabled={payingId !== null || payableAmount === 0}
+                  className={`bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-md flex items-center gap-2 ${payingId !== null || payableAmount === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  title={payableAmount === 0 ? "You must return overdue books to pay accrued fines." : ""}
+                >
+                  <CreditCard size={18} />
+                  {payableAmount > 0 ? `Pay Payable (₹${payableAmount})` : `No Payable Fines`}
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {isLoadingFines ? (
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="animate-spin text-gray-400 mb-4">
+                <CreditCard size={32} />
+              </div>
+              <p className="text-gray-500">Loading your fines...</p>
+            </div>
+          ) : pendingFines.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-500 py-12">
+              <CheckCircle2 size={48} className="mx-auto mb-4 text-green-400" />
+              <h3 className="text-lg font-medium text-gray-800">You're all clear!</h3>
+              <p className="mt-1 text-sm text-gray-500">No pending fines at this moment.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {pendingFines.map((fine) => (
+                <div key={fine.id} className={`flex flex-col md:flex-row justify-between md:items-center gap-4 p-4 border rounded-lg transition-colors ${fine.is_accrued ? 'border-orange-100 bg-orange-50/50 hover:bg-orange-50' : 'border-red-100 bg-red-50/50 hover:bg-red-50'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-1 ${fine.is_accrued ? 'text-orange-500 bg-orange-100' : 'text-red-500 bg-red-100'} p-2 rounded-full shrink-0`}>
+                       <AlertCircle size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800 capitalize flex flex-wrap items-center gap-2">
+                        {fine.reason ? fine.reason.replace(/_/g, ' ') : "Late Return Fine"}
+                        {fine.is_accrued && (
+                          <span className="text-[10px] uppercase tracking-wider bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold">Accruing</span>
+                        )}
+                      </h4>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        Issued: {new Date(fine.created_at).toLocaleDateString()}
+                      </p>
+                      {fine.loan && fine.loan.book_title && (
+                        <p className="text-sm text-gray-600 mt-1 font-medium">Book: {fine.loan.book_title}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
+                    <span className="font-bold text-xl text-gray-800">₹{fine.amount}</span>
+                    <button 
+                      onClick={() => !fine.is_accrued && handlePayFine(fine.id)}
+                      disabled={payingId === fine.id || fine.is_accrued}
+                      className={`${fine.is_accrued ? 'bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-300' : 'bg-gray-900 text-white hover:bg-gray-800 cursor-pointer'} px-5 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap ${payingId === fine.id ? 'opacity-70 cursor-wait' : ''}`}
+                      title={fine.is_accrued ? "Return the book to finalize and pay this fine." : ""}
+                    >
+                      {payingId === fine.id ? 'Processing...' : fine.is_accrued ? 'Return Book First' : 'Pay Now'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
       {/* Desktop Header Row */}
       {(isLoading || filteredLoans.length > 0) && (
         <div className="hidden lg:flex items-center px-6 pb-2 pt-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -555,13 +678,12 @@ export default function MyLoans() {
                                   Renew
                                 </button>
                                 {isOverdue && loan.current_fine_estimate > 0 && (
-                                   <Link 
-                                     to="/my-fines"
-                                     onClick={(e) => e.stopPropagation()}
+                                   <button 
+                                     onClick={(e) => { e.stopPropagation(); handleTabChange('FINES'); }}
                                      className="px-4 py-1.5 font-bold text-[12px] rounded-full transition-colors bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer text-center"
                                    >
                                      Pay Now
-                                   </Link>
+                                   </button>
                                 )}
                             </div>
                           </>
@@ -675,13 +797,12 @@ export default function MyLoans() {
                                     Renew Book
                                   </button>
                                   {isOverdue && loan.current_fine_estimate > 0 && (
-                                     <Link 
-                                       to="/my-fines"
-                                       onClick={(e) => e.stopPropagation()}
+                                     <button 
+                                       onClick={(e) => { e.stopPropagation(); handleTabChange('FINES'); }}
                                        className="flex-1 py-1.5 font-bold text-[12px] rounded-full transition-colors bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer text-center"
                                      >
                                        Pay Now
-                                     </Link>
+                                     </button>
                                   )}
                               </div>
                             </div>
@@ -779,6 +900,8 @@ export default function MyLoans() {
             </p>
           </div>
         </div>
+      )}
+        </>
       )}
       {/* Review Modal */}
       {reviewModalOpen && reviewLoan && (
