@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Book, Category, Publisher, Wishlist
+from .models import Book, Category, Publisher, Wishlist, Language, Review
 from apps.inventory.models import BookCopy 
 from apps.circulation.models import Loan, Reservation
 from django.utils import timezone
@@ -12,6 +12,12 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class LanguageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Language
+        fields = "__all__"
+
+
 class PublisherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publisher
@@ -21,12 +27,16 @@ class PublisherSerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     publisher = PublisherSerializer(read_only=True)
+    language = LanguageSerializer(read_only=True)
     
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source="category", write_only=True, required=False, allow_null=True
     )
     publisher_id = serializers.PrimaryKeyRelatedField(
         queryset=Publisher.objects.all(), source="publisher", write_only=True, required=False, allow_null=True
+    )
+    language_id = serializers.PrimaryKeyRelatedField(
+        queryset=Language.objects.all(), source="language", write_only=True, required=False, allow_null=True
     )
     
     added_by = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -41,6 +51,8 @@ class BookSerializer(serializers.ModelSerializer):
     requests_count = serializers.SerializerMethodField()
     returned_copies = serializers.SerializerMethodField()
     cover_image = serializers.SerializerMethodField()
+    
+    user_interaction = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
@@ -76,6 +88,22 @@ class BookSerializer(serializers.ModelSerializer):
     def get_cover_image(self, obj):
         if obj.isbn:
             return f"https://covers.openlibrary.org/b/isbn/{obj.isbn}-M.jpg"
+          
+    def get_user_interaction(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+            
+        user = request.user
+        
+        loan = Loan.objects.filter(borrower=user, copy__book=obj, returned_at__isnull=True).first()
+        if loan:
+            return {'type': 'reading', 'id': loan.id}
+            
+        reservation = Reservation.objects.filter(user=user, book=obj, status__in=[Reservation.PENDING, Reservation.READY]).first()
+        if reservation:
+            return {'type': 'reserved', 'id': reservation.id}
+            
         return None
 
 class WishlistSerializer(serializers.ModelSerializer):
@@ -90,3 +118,18 @@ class WishlistSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         book_id = validated_data.pop("book_id")
         return Wishlist.objects.create(book_id=book_id, **validated_data)
+
+class ReviewSerializer(serializers.ModelSerializer):
+    book_id = serializers.IntegerField(write_only=True)
+    user_id = serializers.CharField(source='user.user_id', read_only=True)
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "book_id", "user_id", "user_name", "rating", "review_text", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "user_id", "user_name"]
+
+    def create(self, validated_data):
+        book_id = validated_data.pop("book_id")
+        # user is passed in perform_create in the ViewSet
+        return Review.objects.create(book_id=book_id, **validated_data)

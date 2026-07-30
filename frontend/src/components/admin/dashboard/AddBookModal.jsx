@@ -463,7 +463,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
             type="submit"
             form="add-book-form"
             isLoading={isSubmitting}
-            disabled={isSubmitting}
+            loadingText={bookToEdit ? "Saving Changes..." : "Saving Book Data..."}
             className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
           >
             {bookToEdit ? "Save Changes" : "Save Book Data"}

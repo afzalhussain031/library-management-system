@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import profileImg from "../../assets/profile.jpg";
 import NotificationDropdown from "./NotificationDropdown";
+import WishlistDropdown from "./WishlistDropdown";
+import { toast } from "react-hot-toast";
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
@@ -11,11 +13,15 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      toast.success("Logged out successfully");
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
+      toast.error("Logout failed");
     }
   };
+
+  const isStudent = !currentUser?.role || currentUser?.role === 'student' || currentUser?.role === 'user';
 
   return (
     <div className="bg-white shadow rounded-4xl px-4 md:px-8 py-3">
@@ -35,7 +41,7 @@ const Navbar = () => {
         <div className="flex items-center justify-end gap-3 md:gap-4 flex-1 md:flex-none">
           
           {/* Subtle Reading Progress Ring (Students Only) */}
-          {(!currentUser?.role || currentUser?.role === 'student') && (
+          {isStudent && (
             <div className="relative w-8 h-8 shrink-0 flex items-center justify-center rounded-full group cursor-pointer">
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 36 36">
                 <path className="text-gray-200" stroke="currentColor" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -50,6 +56,7 @@ const Navbar = () => {
             </div>
           )}
 
+          {isStudent && <WishlistDropdown />}
           <NotificationDropdown />
 
           <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-2">

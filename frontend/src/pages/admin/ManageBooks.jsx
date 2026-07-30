@@ -228,7 +228,7 @@ const Books = () => {
                      <div className="w-[80px] shrink-0">
                        <SkeletonCard className="w-[40px] h-[50px] rounded-sm" />
                      </div>
-                     <div className="w-[240px] shrink-0 pr-4 space-y-2">
+                     <div className="w-[240px] shr,ink-0 pr-4 space-y-2">
                        <SkeletonText className="h-4 w-3/4" />
                        <SkeletonText className="h-3 w-1/2" />
                      </div>
@@ -257,7 +257,11 @@ const Books = () => {
                 filteredBooks.map((book, idx) => (
                   <div
                   key={book.id}
+<<<<<<< HEAD
                   className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-200 relative"
+=======
+                  className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 overflow-hidden"
+>>>>>>> a89bf939c3650eb3697ca31294627e5a73368236
                 >
                   {/* Main Row */}
                   <div
@@ -400,7 +404,7 @@ const Books = () => {
               </div>
            ) : (
              filteredBooks.map((book) => (
-                <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3">
+                <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80">
                   <div className="flex gap-4">
                      {/* Thumbnail placeholder */}
                      <BookThumbnail

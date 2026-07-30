@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addOrganisationSchema } from '../../schemas/formSchemas'
 import { X, Building, AlertCircle } from 'lucide-react'
-
+import { toast } from 'react-hot-toast'
+import Button from '../common/Button'
 const AddOrganisationModal = ({ onClose, onAdd }) => {
   // ====== REACT HOOK FORM SETUP ======
   const {
@@ -37,10 +38,12 @@ const AddOrganisationModal = ({ onClose, onAdd }) => {
       }
 
       onAdd(newOrg)
+      toast.success("Organisation added successfully!")
       reset()
       onClose()
     } catch (err) {
       console.error('Error:', err)
+      toast.error("Failed to add organisation")
     }
   }
 
@@ -110,13 +113,14 @@ const AddOrganisationModal = ({ onClose, onAdd }) => {
           </div>
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
+            isLoading={isSubmitting}
+            loadingText="Adding..."
             className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-2.5 rounded-[14px] transition-all text-sm"
           >
-            {isSubmitting ? 'Adding...' : 'Add Organisation'}
-          </button>
+            Add Organisation
+          </Button>
         </form>
       </div>
     </div>

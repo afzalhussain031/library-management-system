@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema } from '../../schemas/formSchemas'
 import { useAuth } from '../../context/AuthContext'
+import { toast } from 'react-hot-toast'
 import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap } from 'lucide-react'
 import loginImage from "../../assets/signup-image.jpg"
 import Button from '../../components/common/Button'
@@ -36,6 +37,7 @@ export default function Login() {
       // data = { enrollmentNumber: "...", password: "..." }
 
       const user = await login(data.enrollmentNumber, data.password)
+      toast.success("Successfully logged in!")
 
       // Route based on user role
       if (user?.role === 'superadmin') {
@@ -201,6 +203,7 @@ export default function Login() {
               <Button
                 type="submit"
                 isLoading={isSubmitting}
+                loadingText="Logging in..."
                 // handleSubmit validates form before calling handleFormSubmit
                 // If validation fails, nothing happens (onSubmit not called)
                 // If validation passes, handleFormSubmit is called

@@ -6,8 +6,8 @@ from django.db.models import Count, Q
 
 from common.permissions.base import IsStaffOrReadOnly
 
-from .models import Book, Category, Publisher, Wishlist
-from .serializers import BookSerializer, CategorySerializer, PublisherSerializer, WishlistSerializer
+from .models import Book, Category, Publisher, Wishlist, Language, Review
+from .serializers import BookSerializer, CategorySerializer, PublisherSerializer, WishlistSerializer, LanguageSerializer, ReviewSerializer
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -68,6 +68,23 @@ class BookViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(copies__status='available').distinct()
             elif filter_param.lower() == 'recommended':
                 queryset, _ = self._get_recommended_queryset_and_meta(self.request.user)
+
+        # Faceted Filtering
+        categories = self.request.query_params.getlist('category')
+        if categories:
+            queryset = queryset.filter(category__name__in=categories)
+            
+        authors = self.request.query_params.getlist('author')
+        if authors:
+            queryset = queryset.filter(author__in=authors)
+            
+        years = self.request.query_params.getlist('year')
+        if years:
+            queryset = queryset.filter(published_date__year__in=years)
+            
+        languages = self.request.query_params.getlist('language')
+        if languages:
+            queryset = queryset.filter(language__name__in=languages)
                 
         # Sorting
         sort_param = self.request.query_params.get('sort')
@@ -102,6 +119,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]
 
 
+class LanguageViewSet(viewsets.ModelViewSet):
+    queryset = Language.objects.all()
+    serializer_class = LanguageSerializer
+    permission_classes = [IsStaffOrReadOnly]
+
+
 class PublisherViewSet(viewsets.ModelViewSet):
     queryset = Publisher.objects.all()
     serializer_class = PublisherSerializer
@@ -117,3 +140,36 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated()]
+        return []
+
+    def get_queryset(self):
+        queryset = Review.objects.all().select_related('user', 'book')
+        book_id = self.request.query_params.get('book')
+        if book_id:
+            queryset = queryset.filter(book_id=book_id)
+        user_id = self.request.query_params.get('user')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+        
+    def perform_update(self, serializer):
+        if serializer.instance.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You can only edit your own reviews.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You can only delete your own reviews.")
+        instance.delete()
