@@ -163,7 +163,11 @@ export default function BorrowedList() {
             const renewReason = loan.renewal_status ? loan.renewal_status.reason : '';
             
             return (
-              <div key={loan.id} className={`flex flex-col p-3 rounded-2xl transition-all border-b last:border-0 mb-1 ${timeInfo.isOverdue ? 'bg-red-50/40 border-l-4 border-red-500 hover:bg-red-50/70 border-b-transparent' : 'hover:bg-gray-50/80 border-gray-50'}`}>
+              <div 
+                key={loan.id} 
+                onClick={() => navigate(`/books/${loan.book_id}`)}
+                className={`cursor-pointer flex flex-col p-3 rounded-2xl transition-all border-b last:border-0 mb-1 ${timeInfo.isOverdue ? 'bg-red-50/40 border-l-4 border-red-500 hover:bg-red-50/70 border-b-transparent' : 'hover:bg-gray-50/80 border-gray-50'}`}
+              >
                 <div className="flex gap-3 md:gap-4 items-center relative">
                   <div className="shrink-0 transition-transform hover:-translate-y-0.5 group">
                     <BookThumbnail 
@@ -182,12 +186,10 @@ export default function BorrowedList() {
                        <span className={`text-[11px] font-medium flex items-center gap-1 ${timeInfo.color}`}>
                          <Clock size={12} strokeWidth={2.5} />
                          {timeInfo.text}
+                         {timeInfo.isOverdue && loan.current_fine_estimate > 0 && (
+                           <span>&bull; ₹{loan.current_fine_estimate} Fine</span>
+                         )}
                        </span>
-                       {timeInfo.isOverdue && loan.current_fine_estimate > 0 && (
-                         <span className="text-[9px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded border border-red-200">
-                           Late Fine: ₹{loan.current_fine_estimate}
-                         </span>
-                       )}
                     </div>
                   </div>
                   
@@ -202,7 +204,7 @@ export default function BorrowedList() {
                   
                   <div className="shrink-0 flex items-center gap-1 relative">
                     <button 
-                      onClick={() => handleRenew(loan.id)}
+                      onClick={(e) => { e.stopPropagation(); handleRenew(loan.id); }}
                       disabled={isRenewing || !canRenew}
                       title={renewReason}
                       className={`text-xs px-4 py-1.5 rounded-full font-bold border transition-all flex items-center justify-center min-w-[70px] ${
@@ -218,7 +220,7 @@ export default function BorrowedList() {
                     
                     {/* Kebab Menu Button */}
                     <button 
-                      onClick={() => setOpenMenuId(openMenuId === loan.id ? null : loan.id)}
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === loan.id ? null : loan.id); }}
                       className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                     >
                       <MoreVertical size={18} />
@@ -234,7 +236,7 @@ export default function BorrowedList() {
                           <CalendarPlus size={14} /> Add to Calendar
                         </button>
                         <button 
-                          onClick={() => navigate(`/books/${loan.book_id}`)}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/books/${loan.book_id}`); }}
                           className="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
                         >
                           <Info size={14} /> View Details
