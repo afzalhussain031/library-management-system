@@ -3,6 +3,7 @@ import { Heart, ChevronDown, ChevronUp, BookOpen, Loader2 } from "lucide-react";
 import { circulation } from "../../../services/api";
 import { toast } from "react-hot-toast";
 import { useWishlist } from "../../../context/WishlistContext";
+import BookThumbnail from "../../common/BookThumbnail";
 
 const BookCard = ({ book, idx, onReservationUpdate }) => {
   const { wishlistItems, addToWishlist, removeFromWishlist } = useWishlist();
@@ -120,16 +121,20 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 overflow-hidden mb-3">
+    <div className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative mb-3 hover:z-30">
       {/* Desktop Row View */}
       <div 
         className="hidden lg:flex items-center px-6 py-4 cursor-pointer transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="w-[80px] shrink-0">
-          <div className="w-[40px] h-[50px] bg-[#FEF6DD] flex items-center justify-center text-[18px] text-[#E0B220] font-bold rounded-sm shadow-sm">
-            {book.title ? book.title.charAt(0).toUpperCase() : <BookOpen size={20} />}
-          </div>
+          <BookThumbnail 
+            title={book.title} 
+            coverImage={book.cover_image} 
+            isbn={book.isbn} 
+            author={book.author}
+            hoverExpand={true} 
+          />
         </div>
         <div className="w-[240px] shrink-0 pr-4">
           <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center">
@@ -180,9 +185,14 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex gap-4">
-          <div className="w-16 h-24 bg-[#FEF6DD] flex items-center justify-center text-[24px] text-[#E0B220] font-bold rounded-md shrink-0 shadow-sm">
-             {book.title ? book.title.charAt(0).toUpperCase() : <BookOpen size={24} />}
-          </div>
+          <BookThumbnail 
+            title={book.title} 
+            coverImage={book.cover_image} 
+            isbn={book.isbn} 
+            author={book.author}
+            hoverExpand={false} 
+            className="w-16 h-24 text-[24px] rounded-md"
+          />
           <div className="flex-1 min-w-0">
              <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center">
                <span className="truncate">{book.title}</span>

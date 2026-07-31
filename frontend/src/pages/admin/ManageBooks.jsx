@@ -19,6 +19,7 @@ import { toast } from "react-hot-toast";
 import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
 import AddBookModal from "../../components/admin/dashboard/AddBookModal";
 import PhysicalCopiesTable from "../../components/admin/dashboard/PhysicalCopiesTable";
+import BookThumbnail from "../../components/common/BookThumbnail";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
@@ -256,7 +257,7 @@ const Books = () => {
                 filteredBooks.map((book, idx) => (
                   <div
                   key={book.id}
-                  className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 overflow-hidden"
+                    className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative hover:z-30"
                 >
                   {/* Main Row */}
                   <div
@@ -267,9 +268,13 @@ const Books = () => {
                       <input type="checkbox" className="rounded border-gray-300 text-[#4386F5]" />
                     </div>
                     <div className="w-[80px] shrink-0">
-                      <div className="w-[40px] h-[50px] bg-[#EAEAEA] flex items-center justify-center text-[10px] text-gray-400 font-medium rounded-sm">
-                        {idx + 1}
-                      </div>
+                      <BookThumbnail 
+                        title={book.title} 
+                        coverImage={book.cover_image} 
+                        isbn={book.isbn} 
+                        author={book.author}
+                        hoverExpand={true} 
+                      />
                     </div>
                     <div className="w-[240px] shrink-0 pr-4">
                       <p className="font-bold text-[#1C2434] text-[14px] truncate">{book.title}</p>
@@ -403,10 +408,14 @@ const Books = () => {
              filteredBooks.map((book) => (
                 <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80">
                   <div className="flex gap-4">
-                    {/* Thumbnail placeholder */}
-                    <div className="w-16 h-24 bg-[#EAEAEA] flex items-center justify-center text-[10px] text-gray-400 font-medium rounded-md shrink-0">
-                      #{book.id}
-                    </div>
+                      <BookThumbnail 
+                        title={book.title} 
+                        coverImage={book.cover_image} 
+                        isbn={book.isbn} 
+                        author={book.author}
+                        hoverExpand={false} 
+                        className="w-16 h-24 text-[14px] rounded-md"
+                      />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate">{book.title}</p>
                       <p className="text-[12px] text-gray-500 mb-2 truncate">by {book.author}</p>

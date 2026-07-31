@@ -5,6 +5,7 @@ import { dashboard, circulation, catalog } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import { Clock, BookOpen, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CalendarPlus, Star, MessageSquare, Search, Filter } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import BookThumbnail from '../../components/common/BookThumbnail';
 
 export default function MyLoans() {
   const [searchParams] = useSearchParams();
@@ -464,16 +465,20 @@ export default function MyLoans() {
               <div 
                 key={loan.id} 
                 id={`loan-${loan.id}`}
-                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 overflow-hidden cursor-pointer ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
                 onClick={() => toggleExpand(loan.id)}
               >
                 
                 {/* Desktop Row View */}
                 <div className="hidden lg:flex items-center px-6 py-4">
                   <div className="w-[80px] shrink-0">
-                    <div className={`w-[40px] h-[50px] flex items-center justify-center text-[18px] font-bold rounded-sm shadow-sm ${isOverdue ? 'bg-red-100 text-red-500' : 'bg-[#FEF6DD] text-[#E0B220]'}`}>
-                      {isOverdue ? <AlertTriangle size={20} /> : (loan.book_title ? loan.book_title.charAt(0).toUpperCase() : <BookOpen size={20} />)}
-                    </div>
+                    <BookThumbnail 
+                      title={loan.book_title} 
+                      isbn={loan.book_isbn} 
+                      author={loan.book_author}
+                      hoverExpand={true} 
+                      className={isOverdue ? "border-red-400 border-2" : ""}
+                    />
                   </div>
                   <div className="w-[280px] shrink-0 pr-4">
                     <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center" title={loan.book_title || "Unknown Title"}>
@@ -590,9 +595,13 @@ export default function MyLoans() {
                 {/* Mobile Card View */}
                 <div className="flex lg:hidden flex-col p-4">
                   <div className="flex gap-4">
-                    <div className={`w-16 h-24 flex items-center justify-center text-[24px] font-bold rounded-md shrink-0 shadow-sm ${isOverdue ? 'bg-red-100 text-red-500' : 'bg-[#FEF6DD] text-[#E0B220]'}`}>
-                       {isOverdue ? <AlertTriangle size={24} /> : (loan.book_title ? loan.book_title.charAt(0).toUpperCase() : <BookOpen size={24} />)}
-                    </div>
+                    <BookThumbnail 
+                      title={loan.book_title} 
+                      isbn={loan.book_isbn} 
+                      author={loan.book_author}
+                      hoverExpand={false} 
+                      className={`w-16 h-24 text-[24px] rounded-md ${isOverdue ? "border-red-400 border-2" : ""}`}
+                    />
                     <div className="flex-1 min-w-0">
                        <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center" title={loan.book_title || "Unknown Title"}>
                          <span className="truncate">{loan.book_title || "Unknown Title"}</span>
