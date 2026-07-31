@@ -75,6 +75,14 @@ class Book(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if not self.description and self.isbn:
+            from .utils import fetch_and_truncate_description
+            fetched_desc = fetch_and_truncate_description(self.isbn)
+            if fetched_desc:
+                self.description = fetched_desc
+        super().save(*args, **kwargs)
+
 
 class Wishlist(models.Model):
     user = models.ForeignKey(
