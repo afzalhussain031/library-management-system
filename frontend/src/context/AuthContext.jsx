@@ -8,11 +8,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Check if user is logged in on app load
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
   async function checkAuth() {
     try {
       const user = await auth.getCurrentUser()
@@ -23,6 +18,11 @@ export function AuthProvider({ children }) {
       setLoading(false)
     }
   }
+
+  // Check if user is logged in on app load
+  useEffect(() => {
+    checkAuth()
+  }, [])
 
   // Login function
   async function login(username, password) {

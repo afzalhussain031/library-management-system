@@ -18,9 +18,7 @@ export const SIDEBAR_MENU = [
   { title: "Dashboard", icon: LayoutGrid, path: "/dashboard", allowedRoles: [ROLES.USER] },
   { title: "Browse Catalog", icon: BookOpen, path: "/books", allowedRoles: [ROLES.USER] },
   { title: "My Loans", icon: History, path: "/my-loans", allowedRoles: [ROLES.USER] },
-  { title: "My Reservations", icon: Clock, path: "/my-reservations", allowedRoles: [ROLES.USER] },
-
-  { title: "Fines & Payments", icon: CreditCard, path: "/my-fines", allowedRoles: [ROLES.USER], divider: true },
+  { title: "My Reservations", icon: Clock, path: "/my-reservations", allowedRoles: [ROLES.USER], divider: true },
 
   // ==========================================
   // CORE STAFF/ADMIN ROUTES

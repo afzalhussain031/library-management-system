@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SkeletonText } from "../../common/Skeleton";
 import { useApi } from "../../../hook/useApi";
 import { dashboard } from "../../../services/api";
+import LoanTimeline from "../../common/LoanTimeline";
 
 export default function BookHistory({ isLoading: parentLoading }) {
   const [activeTab, setActiveTab] = useState("borrowed");
@@ -154,33 +155,30 @@ export default function BookHistory({ isLoading: parentLoading }) {
           ) : borrowedLoans.map((loan, i) => (
             <div
               key={loan.id || i}
-              className="flex items-start justify-between border-b border-gray-100 pb-4"
+              className="flex flex-col border-b border-gray-100 pb-4"
             >
-
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">
-                  {loan.book_title}
-                </p>
-
-                <p className="text-xs text-gray-500">
-                  {loan.book_author}
-                </p>
-
-                <p className="text-[10px] text-gray-400 mt-1">
-                  #{loan.book_id}
-                </p>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {loan.book_title}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {loan.book_author}
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    #{loan.book_id}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-400">
+                    Status
+                  </p>
+                  <p className="text-xs font-semibold text-[#F6BE0A] mt-1">
+                    Borrowed
+                  </p>
+                </div>
               </div>
-
-              <div className="text-right">
-                <p className="text-[10px] text-gray-400">
-                  Borrowed on
-                </p>
-
-                <p className="text-xs font-semibold text-gray-900 mt-1">
-                  {formatDate(loan.issued_at)}
-                </p>
-              </div>
-
+              <LoanTimeline issuedAt={loan.issued_at} dueAt={loan.due_at} />
             </div>
           )))}
 
@@ -205,33 +203,30 @@ export default function BookHistory({ isLoading: parentLoading }) {
           ) : returnedLoans.map((loan, i) => (
             <div
               key={loan.id || i}
-              className="flex items-start justify-between border-b border-gray-100 pb-4"
+              className="flex flex-col border-b border-gray-100 pb-4"
             >
-
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">
-                  {loan.book_title}
-                </p>
-
-                <p className="text-xs text-gray-500">
-                  {loan.book_author}
-                </p>
-
-                <p className="text-[10px] text-gray-400 mt-1">
-                  #{loan.book_id}
-                </p>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {loan.book_title}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {loan.book_author}
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    #{loan.book_id}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-400">
+                    Status
+                  </p>
+                  <p className="text-xs font-semibold text-[#10B981] mt-1">
+                    Returned
+                  </p>
+                </div>
               </div>
-
-              <div className="text-right">
-                <p className="text-[10px] text-gray-400">
-                  Returned on
-                </p>
-
-                <p className="text-xs font-semibold text-gray-900 mt-1">
-                  {formatDate(loan.returned_at)}
-                </p>
-              </div>
-
+              <LoanTimeline issuedAt={loan.issued_at} dueAt={loan.due_at} returnedAt={loan.returned_at} />
             </div>
           )))}
 
@@ -261,51 +256,35 @@ export default function BookHistory({ isLoading: parentLoading }) {
           ) : fines.map((fine, i) => (
             <div
               key={fine.id || i}
-              className="flex items-center justify-between border-b border-gray-100 pb-4"
+              className="flex flex-col border-b border-gray-100 pb-4"
             >
-
-              {/* Left */}
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">
-                  {fine.loan_book_title || "Unknown Book"}
-                </p>
-
-                <p className="text-xs text-gray-500">
-                  {fine.loan_book_author || "Unknown Author"}
-                </p>
-
-                <p className="text-[10px] text-gray-400 mt-1">
-                  #{fine.loan_copy_barcode || "N/A"}
-                </p>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {fine.loan_book_title || "Unknown Book"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {fine.loan_book_author || "Unknown Author"}
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    #{fine.loan_copy_barcode || "N/A"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-400">
+                      Fine
+                    </p>
+                    <p className="text-xs font-semibold text-red-500 mt-1">
+                      ₹ {fine.amount}
+                    </p>
+                  </div>
+                  <button className="bg-yellow-400 hover:bg-yellow-500 transition px-4 py-1.5 rounded-full text-xs font-medium text-gray-900 shrink-0">
+                    Pay Now
+                  </button>
+                </div>
               </div>
-
-              {/* Middle */}
-              <div className="text-center">
-                <p className="text-[10px] text-gray-400">
-                  Due on
-                </p>
-
-                <p className="text-xs font-semibold text-red-500 mt-1">
-                  {formatDate(fine.loan_due_at)}
-                </p>
-              </div>
-
-              {/* Fine */}
-              <div className="text-center">
-                <p className="text-[10px] text-gray-400">
-                  Fine
-                </p>
-
-                <p className="text-xs font-semibold text-red-500 mt-1">
-                  ₹ {fine.amount}
-                </p>
-              </div>
-
-              {/* Button */}
-              <button className="bg-yellow-400 hover:bg-yellow-500 transition px-4 py-1 rounded-full text-xs font-medium text-gray-900">
-                Pay Now
-              </button>
-
+              <LoanTimeline issuedAt={fine.loan_issued_at} dueAt={fine.loan_due_at} returnedAt={fine.loan_returned_at} />
             </div>
           )))}
 

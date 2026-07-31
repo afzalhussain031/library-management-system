@@ -16,6 +16,7 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 import toast from "react-hot-toast";
 import LendReturnModal from "../../components/admin/LendReturnModal";
+import LoanTimeline from "../../components/common/LoanTimeline";
 
 const Circulation = () => {
   const [activeTab, setActiveTab] = useState("active");
@@ -155,8 +156,7 @@ const Circulation = () => {
               <div className="w-[80px] shrink-0">ID</div>
               <div className="w-[200px] shrink-0">Borrower</div>
               <div className="w-[200px] shrink-0">Book Copy</div>
-              <div className="w-[160px] shrink-0">Issued At</div>
-              <div className="w-[160px] shrink-0">Due At</div>
+              <div className="w-[320px] shrink-0 px-4 text-center">Timeline</div>
               <div className="w-[120px] shrink-0">Status</div>
               <div className="flex-1 min-w-[160px] text-right pr-4">Actions</div>
             </div>
@@ -176,11 +176,8 @@ const Circulation = () => {
                       <SkeletonText className="h-4 w-32" />
                       <SkeletonText className="h-3 w-16" />
                     </div>
-                    <div className="w-[160px] shrink-0">
-                      <SkeletonText className="h-4 w-24" />
-                    </div>
-                    <div className="w-[160px] shrink-0">
-                      <SkeletonText className="h-4 w-24" />
+                    <div className="w-[320px] shrink-0 px-4">
+                      <SkeletonText className="h-10 w-full rounded-md" />
                     </div>
                     <div className="w-[120px] shrink-0">
                       <SkeletonText className="h-6 w-16 rounded" />
@@ -208,11 +205,12 @@ const Circulation = () => {
                       <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.book_title}</p>
                       <p className="text-[12px] text-gray-500 truncate">ID: #{loan.book_id}</p>
                     </div>
-                    <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
-                      {new Date(loan.issued_at).toLocaleDateString()}
-                    </div>
-                    <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
-                      {new Date(loan.due_at).toLocaleDateString()}
+                    <div className="w-[320px] shrink-0 px-4">
+                      <LoanTimeline 
+                         issuedAt={loan.issued_at}
+                         dueAt={loan.due_at}
+                         returnedAt={loan.returned_at}
+                      />
                     </div>
                     
                     {/* Status Badge */}
