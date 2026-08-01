@@ -2,9 +2,9 @@ import requests
 
 def fetch_and_truncate_description(isbn):
     """
-    Fetches the description of a book from Open Library API by ISBN,
-    extracts the text from nested structures if present, and truncates
-    it to ~300 characters cleanly on the last complete word.
+    Fetches the description of a book from Open Library API by ISBN.
+    If not found, falls back to Google Books API.
+    Extracts the text and truncates it to ~300 characters cleanly.
     """
     if not isbn:
         return ""
@@ -13,6 +13,9 @@ def fetch_and_truncate_description(isbn):
     if not clean_isbn:
         return ""
 
+    description = ""
+
+    # Attempt 1: Open Library API
     url = f"https://openlibrary.org/api/books?bibkeys=ISBN:{clean_isbn}&jscmd=details&format=json"
     try:
         response = requests.get(url, timeout=10)
@@ -20,32 +23,44 @@ def fetch_and_truncate_description(isbn):
         data = response.json()
         
         bibkey = f"ISBN:{clean_isbn}"
-        if bibkey not in data:
-            return ""
+        if bibkey in data:
+            details = data[bibkey].get("details", {})
+            description_data = details.get("description", "")
             
-        details = data[bibkey].get("details", {})
-        description_data = details.get("description", "")
-        
-        description = ""
-        if isinstance(description_data, dict):
-            description = description_data.get("value", "")
-        elif isinstance(description_data, str):
-            description = description_data
-            
-        description = description.strip()
-        if not description:
-            return ""
-            
-        if len(description) <= 300:
-            return description
-            
-        truncated = description[:300]
-        last_space = truncated.rfind(' ')
-        if last_space != -1:
-            truncated = truncated[:last_space]
-            
-        return truncated.rstrip() + "..."
+            if isinstance(description_data, dict):
+                description = description_data.get("value", "")
+            elif isinstance(description_data, str):
+                description = description_data
     except Exception as e:
-        # Output error to console/log but don't crash the save process
-        print(f"Error fetching description for ISBN {clean_isbn}: {e}")
+        print(f"Open Library API error for ISBN {clean_isbn}: {e}")
+
+    description = description.strip()
+
+    # Attempt 2: Google Books API Fallback
+    if not description:
+        google_url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{clean_isbn}"
+        try:
+            response = requests.get(google_url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            items = data.get("items", [])
+            if items:
+                volume_info = items[0].get("volumeInfo", {})
+                description = volume_info.get("description", "")
+        except Exception as e:
+            print(f"Google Books API error for ISBN {clean_isbn}: {e}")
+            
+    description = description.strip()
+    if not description:
         return ""
+        
+    if len(description) <= 300:
+        return description
+        
+    truncated = description[:300]
+    last_space = truncated.rfind(' ')
+    if last_space != -1:
+        truncated = truncated[:last_space]
+        
+    return truncated.rstrip() + "..."

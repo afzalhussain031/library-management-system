@@ -56,6 +56,30 @@ class CatalogUtilsTests(TestCase):
         self.assertTrue(len(desc) <= 304)
         self.assertTrue(desc.endswith("..."))
 
+    @patch('requests.get')
+    def test_fetch_and_truncate_description_google_fallback(self, mock_get):
+        # First call (Open Library) returns no description
+        mock_ol_response = MagicMock()
+        mock_ol_response.json.return_value = {}
+        
+        # Second call (Google Books) returns a description
+        mock_gb_response = MagicMock()
+        mock_gb_response.json.return_value = {
+            "items": [
+                {
+                    "volumeInfo": {
+                        "description": "Google Books description."
+                    }
+                }
+            ]
+        }
+        
+        mock_get.side_effect = [mock_ol_response, mock_gb_response]
+        
+        desc = fetch_and_truncate_description("1234567890")
+        self.assertEqual(desc, "Google Books description.")
+        self.assertEqual(mock_get.call_count, 2)
+
 
 class BookModelTests(TestCase):
     @patch('apps.catalog.utils.fetch_and_truncate_description')
