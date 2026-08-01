@@ -49,7 +49,23 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
     }
   };
 
-
+  const handleReserve = async (e) => {
+    e.stopPropagation();
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await circulation.createReservation({ book: book.id });
+      toast.success("Book reserved successfully");
+      if (onReservationUpdate) {
+        onReservationUpdate();
+      }
+    } catch (error) {
+      console.error("Failed to reserve book:", error);
+      toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to reserve book");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const renderActionButton = () => {
     if (book.user_interaction?.type === 'reading') {
@@ -80,20 +96,24 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
     if (book.available_copies > 0) {
       return (
         <button 
-           className="px-4 py-1.5 bg-[#EAF2FF] text-[#4386F5] font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors"
-           onClick={(e) => { e.stopPropagation(); /* Optional: handle reserve */ }}
+           className="px-4 py-1.5 bg-[#EAF2FF] text-[#4386F5] font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+           onClick={handleReserve}
+           disabled={isUpdating}
         >
-           Reserve
+           {isUpdating && <Loader2 size={12} className="animate-spin" />}
+           {isUpdating ? "Reserving..." : "Reserve"}
         </button>
       );
     }
 
     return (
       <button 
-         className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 font-bold text-[12px] rounded-full hover:bg-gray-50 transition-colors"
-         onClick={(e) => { e.stopPropagation(); /* Optional: handle waitlist */ }}
+         className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 font-bold text-[12px] rounded-full hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+         onClick={handleReserve}
+         disabled={isUpdating}
       >
-         Join Waitlist
+         {isUpdating && <Loader2 size={12} className="animate-spin" />}
+         {isUpdating ? "Joining..." : "Join Waitlist"}
       </button>
     );
   };
