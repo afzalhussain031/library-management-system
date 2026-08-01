@@ -257,7 +257,7 @@ const BookCard = ({ book, idx, onReservationUpdate }) => {
            <div className="w-full">
                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Description</h4>
                {book.description ? (
-                  <p className="text-[13px] text-gray-600 leading-relaxed max-w-4xl">
+                  <p className="text-[13px] text-gray-600 leading-relaxed max-w-4xl line-clamp-4">
                      {book.description}
                   </p>
                ) : (
