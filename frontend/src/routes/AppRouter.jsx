@@ -7,9 +7,9 @@ import ProtectedRoute from '../components/layout/ProtectedRoute';
 import Login from '../pages/auth/Login';
 import SignUp from '../pages/auth/SignUp';
 import Dashboard from '../pages/user/Dashboard';
-import UserProfile from "../pages/user/Profile";
+import UserProfile from "../pages/user/profile";
 
-import Books from "../pages/user/Books";
+import Books from "../pages/user/books";
 import MyLoans from "../pages/user/MyLoans";
 import MyReservations from "../pages/user/MyReservations";
 import MyFines from "../pages/user/MyFines";
