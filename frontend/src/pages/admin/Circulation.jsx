@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useLocation } from "react-router-dom";
 import client from "../../services/httpClient";
 import {
   Calendar,
@@ -19,7 +19,8 @@ import LendReturnModal from "../../components/admin/LendReturnModal";
 import LoanTimeline from "../../components/common/LoanTimeline";
 
 const Circulation = () => {
-  const [activeTab, setActiveTab] = useState("active");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.tab || "active");
   const [isLendModalOpen, setIsLendModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -113,31 +114,37 @@ const Circulation = () => {
     <div className="px-0 py-0 sm:p-0 md:p-0 space-y-6 w-full max-w-[1600px] mx-auto font-sans min-h-screen overflow-hidden">
       
       {/* Top Dash: Stats & Actions */}
-      <div className="w-full rounded-[40px] shadow-sm overflow-hidden mb-8 border border-white p-0">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <button 
-              onClick={() => setActiveTab("active")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-[14px] ${activeTab === 'active' ? 'bg-[#FEF6DD] text-[#E0B220]' : 'bg-white text-gray-500 shadow-sm border border-gray-100'}`}
-            >
-              Active Loans
-            </button>
-            <button 
-              onClick={() => setActiveTab("overdue")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-[14px] ${activeTab === 'overdue' ? 'bg-[#FFE2E5] text-[#F64E60]' : 'bg-white text-gray-500 shadow-sm border border-gray-100'}`}
-            >
-              Overdue
-            </button>
-            <button 
-              onClick={() => setActiveTab("returned")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-[14px] ${activeTab === 'returned' ? 'bg-[#C9F7F5] text-[#1BC5BD]' : 'bg-white text-gray-500 shadow-sm border border-gray-100'}`}
-            >
-              Returned
-            </button>
+      <div className="w-full rounded-[40px] shadow-sm overflow-hidden mb-8 border border-white p-4 bg-white/50 backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Segmented Control for Loan Status */}
+            <div className="flex items-center bg-gray-100/70 p-1 rounded-full">
+              {[
+                { id: "active", label: "Active Loans", activeColor: "text-[#E0B220]" },
+                { id: "overdue", label: "Overdue", activeColor: "text-[#F64E60]" },
+                { id: "returned", label: "Returned", activeColor: "text-[#1BC5BD]" }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-5 py-1.5 rounded-full text-[13px] font-bold transition-all ${
+                    activeTab === tab.id
+                      ? `bg-white shadow-sm ${tab.activeColor}`
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
           
           <div className="flex items-center gap-4 flex-wrap">
-            <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 text-[13px] text-gray-500 font-medium pr-2">
+              <span>{filteredLoans.length} records</span>
+            </div>
+            <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+            <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
               <Calendar size={14} className="text-gray-400" /> Today
             </button>
             <button onClick={() => setIsLendModalOpen(true)} className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">

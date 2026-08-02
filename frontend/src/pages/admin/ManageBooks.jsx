@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Check,
   X as CloseIcon,
+  Filter,
 } from "lucide-react";
 import { catalog } from "../../services/api";
 import { useApi } from "../../hook/useApi";
@@ -30,6 +31,7 @@ const Books = () => {
   // NEW: Filter States
   const [activeTopFilter, setActiveTopFilter] = useState("All books");
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -67,25 +69,7 @@ const Books = () => {
   );
 
 
-  // Helper function for styling top buttons
-  const getTopButtonStyle = (filterName) => {
-    const isActive = activeTopFilter === filterName;
-    return `flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-[14px] shadow-sm transition-all ${
-      isActive
-        ? "bg-[#FEF6DD] text-[#E0B220] border border-transparent font-bold"
-        : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
-    }`;
-  };
 
-  // Helper function for styling bottom buttons
-  const getBottomButtonStyle = (filterName) => {
-    const isActive = activeBottomFilter === filterName;
-    return `px-5 py-1.5 rounded-full text-[13px] shadow-sm transition-all ${
-      isActive
-        ? "bg-[#FEF6DD] text-[#E0B220] border border-transparent font-bold"
-        : "bg-white text-gray-600 border border-gray-100 font-semibold hover:bg-gray-50"
-    }`;
-  };
 
   const handleDeleteConfirm = async (id) => {
     try {
@@ -100,85 +84,86 @@ const Books = () => {
 
   return (
     <div className="px-0 py-0 sm:p-0 md:p-0 space-y-6 w-full max-w-[1600px] mx-auto font-sans min-h-screen overflow-hidden">
-      {/* Filter and Stats Dash */}
-      <div className="w-full rounded-[40px] shadow-sm overflow-hidden mb-8 border border-white p-0">
-        {/* Top Row Stats */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <button 
-              onClick={() => setActiveTopFilter("All books")}
-              className={getTopButtonStyle("All books")}
-            >
-              All books <span className={`${activeTopFilter === "All books" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{books.length}</span>
-            </button>
-
-            <button 
-              onClick={() => setActiveTopFilter("Lent")}
-              className={getTopButtonStyle("Lent")}
-            >
-              Lent <span className={`${activeTopFilter === "Lent" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{lentCount}</span>
-            </button>
-            <button 
-              onClick={() => setActiveTopFilter("Returned")}
-              className={getTopButtonStyle("Returned")}
-            >
-              Returned <span className={`${activeTopFilter === "Returned" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{returnedCount}</span>
-            </button>
-            <button 
-              onClick={() => setActiveTopFilter("Overdue")}
-              className={getTopButtonStyle("Overdue")}
-            >
-              Overdue <span className={`${activeTopFilter === "Overdue" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{overdueCount}</span>
-            </button>
-            <button 
-              onClick={() => setActiveTopFilter("Requests")}
-              className={getTopButtonStyle("Requests")}
-            >
-              Requests <span className={`${activeTopFilter === "Requests" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{requestsCount}</span>
-            </button>
+      {/* Unified Toolbar in Container */}
+      <div className="w-full rounded-[40px] shadow-sm overflow-hidden mb-8 border border-white p-4 bg-white/50 backdrop-blur-md">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Left Side: Segmented Control & Dropdown */}
+        <div className="flex items-center gap-4 flex-wrap">
+          
+          {/* Segmented Control for Availability */}
+          <div className="flex items-center bg-gray-100/70 p-1 rounded-full">
+            {["All", "Available", "Borrowed"].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveBottomFilter(filter)}
+                className={`px-5 py-1.5 rounded-full text-[13px] font-bold transition-all ${
+                  activeBottomFilter === filter
+                    ? "bg-white text-gray-800 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
-              <Calendar size={14} className="text-gray-400" /> This Month
-            </button>
-            <button 
-              onClick={() => {
-                setBookToEdit(null); // Ensure it's in Add Mode
-                setIsAddModalOpen(true);
-              }}
-              className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors"
+          {/* Filter Dropdown for Status */}
+          <div className="relative">
+            <button
+              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+              className="flex items-center gap-2 px-4 py-2 bg-white rounded-full text-[13px] font-bold text-gray-600 shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
             >
-              <Plus size={14} /> Add Book
+              <Filter size={14} className={activeTopFilter !== "All books" ? "text-[#4386F5]" : "text-gray-400"} /> 
+              {activeTopFilter === "All books" ? "Status: All" : `Status: ${activeTopFilter}`}
+              <ChevronDown size={14} className="ml-1 text-gray-400" />
             </button>
+            
+            {isFilterDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsFilterDropdownOpen(false)}
+                />
+                <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-20 py-2 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="px-3 pb-2 mb-2 border-b border-gray-50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    Filter by Status
+                  </div>
+                  
+                  {/* Dropdown Items */}
+                  {[
+                    { label: "All books", count: books.length, color: "bg-gray-100 text-gray-500" },
+                    { label: "Lent", count: lentCount, color: "bg-[#FEF6DD] text-[#E0B220]" },
+                    { label: "Returned", count: returnedCount, color: "bg-[#C9F7F5] text-[#1BC5BD]" },
+                    { label: "Overdue", count: overdueCount, color: "bg-[#FFE2E5] text-[#F64E60]" },
+                    { label: "Requests", count: requestsCount, color: "bg-blue-50 text-blue-500" }
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        setActiveTopFilter(item.label);
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-2 text-[13px] transition-colors ${
+                        activeTopFilter === item.label
+                          ? "bg-gray-50 font-bold text-gray-800"
+                          : "text-gray-600 font-medium hover:bg-gray-50"
+                      }`}
+                    >
+                      {item.label}
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.color}`}>
+                        {item.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Bottom Row Filters */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-4">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <button 
-              onClick={() => setActiveBottomFilter("All")}
-              className={getBottomButtonStyle("All")}
-            >
-              All
-            </button>
-            <button 
-              onClick={() => setActiveBottomFilter("Available")}
-              className={getBottomButtonStyle("Available")}
-            >
-              Available
-            </button>
-            <button 
-              onClick={() => setActiveBottomFilter("Borrowed")}
-              className={getBottomButtonStyle("Borrowed")}
-            >
-              Borrowed
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 text-[13px] text-gray-500 font-medium pr-4">
-            {/* NEW: Show the count of filtered books instead of all books */}
+        {/* Right Side: Stats & Actions */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3 text-[13px] text-gray-500 font-medium pr-2">
             <span>{filteredBooks.length} records</span>
             <div className="flex gap-1">
               <button className="p-1 text-gray-400 hover:text-gray-700 transition-colors">
@@ -189,7 +174,21 @@ const Books = () => {
               </button>
             </div>
           </div>
+          <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+          <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
+            <Calendar size={14} className="text-gray-400" /> This Month
+          </button>
+          <button 
+            onClick={() => {
+              setBookToEdit(null); // Ensure it's in Add Mode
+              setIsAddModalOpen(true);
+            }}
+            className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors"
+          >
+            <Plus size={14} /> Add Book
+          </button>
         </div>
+      </div>
       </div>
 
       {/* Show Error State */}

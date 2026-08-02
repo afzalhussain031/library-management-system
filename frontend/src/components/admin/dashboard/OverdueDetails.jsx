@@ -21,7 +21,7 @@ const OverdueDetails = ({ data, isLoading }) => {
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
         <h2 className="text-lg font-bold text-gray-800">Overdue details</h2>
         {/* FIXED: Path updated to match AppRouter.jsx */}
-        <Link to="/admin/circulation" className="text-sm font-semibold text-gray-400 hover:text-gray-600 flex items-center">
+        <Link to="/admin/circulation" state={{ tab: 'overdue' }} className="text-sm font-semibold text-gray-400 hover:text-gray-600 flex items-center">
           See All <ChevronRight size={16} className="ml-1" />
         </Link>
       </div>
