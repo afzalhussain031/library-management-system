@@ -12,6 +12,7 @@ import {
   Check,
   X as CloseIcon,
   Filter,
+  Search,
 } from "lucide-react";
 import { catalog } from "../../services/api";
 import { useApi } from "../../hook/useApi";
@@ -32,6 +33,7 @@ const Books = () => {
   const [activeTopFilter, setActiveTopFilter] = useState("All books");
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -52,6 +54,16 @@ const Books = () => {
     if (activeTopFilter === "Returned" && (book.returned_copies || 0) === 0) return false; 
     if (activeTopFilter === "Overdue" && (book.overdue_copies || 0) === 0) return false; 
     if (activeTopFilter === "Requests" && (book.requests_count || 0) === 0) return false; 
+
+    // Search Logic
+    if (searchQuery) {
+       const query = searchQuery.toLowerCase();
+       const matchesSearch = 
+           book.title?.toLowerCase().includes(query) ||
+           book.author?.toLowerCase().includes(query) ||
+           book.isbn?.includes(query);
+       if (!matchesSearch) return false;
+    }
 
     return true;
   });
@@ -163,6 +175,18 @@ const Books = () => {
 
         {/* Right Side: Stats & Actions */}
         <div className="flex items-center gap-4 flex-wrap">
+          {/* Local Search */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Filter by title, author, or ISBN..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-1.5 bg-white border border-gray-100 rounded-full text-[13px] text-gray-600 focus:outline-none focus:border-[#4386F5] focus:ring-1 focus:ring-[#4386F5] transition-all w-64 shadow-sm"
+            />
+          </div>
+          
           <div className="flex items-center gap-3 text-[13px] text-gray-500 font-medium pr-2">
             <span>{filteredBooks.length} records</span>
             <div className="flex gap-1">
@@ -175,9 +199,6 @@ const Books = () => {
             </div>
           </div>
           <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
-          <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
-            <Calendar size={14} className="text-gray-400" /> This Month
-          </button>
           <button 
             onClick={() => {
               setBookToEdit(null); // Ensure it's in Add Mode

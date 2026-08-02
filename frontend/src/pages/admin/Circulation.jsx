@@ -22,6 +22,7 @@ const Circulation = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(location.state?.tab || "active");
   const [isLendModalOpen, setIsLendModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     actionType: null,
@@ -102,11 +103,23 @@ const Circulation = () => {
 
   // 4. Filter logic based on Tabs
   const filteredLoans = loans.filter((loan) => {
-    if (activeTab === "active") return loan.returned_at === null;
-    if (activeTab === "returned") return loan.returned_at !== null;
-    if (activeTab === "overdue") {
-      return loan.returned_at === null && new Date(loan.due_at) < new Date();
+    let tabMatch = true;
+    if (activeTab === "active") tabMatch = loan.returned_at === null;
+    else if (activeTab === "returned") tabMatch = loan.returned_at !== null;
+    else if (activeTab === "overdue") {
+      tabMatch = loan.returned_at === null && new Date(loan.due_at) < new Date();
     }
+    
+    if (!tabMatch) return false;
+
+    if (searchQuery) {
+       const query = searchQuery.toLowerCase();
+       const matchesSearch = 
+           loan.user_name?.toLowerCase().includes(query) ||
+           loan.book_title?.toLowerCase().includes(query);
+       if (!matchesSearch) return false;
+    }
+
     return true;
   });
 
@@ -140,13 +153,22 @@ const Circulation = () => {
           </div>
           
           <div className="flex items-center gap-4 flex-wrap">
+            {/* Local Search */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Filter by borrower or book..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-1.5 bg-white border border-gray-100 rounded-full text-[13px] text-gray-600 focus:outline-none focus:border-[#4386F5] focus:ring-1 focus:ring-[#4386F5] transition-all w-64 shadow-sm"
+              />
+            </div>
+            
             <div className="flex items-center gap-3 text-[13px] text-gray-500 font-medium pr-2">
               <span>{filteredLoans.length} records</span>
             </div>
             <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
-            <button className="flex items-center gap-2 bg-white text-gray-600 font-semibold px-4 py-2 rounded-full text-[13px] shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
-              <Calendar size={14} className="text-gray-400" /> Today
-            </button>
             <button onClick={() => setIsLendModalOpen(true)} className="flex items-center gap-1 px-5 py-2 bg-[#EAF2FF] text-[#4386F5] font-bold text-[13px] rounded-full hover:bg-blue-100 transition-colors">
               Issue Book
             </button>
