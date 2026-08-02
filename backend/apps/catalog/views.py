@@ -105,6 +105,14 @@ class BookViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def recommendations(self, request):
         queryset, meta = self._get_recommended_queryset_and_meta(request.user)
+        
+        # Optimize queries to prevent 504 Timeouts (N+1 query problem)
+        queryset = queryset.select_related(
+            'category', 'publisher', 'language', 'added_by'
+        ).prefetch_related(
+            'copies', 'copies__loans', 'reservations'
+        )
+        
         serializer = self.get_serializer(queryset[:10], many=True)
         return Response({
             "recommendation_type": meta["recommendation_type"],
