@@ -210,7 +210,7 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
 
             </div>
             
-            <MemberActivityPanel />
+            <MemberActivityPanel memberId={member.id} />
             
 
           </div>

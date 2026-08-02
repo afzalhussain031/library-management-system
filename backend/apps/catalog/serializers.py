@@ -60,30 +60,42 @@ class BookSerializer(serializers.ModelSerializer):
 
     # 3. Define how to calculate the fields
     def get_total_copies(self, obj):
-        return obj.copies.count()
+        return len(obj.copies.all())
         
     def get_available_copies(self, obj):
-        return obj.copies.filter(status=BookCopy.AVAILABLE).count()
+        return sum(1 for copy in obj.copies.all() if copy.status == BookCopy.AVAILABLE)
 
     def get_lent_copies(self, obj):
         # Counts loans for this book where it hasn't been returned yet
-        return Loan.objects.filter(copy__book=obj, returned_at__isnull=True).count()
+        count = 0
+        for copy in obj.copies.all():
+            for loan in copy.loans.all():
+                if loan.returned_at is None:
+                    count += 1
+        return count
 
     def get_overdue_copies(self, obj):
         # Counts loans for this book that are not returned AND past their due date
-        return Loan.objects.filter(
-            copy__book=obj, 
-            returned_at__isnull=True, 
-            due_at__lt=timezone.now()
-        ).count()
+        now = timezone.now()
+        count = 0
+        for copy in obj.copies.all():
+            for loan in copy.loans.all():
+                if loan.returned_at is None and loan.due_at < now:
+                    count += 1
+        return count
 
     def get_requests_count(self, obj):
         # Counts pending reservations for this book
-        return Reservation.objects.filter(book=obj, status=Reservation.PENDING).count()
+        return sum(1 for req in obj.reservations.all() if req.status == Reservation.PENDING)
 
     def get_returned_copies(self, obj):
         # Counts loans for this book that HAVE been returned
-        return Loan.objects.filter(copy__book=obj, returned_at__isnull=False).count()
+        count = 0
+        for copy in obj.copies.all():
+            for loan in copy.loans.all():
+                if loan.returned_at is not None:
+                    count += 1
+        return count
 
     def get_cover_image(self, obj):
         if obj.isbn:
@@ -96,13 +108,14 @@ class BookSerializer(serializers.ModelSerializer):
             
         user = request.user
         
-        loan = Loan.objects.filter(borrower=user, copy__book=obj, returned_at__isnull=True).first()
-        if loan:
-            return {'type': 'reading', 'id': loan.id}
+        for copy in obj.copies.all():
+            for loan in copy.loans.all():
+                if loan.borrower_id == user.id and loan.returned_at is None:
+                    return {'type': 'reading', 'id': loan.id}
             
-        reservation = Reservation.objects.filter(user=user, book=obj, status__in=[Reservation.PENDING, Reservation.READY]).first()
-        if reservation:
-            return {'type': 'reserved', 'id': reservation.id}
+        for reservation in obj.reservations.all():
+            if reservation.user_id == user.id and reservation.status in [Reservation.PENDING, Reservation.READY]:
+                return {'type': 'reserved', 'id': reservation.id}
             
         return None
 

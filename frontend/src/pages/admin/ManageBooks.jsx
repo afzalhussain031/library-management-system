@@ -367,7 +367,7 @@ const Books = () => {
                       <div className="w-[280px] shrink-0">
                         <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Description</h4>
                         <p className="text-[13px] text-gray-600 leading-relaxed pr-4">
-                          No description provided for this book yet.
+                          {book.description || "No description provided for this book yet."}
                         </p>
                       </div>
 
@@ -467,7 +467,13 @@ const Books = () => {
 
                   {/* Expanded Content on Mobile */}
                   {expandedRow === book.id && (
-                    <div className="pt-2 mt-2 border-t border-gray-100">
+                    <div className="pt-4 mt-2 border-t border-gray-100 space-y-4">
+                      <div>
+                        <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</h4>
+                        <p className="text-[13px] text-gray-600 leading-relaxed">
+                          {book.description || "No description provided for this book yet."}
+                        </p>
+                      </div>
                       <PhysicalCopiesTable bookId={book.id} />
                     </div>
                   )}

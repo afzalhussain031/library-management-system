@@ -26,6 +26,9 @@ class FineViewSet(viewsets.ModelViewSet):
                 is_admin = True
                 
         if is_admin:
+            user_id = self.request.query_params.get('user_id')
+            if user_id:
+                return queryset.filter(loan__borrower_id=user_id)
             return queryset
             
         return queryset.filter(loan__borrower=user)

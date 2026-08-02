@@ -1,4 +1,9 @@
+import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 def fetch_and_truncate_description(isbn):
     """
@@ -39,6 +44,10 @@ def fetch_and_truncate_description(isbn):
     # Attempt 2: Google Books API Fallback
     if not description:
         google_url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{clean_isbn}"
+        api_key = os.environ.get("GOOGLE_BOOKS_API_KEY")
+        if api_key:
+            google_url += f"&key={api_key}"
+            
         try:
             response = requests.get(google_url, timeout=10)
             response.raise_for_status()

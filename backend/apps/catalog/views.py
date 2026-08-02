@@ -93,10 +93,14 @@ class BookViewSet(viewsets.ModelViewSet):
                 queryset = queryset.order_by('-published_date')
             elif sort_param.lower() == 'author':
                 queryset = queryset.order_by('author')
-            elif sort_param.lower() == 'popularity':
+            elif sort_param.lower() in ['popularity', '-popularity']:
                 queryset = queryset.annotate(loan_count=Count('copies__loans')).order_by('-loan_count')
                 
-        return queryset
+        return queryset.select_related(
+            'category', 'publisher', 'language', 'added_by'
+        ).prefetch_related(
+            'copies', 'copies__loans', 'reservations'
+        )
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def recommendations(self, request):
