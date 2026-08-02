@@ -16,6 +16,7 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchRef = useRef(null);
 
@@ -55,6 +56,8 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
       await logout();
       toast.success("Logged out successfully");
@@ -62,6 +65,8 @@ const Navbar = () => {
     } catch (error) {
       console.error("Logout failed:", error);
       toast.error("Logout failed");
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -212,10 +217,11 @@ const Navbar = () => {
 
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center p-2 rounded-full hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors cursor-pointer"
+            className={`flex items-center justify-center p-2 rounded-full transition-colors ${isLoggingOut ? 'opacity-50 cursor-not-allowed text-gray-400' : 'hover:bg-red-50 text-gray-600 hover:text-red-600 cursor-pointer'}`}
             title="Logout"
+            disabled={isLoggingOut}
           >
-            <LogOut size={20} />
+            {isLoggingOut ? <Loader2 size={20} className="animate-spin text-red-500" /> : <LogOut size={20} />}
           </button>
         </div>
       </div>
