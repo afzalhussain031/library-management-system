@@ -19,14 +19,14 @@ export default function Recommended() {
 
   if (error) {
     return (
-      <div className="bg-white p-5 rounded-4xl shadow-md border border-gray-100 h-full">
+      <div className="bg-white p-5 rounded-4xl shadow-md border border-gray-100 h-[260px]">
         <ErrorMessage message={error} />
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-5 rounded-4xl shadow-md border border-gray-100 h-full flex flex-col justify-between">
+    <div className="bg-white p-5 rounded-4xl shadow-md border border-gray-100 h-[260px] flex flex-col justify-between">
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Recommendations</h2>
