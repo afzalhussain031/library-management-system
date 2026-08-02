@@ -1,14 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Heart, ChevronDown, ChevronUp, BookOpen, Loader2 } from "lucide-react";
 import { circulation } from "../../../services/api";
 import { toast } from "react-hot-toast";
 import { useWishlist } from "../../../context/WishlistContext";
 import BookThumbnail from "../../common/BookThumbnail";
 
-const BookCard = ({ book, idx, onReservationUpdate }) => {
+const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => {
   const { wishlistItems, addToWishlist, removeFromWishlist } = useWishlist();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(isHighlighted);
+
+  useEffect(() => {
+    if (isHighlighted) {
+      setExpanded(true);
+    }
+  }, [isHighlighted]);
 
   // Check if book is in the global wishlist
   const wishlistItem = wishlistItems.find(item => item.book?.id === book.id);

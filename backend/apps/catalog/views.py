@@ -1,13 +1,15 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Value
+from django.db.models.functions import Concat
 
 from common.permissions.base import IsStaffOrReadOnly
 
 from .models import Book, Category, Publisher, Wishlist, Language, Review
 from .serializers import BookSerializer, CategorySerializer, PublisherSerializer, WishlistSerializer, LanguageSerializer, ReviewSerializer
+from apps.accounts.models import CustomUser
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -185,3 +187,57 @@ class ReviewViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You can only delete your own reviews.")
         instance.delete()
+
+class GlobalSearchView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response({"books": [], "users": []})
+
+        # Search Books
+        books = Book.objects.filter(
+            Q(title__icontains=query) |
+            Q(author__icontains=query) |
+            Q(category__name__icontains=query)
+        ).select_related('category', 'language')[:5]
+
+        book_results = [
+            {
+                "id": book.id,
+                "title": book.title,
+                "author": book.author,
+                "cover": f"https://covers.openlibrary.org/b/isbn/{book.isbn}-M.jpg" if getattr(book, 'isbn', None) else None,
+                "category": book.category.name if book.category else None,
+            }
+            for book in books
+        ]
+
+        user_results = []
+        # Search Users if admin/staff
+        if request.user.role in ['admin', 'staff', 'superadmin', 'librarian']:
+            users = CustomUser.objects.annotate(
+                full_name=Concat('first_name', Value(' '), 'last_name')
+            ).filter(
+                Q(user_id__icontains=query) |
+                Q(student_name__icontains=query) |
+                Q(email__icontains=query) |
+                Q(full_name__icontains=query)
+            )[:5]
+
+            user_results = [
+                {
+                    "id": user.id,
+                    "user_id": user.user_id,
+                    "name": user.student_name or f"{user.first_name} {user.last_name}".strip(),
+                    "role": user.role,
+                    "email": user.email,
+                }
+                for user in users
+            ]
+
+        return Response({
+            "books": book_results,
+            "users": user_results
+        })
