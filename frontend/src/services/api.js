@@ -72,6 +72,9 @@ export const dashboard = {
 
 // ===================== CATALOG =====================
 export const catalog = {
+  globalSearch: (query) =>
+    client.get('/search/', { params: { q: query } }),
+
   getBooks: (params) =>
     client.get('/books/', { params }),
 

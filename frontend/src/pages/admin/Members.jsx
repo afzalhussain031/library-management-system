@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberCardSkeleton from '../../components/admin/members/MemberCardSkeleton';
@@ -13,6 +14,9 @@ import ErrorMessage from '../../components/common/ErrorMessage';
 const FILTER_TAGS = ['All', 'CSE', 'IT', 'ECE', 'ME', 'Civil'];
 
 const Members = () => {
+  const [searchParams] = useSearchParams();
+  const searchUserId = searchParams.get('search_user');
+
   const [activeTab, setActiveTab] = useState('Students');
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +63,21 @@ const Members = () => {
       isActive: user.is_active ?? true
     };
   });
+
+  useEffect(() => {
+    if (searchUserId && members.length > 0) {
+      const foundMember = members.find(m => m.id.toString() === searchUserId);
+      if (foundMember) {
+        setSelectedMember(foundMember);
+        setIsDetailsExpanded(true);
+        if (foundMember.role === 'student') {
+          setActiveTab('Students');
+        } else {
+          setActiveTab('Faculties');
+        }
+      }
+    }
+  }, [searchUserId, members.length]); // Wait for members to load
 
   const totalStudents = members.filter(m => m.role === 'student').length;
   const totalFaculties = members.filter(m => m.role !== 'student').length;

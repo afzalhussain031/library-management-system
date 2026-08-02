@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import { catalog, dashboard, circulation } from "../../services/api";
 import { useApi } from "../../hook/useApi";
@@ -6,6 +7,9 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 import BookList from "../../components/user/catalog/BookList";
 
 export default function Books() {
+  const [searchParams] = useSearchParams();
+  const searchBookId = searchParams.get('search_book');
+
   const [activeTopFilter, setActiveTopFilter] = useState("All Books");
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,6 +70,11 @@ export default function Books() {
 
   // Filtering Logic
   const filteredBooks = useMemo(() => {
+    // If deep linking to a specific book, override all other filters
+    if (searchBookId) {
+      return rawBooks.filter(book => book.id.toString() === searchBookId);
+    }
+
     return rawBooks.filter((book) => {
       // Bottom Filter
       if (activeBottomFilter === "Available" && (book.available_copies || 0) === 0) return false;
@@ -90,7 +99,7 @@ export default function Books() {
       
       return true;
     });
-  }, [rawBooks, activeBottomFilter, activeTopFilter, searchQuery, activeCategoryFilter, activeAuthorFilter, activeYearFilter, activeLanguageFilter]);
+  }, [rawBooks, activeBottomFilter, activeTopFilter, searchQuery, activeCategoryFilter, activeAuthorFilter, activeYearFilter, activeLanguageFilter, searchBookId]);
 
 
   // Helper function for styling top buttons
@@ -311,6 +320,7 @@ export default function Books() {
            books={filteredBooks} 
            isLoading={isLoading} 
            onReservationUpdate={handleReservationUpdate}
+           highlightBookId={searchBookId}
          />
       </div>
 
