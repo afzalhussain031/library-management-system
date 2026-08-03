@@ -177,7 +177,7 @@ export default function BorrowedList() {
                       title={loan.book_title} 
                       isbn={loan.book_isbn} 
                       author={loan.book_author}
-                      hoverExpand={false} 
+                      hoverExpand={true} 
                       className="w-10 h-14 text-sm rounded-md shadow-sm group-hover:shadow-md transition-shadow"
                     />
                   </div>
