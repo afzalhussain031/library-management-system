@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { dashboard } from "../../../services/api";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
@@ -89,7 +90,7 @@ export default function Notifications() {
               <div 
                 key={idx} 
                 onClick={() => handleNotificationClick(notif.notification_type)}
-                className="group flex items-center justify-between p-2 -mx-2 rounded-xl hover:bg-gray-50 transition cursor-pointer"
+                className="group flex items-center justify-between p-3 rounded-xl bg-white border border-transparent hover:border-gray-100 shadow-sm hover:-translate-y-[2px] hover:shadow-md transition-all duration-300 cursor-pointer mb-2"
               >
                 <div className="flex items-start gap-4 w-full">
                   <div className={`w-6 h-8 min-w-12 rounded-lg ${boxColors.outer} flex items-center justify-center shrink-0`}>
@@ -109,7 +110,7 @@ export default function Notifications() {
                      <span className="text-[10px] text-gray-400">
                         {formatRelativeTime(notif.created_at)}
                       </span>
-                     <span className="text-gray-300 text-lg leading-none group-hover:text-gray-500 transition-colors">›</span>
+                     <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 mt-1" />
                   </div>
                 </div>
               </div>

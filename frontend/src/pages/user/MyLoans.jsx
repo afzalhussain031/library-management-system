@@ -746,7 +746,7 @@ export default function MyLoans() {
               <div 
                 key={loan.id} 
                 id={`loan-${loan.id}`}
-                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 group ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-[2px] hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
                 onClick={() => toggleExpand(loan.id)}
               >
                 
@@ -854,7 +854,11 @@ export default function MyLoans() {
                             </button>
                         </div>
                     )}
-                    <button className="text-gray-400 hover:text-gray-700 transition-colors ml-4 hidden lg:block">
+                    <button className={`transition-all duration-300 ml-4 hidden lg:block ${
+                      expandedId === loan.id 
+                        ? 'text-gray-700 opacity-100' 
+                        : 'text-gray-400 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0'
+                    }`}>
                       {expandedId === loan.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                   </div>

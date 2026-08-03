@@ -41,18 +41,21 @@ export const AlertsPanel = () => {
       </div>
       <div className="space-y-4">
         {alerts.map(alert => (
-          <div key={alert.id} className="flex items-center justify-between text-sm">
+          <div key={alert.id} className="group flex items-center justify-between text-sm p-2 -mx-2 rounded-xl bg-transparent border border-transparent hover:border-gray-100 hover:bg-white hover:-translate-y-[2px] hover:shadow-md transition-all cursor-pointer mb-1">
             <div className="flex items-center gap-3 text-gray-600 font-medium">
               <div className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center shrink-0">
                 <span className="text-[10px]">📊</span>
               </div>
               <span className="leading-tight">{alert.text}</span>
             </div>
-            <button className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1 shrink-0 ${
-              alert.type === 'danger' ? 'bg-[#FFE2E5] text-[#F64E60] hover:bg-[#FFD1D6]' : 'bg-[#EAF2FF] text-[#4386F5] hover:bg-[#D4E3FF]'
-            }`}>
-              {alert.action} <ChevronRight size={12} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1 shrink-0 ${
+                alert.type === 'danger' ? 'bg-[#FFE2E5] text-[#F64E60] group-hover:bg-[#FFD1D6]' : 'bg-[#EAF2FF] text-[#4386F5] group-hover:bg-[#D4E3FF]'
+              }`}>
+                {alert.action}
+              </button>
+              <ChevronRight size={16} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+            </div>
           </div>
         ))}
       </div>
@@ -78,13 +81,16 @@ export const TopRequestedCategories = () => {
       </div>
       <div className="space-y-4">
         {categories.map((cat, i) => (
-          <div key={i} className="flex items-center justify-between text-sm">
+          <div key={i} className="group flex items-center justify-between text-sm p-2 -mx-2 rounded-xl bg-transparent border border-transparent hover:border-gray-100 hover:bg-white hover:-translate-y-[2px] hover:shadow-md transition-all cursor-pointer mb-1">
             <div className="flex items-center gap-3 text-gray-600 font-medium">
               <div className="w-4 h-4 rounded-full border-[3px] border-[#4386F5] bg-transparent"></div>
               {cat.name}
             </div>
-            <div className="text-[#1BC5BD] font-bold text-xs flex items-center gap-1">
-              <ArrowUp size={12} strokeWidth={3} /> {cat.increase}
+            <div className="flex items-center gap-2">
+              <div className="text-[#1BC5BD] font-bold text-xs flex items-center gap-1">
+                <ArrowUp size={12} strokeWidth={3} /> {cat.increase}
+              </div>
+              <ChevronRight size={16} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
             </div>
           </div>
         ))}
@@ -109,7 +115,7 @@ export const TaskStatus = () => {
       </div>
       <div className="space-y-4">
         {tasks.map((task, i) => (
-          <div key={i} className="flex items-center justify-between text-sm">
+          <div key={i} className="group flex items-center justify-between text-sm p-2 -mx-2 rounded-xl bg-transparent border border-transparent hover:border-gray-100 hover:bg-white hover:-translate-y-[2px] hover:shadow-md transition-all cursor-pointer mb-1">
             <div className="flex items-center gap-3 text-gray-600 font-medium">
               <div className={`w-4 h-4 rounded-full border-[2px] bg-transparent ${
                 task.status === 'Urgent' ? 'border-[#E0B220]' : task.status === 'Resolved' ? 'border-gray-300' : 'border-[#F64E60]'
@@ -118,13 +124,16 @@ export const TaskStatus = () => {
               </div>
               <span className="leading-tight pr-2">{task.text}</span>
             </div>
-            {task.status !== 'none' && (
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
-                task.status === 'Urgent' ? 'bg-[#FFE2E5] text-[#F64E60]' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {task.status}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {task.status !== 'none' && (
+                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                  task.status === 'Urgent' ? 'bg-[#FFE2E5] text-[#F64E60]' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {task.status}
+                </span>
+              )}
+              <ChevronRight size={16} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+            </div>
           </div>
         ))}
       </div>
@@ -141,14 +150,17 @@ export const RecentActivity = () => {
           View All <ChevronRight size={14} />
         </button>
       </div>
-      <div className="flex items-center justify-between text-sm">
+      <div className="group flex items-center justify-between text-sm p-2 -mx-2 rounded-xl bg-transparent border border-transparent hover:border-gray-100 hover:bg-white hover:-translate-y-[2px] hover:shadow-md transition-all cursor-pointer">
         <div className="flex items-center gap-3 text-gray-600 font-medium">
           <div className="w-4 h-4 rounded-[4px] border-[2px] border-[#4386F5] bg-transparent"></div>
           <span className="leading-tight">Admin Ratul approved 8 requests</span>
         </div>
-        <span className="px-3 py-1 bg-[#C9F7F5] text-[#1BC5BD] rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
-           <span className="text-[10px]">📦</span> Urgent
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 bg-[#C9F7F5] text-[#1BC5BD] rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+             <span className="text-[10px]">📦</span> Urgent
+          </span>
+          <ChevronRight size={16} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+        </div>
       </div>
     </div>
   );

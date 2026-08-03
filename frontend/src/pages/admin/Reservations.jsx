@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { circulation } from '../../services/api';
 import { Search } from 'lucide-react';
 import { useApi } from '../../hook/useApi';
@@ -14,7 +15,9 @@ import { useEntityModal } from '../../context/EntityModalContext';
 const TABS = ['Pending', 'Ready for Pickup', 'History'];
 
 export default function Reservations() {
-  const [activeTab, setActiveTab] = useState('Pending');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'Pending');
+  const [highlightId, setHighlightId] = useState(location.state?.highlightId || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [historyFilter, setHistoryFilter] = useState('All');
   const [selectedReservation, setSelectedReservation] = useState(null);
@@ -198,6 +201,8 @@ export default function Reservations() {
           <ReservationTable 
             reservations={filteredReservations}
             statusTab={activeTab}
+            highlightId={highlightId}
+            setHighlightId={setHighlightId}
             onRowClick={(res) => setSelectedReservation(res)}
             onMemberClick={showMember}
             onAllocate={handleAllocateClick}

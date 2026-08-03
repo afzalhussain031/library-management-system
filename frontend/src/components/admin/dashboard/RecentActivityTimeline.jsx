@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
 import EntityLink from '../../common/EntityLink';
@@ -8,6 +8,7 @@ import { useEntityModal } from '../../../context/EntityModalContext';
 
 const RecentActivityTimeline = ({ data, isLoading }) => {
   const { showBook, showMember } = useEntityModal();
+  const navigate = useNavigate();
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col h-full">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center shrink-0">
@@ -46,7 +47,11 @@ const RecentActivityTimeline = ({ data, isLoading }) => {
               const isReturn = item.eventType === 'return';
               
               return (
-                <div key={`${item.id}-${item.eventType}`} className="relative flex items-start gap-4 group hover:opacity-80 transition-opacity">
+                <div 
+                  key={`${item.id}-${item.eventType}`} 
+                  onClick={() => navigate('/admin/circulation', { state: { highlightId: item.id, tab: isReturn ? 'returned' : 'active' } })}
+                  className="relative flex items-start gap-4 group transition-all duration-300 cursor-pointer p-2.5 -ml-2.5 rounded-xl hover:bg-white hover:shadow-md hover:-translate-y-[2px] border border-transparent hover:border-gray-100"
+                >
                   {/* The Timeline Dot */}
                   <div className={`relative z-10 mt-1.5 w-3 h-3 rounded-full ring-4 ring-[#fcfaf8] shrink-0 ${isReturn ? 'bg-green-400' : 'bg-blue-400'}`} />
                   

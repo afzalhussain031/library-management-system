@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, CheckCircle, XCircle, DollarSign, Clock, Check } from "lucide-react";
+import { Search, CheckCircle, XCircle, DollarSign, Clock, Check, ChevronRight } from "lucide-react";
 import { billing } from "../../services/api";
 import UserAvatar from "../../components/common/UserAvatar";
 import { useApi } from "../../hook/useApi";
@@ -126,7 +126,7 @@ export default function FinesAndPayments() {
         </div>
         {/* Data Table */}
         <div className="overflow-x-auto hidden md:block">
-          <table className="w-full text-left text-sm text-slate-600">
+          <table className="w-full text-left text-sm text-slate-600 border-separate" style={{ borderSpacing: '0 8px' }}>
             <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-100">
               <tr>
                 <th className="px-6 py-4">Borrower</th>
@@ -137,7 +137,7 @@ export default function FinesAndPayments() {
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {loading ? (
                 [1, 2, 3, 4, 5].map((key) => (
                   <tr key={key}>
@@ -173,8 +173,8 @@ export default function FinesAndPayments() {
                 <tr><td colSpan="6" className="text-center py-10 text-slate-400">No fines found.</td></tr>
               ) : (
                 filteredFines.map((fine) => (
-                  <tr key={fine.id} onClick={() => setSelectedFine(fine)} className="hover:bg-slate-50/80 transition-colors group cursor-pointer">
-                    <td className="px-6 py-4">
+                  <tr key={fine.id} onClick={() => setSelectedFine(fine)} className="bg-white hover:-translate-y-[2px] hover:shadow-md transition-all duration-300 group cursor-pointer shadow-sm rounded-xl">
+                    <td className="px-6 py-4 first:rounded-l-xl border border-transparent hover:border-gray-100 border-r-0">
                       <div className="flex items-center gap-3">
                         <UserAvatar name={fine.borrower_name || 'Unknown'} size="md" />
                         <div>
@@ -191,7 +191,7 @@ export default function FinesAndPayments() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 border border-transparent hover:border-gray-100 border-x-0">
                       <p className="text-slate-700 font-medium">
                         {fine.loan_book_id ? (
                           <EntityLink onClick={(e) => { e.stopPropagation(); showBook(fine.loan_book_id); }}>
@@ -202,9 +202,9 @@ export default function FinesAndPayments() {
                         )}
                       </p>
                     </td>
-                    <td className="px-6 py-4">{fine.reason}</td>
-                    <td className="px-6 py-4 font-bold text-slate-800">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fine.amount)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 border border-transparent hover:border-gray-100 border-x-0">{fine.reason}</td>
+                    <td className="px-6 py-4 font-bold text-slate-800 border border-transparent hover:border-gray-100 border-x-0">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fine.amount)}</td>
+                    <td className="px-6 py-4 border border-transparent hover:border-gray-100 border-x-0">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                         fine.status === 'pending' ? 'bg-orange-100 text-orange-700' :
                         fine.status === 'paid' ? 'bg-green-100 text-green-700' :
@@ -213,16 +213,19 @@ export default function FinesAndPayments() {
                         {fine.status.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedFine(fine);
-                        }}
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                      >
-                        View Details
-                      </button>
+                    <td className="px-6 py-4 text-right last:rounded-r-xl border border-transparent hover:border-gray-100 border-l-0">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedFine(fine);
+                          }}
+                          className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          View Details
+                        </button>
+                        <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -251,7 +254,7 @@ export default function FinesAndPayments() {
               </div>
            ) : (
              filteredFines.map((fine) => (
-                <div key={fine.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => setSelectedFine(fine)}>
+                <div key={fine.id} className="bg-white rounded-xl p-4 shadow-sm border border-transparent hover:border-gray-100 flex flex-col gap-3 cursor-pointer transition-all duration-300 hover:-translate-y-[2px] hover:shadow-md group" onClick={() => setSelectedFine(fine)}>
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex items-center gap-3">
                       <UserAvatar name={fine.borrower_name || 'Unknown'} size="sm" />

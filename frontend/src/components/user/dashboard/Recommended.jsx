@@ -51,7 +51,7 @@ export default function Recommended() {
                 key={book.id}
                 onClick={() => showBook(book.id)}
                 title={`${book.title} ${book.author ? `by ${book.author}` : ''}`}
-                className="w-25 min-w-20 h-29 bg-gray-100 border border-gray-200 rounded-md flex items-center justify-center text-[10px] text-center font-medium text-gray-700 cursor-pointer shrink-0 transition-all duration-200 hover:bg-yellow-400 hover:text-black hover:shadow-md p-2"
+                className="w-25 min-w-20 h-29 bg-gray-100 border border-gray-200 rounded-md flex items-center justify-center text-[10px] text-center font-medium text-gray-700 cursor-pointer shrink-0 transition-all duration-300 hover:-translate-y-[2px] hover:bg-yellow-400 hover:text-black hover:shadow-md p-2"
               >
                 {book.cover ? (
                   <img src={book.cover} alt={book.title} className="w-full h-full object-cover rounded-md" />

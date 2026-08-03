@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, MoreVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
 import EntityLink from '../../common/EntityLink';
@@ -10,6 +10,7 @@ import { useEntityModal } from '../../../context/EntityModalContext';
 const OverdueDetails = ({ data, isLoading }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const { showBook, showMember } = useEntityModal();
+  const navigate = useNavigate();
 
   const toggleMenu = (id) => {
     if (openMenuId === id) {
@@ -71,7 +72,11 @@ const OverdueDetails = ({ data, isLoading }) => {
             <p className="text-center text-gray-500 py-4 text-sm">No overdue details.</p>
           ) : (
             data.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 hover:bg-orange-50/50 rounded-xl transition-colors mb-1 relative">
+              <div 
+                key={item.id} 
+                onClick={() => navigate('/admin/circulation', { state: { highlightId: item.id, tab: 'overdue' } })}
+                className="flex items-center justify-between p-3 bg-transparent hover:bg-white rounded-xl transition-all duration-300 hover:-translate-y-[2px] hover:shadow-md border border-transparent hover:border-gray-100 cursor-pointer group mb-1 relative"
+              >
                 {/* User Info */}
                 <div className="flex items-center gap-3 w-1/4">
                   <UserAvatar name={item.userName} size="sm" />
@@ -109,32 +114,34 @@ const OverdueDetails = ({ data, isLoading }) => {
                     <span className="text-sm font-bold text-gray-800">{item.fine}</span>
                 </div>
 
-                {/* Dropdown Actions */}
-                <div className="relative flex justify-end w-8">
-                  <button 
-                    onClick={() => toggleMenu(item.id)}
-                    className="p-1 text-gray-400 hover:text-gray-600 rounded"
-                  >
-                    <MoreVertical size={18} />
-                  </button>
+                <div className="flex items-center gap-1">
+                  <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+                  <div className="relative flex justify-end w-8">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toggleMenu(item.id); }}
+                      className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
 
-                  {/* The Dropdown Menu (only shows if openMenuId matches this item) */}
-                  {openMenuId === item.id && (
-                    <div className="absolute right-0 top-8 w-40 bg-white shadow-md border border-gray-100 rounded-lg z-10 py-1 text-sm overflow-hidden flex flex-col">
-                      <button 
-                        className="px-4 py-2 text-left hover:bg-orange-50 text-gray-700 transition-colors"
-                        onClick={() => { toast('Reminder feature coming soon!', { icon: '🚧' }); setOpenMenuId(null); }}
-                      >
-                        Send Reminder
-                      </button>
-                      <button 
-                        className="px-4 py-2 text-left hover:bg-orange-50 text-green-600 transition-colors"
-                        onClick={() => { toast('Mark returned feature coming soon!', { icon: '🚧' }); setOpenMenuId(null); }}
-                      >
-                        Mark Returned
-                      </button>
-                    </div>
-                  )}
+                    {/* The Dropdown Menu (only shows if openMenuId matches this item) */}
+                    {openMenuId === item.id && (
+                      <div className="absolute right-0 top-8 w-40 bg-white shadow-md border border-gray-100 rounded-lg z-10 py-1 text-sm overflow-hidden flex flex-col">
+                        <button 
+                          className="px-4 py-2 text-left hover:bg-orange-50 text-gray-700 transition-colors"
+                          onClick={() => { toast('Reminder feature coming soon!', { icon: '🚧' }); setOpenMenuId(null); }}
+                        >
+                          Send Reminder
+                        </button>
+                        <button 
+                          className="px-4 py-2 text-left hover:bg-orange-50 text-green-600 transition-colors"
+                          onClick={() => { toast('Mark returned feature coming soon!', { icon: '🚧' }); setOpenMenuId(null); }}
+                        >
+                          Mark Returned
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
