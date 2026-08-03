@@ -4,11 +4,15 @@ import { circulation } from "../../../services/api";
 import { toast } from "react-hot-toast";
 import { useWishlist } from "../../../context/WishlistContext";
 import BookThumbnail from "../../common/BookThumbnail";
+import EntityLink from "../../common/EntityLink";
+import { useEntityModal } from "../../../context/EntityModalContext";
 
 const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => {
   const { wishlistItems, addToWishlist, removeFromWishlist } = useWishlist();
   const [isUpdating, setIsUpdating] = useState(false);
   const [expanded, setExpanded] = useState(isHighlighted);
+  
+  const { showBook, showPublisher } = useEntityModal();
 
   useEffect(() => {
     if (isHighlighted) {
@@ -164,7 +168,9 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
         </div>
         <div className="w-[240px] shrink-0 pr-4">
           <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center">
-            <span className="truncate">{book.title}</span>
+            <EntityLink onClick={(e) => { e.stopPropagation(); showBook(book.id); }}>
+              {book.title}
+            </EntityLink>
           </p>
           <p className="text-[12px] text-gray-500 truncate">by {book.author}</p>
         </div>
@@ -221,7 +227,9 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
           />
           <div className="flex-1 min-w-0">
              <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center">
-               <span className="truncate">{book.title}</span>
+               <EntityLink onClick={(e) => { e.stopPropagation(); showBook(book.id); }}>
+                 {book.title}
+               </EntityLink>
              </p>
              <p className="text-[12px] text-gray-500 mb-2 truncate">by {book.author}</p>
              <div className="mb-2">
@@ -279,7 +287,15 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
                <div className="flex flex-wrap gap-8 md:gap-16">
                   <div>
                      <span className="block text-[11px] text-gray-500 font-medium mb-0.5">PUBLISHER</span>
-                     <span className="block text-[13px] text-slate-800 font-bold">{book.publisher?.name || 'Unknown'}</span>
+                     <span className="block text-[13px] text-slate-800 font-bold">
+                       {book.publisher ? (
+                         <EntityLink onClick={(e) => { e.stopPropagation(); showPublisher(book.publisher.id); }}>
+                           {book.publisher.name}
+                         </EntityLink>
+                       ) : (
+                         'Unknown'
+                       )}
+                     </span>
                   </div>
                   <div>
                      <span className="block text-[11px] text-gray-500 font-medium mb-0.5">PUBLISHED DATE</span>
@@ -291,7 +307,7 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
                   </div>
                </div>
            </div>
-        </div>
+         </div>
       )}
     </div>
   );

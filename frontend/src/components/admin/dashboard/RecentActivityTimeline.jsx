@@ -3,8 +3,11 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 
 const RecentActivityTimeline = ({ data, isLoading }) => {
+  const { showBook, showMember } = useEntityModal();
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col h-full">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center shrink-0">
@@ -51,10 +54,16 @@ const RecentActivityTimeline = ({ data, isLoading }) => {
                   <div className="flex-1 min-w-0 flex flex-col">
                      <div className="text-sm text-gray-600 leading-snug flex flex-wrap items-center gap-x-1.5">
                         <UserAvatar name={item.userName} size="xs" className="w-5 h-5 text-[9px]" />
-                        <span className="font-bold text-gray-800">{item.userName}</span>
+                        <span className="font-bold text-gray-800">
+                          <EntityLink onClick={() => showMember(item.userId)}>
+                            {item.userName}
+                          </EntityLink>
+                        </span>
                         <span>{isReturn ? 'returned' : 'borrowed'}</span>
                         <span className="font-semibold text-gray-800 truncate max-w-[150px] 2xl:max-w-[200px]" title={item.bookTitle}>
-                          "{item.bookTitle}"
+                          <EntityLink onClick={() => showBook(item.bookId)}>
+                            "{item.bookTitle}"
+                          </EntityLink>
                         </span>
                      </div>
                      <span className="text-[11px] text-gray-400 font-medium mt-1 ml-[26px]">

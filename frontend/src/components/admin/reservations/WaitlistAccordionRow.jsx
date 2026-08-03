@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Clock, User, Tag } from 'lucide-react';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 
-const WaitlistAccordionRow = ({ bookId, bookTitle, queue, onAllocate, onRowClick }) => {
+const WaitlistAccordionRow = ({ bookId, bookTitle, queue, onAllocate, onRowClick, onMemberClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { showBook } = useEntityModal();
 
   // queue is assumed to be sorted by reserved_at ascending
   const totalWaiting = queue.length;
@@ -21,7 +24,15 @@ const WaitlistAccordionRow = ({ bookId, bookTitle, queue, onAllocate, onRowClick
               {isExpanded ? <ChevronDown size={16} className="text-gray-600" /> : <ChevronRight size={16} className="text-gray-600" />}
             </div>
             <div>
-              <p className="font-bold text-[#1C2434] text-sm md:text-base">{bookTitle}</p>
+              <p className="font-bold text-[#1C2434] text-sm md:text-base">
+                {bookId ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showBook(bookId); }}>
+                    {bookTitle}
+                  </EntityLink>
+                ) : (
+                  bookTitle
+                )}
+              </p>
               <p className="text-xs text-gray-500 font-medium">{totalWaiting} person{totalWaiting > 1 ? 's' : ''} waiting</p>
             </div>
           </button>
@@ -29,7 +40,11 @@ const WaitlistAccordionRow = ({ bookId, bookTitle, queue, onAllocate, onRowClick
         <td className="p-4 hidden sm:table-cell">
           <div className="flex items-center gap-2">
             <User size={14} className="text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">{nextInLine?.user_name}</span>
+            <span className="text-sm font-medium text-gray-700">
+              <EntityLink onClick={(e) => { e.stopPropagation(); onMemberClick(nextInLine?.user); }}>
+                {nextInLine?.user_name}
+              </EntityLink>
+            </span>
           </div>
         </td>
         <td className="p-4 hidden md:table-cell">
@@ -76,7 +91,11 @@ const WaitlistAccordionRow = ({ bookId, bookTitle, queue, onAllocate, onRowClick
                           {index + 1}
                         </span>
                       </td>
-                      <td className="py-2.5 font-medium text-gray-800">{res.user_name}</td>
+                      <td className="py-2.5 font-medium text-gray-800">
+                        <EntityLink onClick={(e) => { e.stopPropagation(); onMemberClick(res.user); }}>
+                          {res.user_name}
+                        </EntityLink>
+                      </td>
                       <td className="py-2.5 text-gray-500">
                         {new Date(res.reserved_at).toLocaleString()}
                       </td>

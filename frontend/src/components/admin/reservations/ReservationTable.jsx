@@ -1,8 +1,11 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
 import WaitlistAccordionRow from './WaitlistAccordionRow';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 
-const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onFulfill, onCancel }) => {
+const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, onAllocate, onFulfill, onCancel }) => {
+  const { showBook } = useEntityModal();
   if (!reservations || reservations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center opacity-60">
@@ -41,11 +44,13 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onF
           <tbody>
             {Object.values(grouped).map(queue => (
               <WaitlistAccordionRow 
-                key={queue[0].book_title}
+                key={queue[0].book_id || queue[0].book_title}
                 bookTitle={queue[0].book_title}
+                bookId={queue[0].book_id}
                 queue={queue}
                 onAllocate={onAllocate}
                 onRowClick={onRowClick}
+                onMemberClick={onMemberClick}
               />
             ))}
           </tbody>
@@ -84,8 +89,20 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onAllocate, onF
                 onClick={() => onRowClick(res)}
                 className={`${bgClass} cursor-pointer transition-colors group`}
               >
-                <td className="p-4 font-bold text-[#1C2434] text-sm">{res.book_title}</td>
-              <td className="p-4 text-sm text-gray-700">{res.user_name}</td>
+                <td className="p-4 font-bold text-[#1C2434] text-sm">
+                  {res.book_id ? (
+                    <EntityLink onClick={(e) => { e.stopPropagation(); showBook(res.book_id); }}>
+                      {res.book_title}
+                    </EntityLink>
+                  ) : (
+                    res.book_title
+                  )}
+                </td>
+              <td className="p-4 text-sm text-gray-700">
+                <EntityLink onClick={(e) => { e.stopPropagation(); onMemberClick(res.user); }}>
+                  {res.user_name}
+                </EntityLink>
+              </td>
               <td className="p-4 text-sm text-gray-500 hidden sm:table-cell">
                 {statusTab === 'Ready for Pickup' 
                   ? new Date(res.ready_at).toLocaleDateString()

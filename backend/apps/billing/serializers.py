@@ -6,6 +6,7 @@ from .models import Fine
 class FineSerializer(serializers.ModelSerializer):
     loan_book_title = serializers.CharField(source="loan.copy.book.title", read_only=True)
     loan_book_author = serializers.CharField(source="loan.copy.book.author", read_only=True)
+    loan_book_id = serializers.IntegerField(source="loan.copy.book.id", read_only=True)
     borrower_name = serializers.CharField(source="loan.borrower.get_full_name", read_only=True)
     borrower_email = serializers.CharField(source="loan.borrower.email", read_only=True)
     borrower_id = serializers.CharField(source="loan.borrower.id", read_only=True)
@@ -22,12 +23,13 @@ class FineSerializer(serializers.ModelSerializer):
             "loan",
             "loan_book_title",
             "loan_book_author",
-            "borrower_name",
+            "loan_book_id",
             "borrower_email",
             "borrower_id",
             "loan_issued_at",
             "loan_due_at",
             "loan_returned_at",
+            "borrower_name",
             "loan_copy_barcode",
             "amount",
             "reason",

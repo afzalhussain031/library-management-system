@@ -9,6 +9,7 @@ import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 import ReservationTable from '../../components/admin/reservations/ReservationTable';
 import ReservationDetailsDrawer from '../../components/admin/reservations/ReservationDetailsDrawer';
 import AllocationModal from '../../components/admin/reservations/AllocationModal';
+import { useEntityModal } from '../../context/EntityModalContext';
 
 const TABS = ['Pending', 'Ready for Pickup', 'History'];
 
@@ -18,6 +19,8 @@ export default function Reservations() {
   const [historyFilter, setHistoryFilter] = useState('All');
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [allocationModalData, setAllocationModalData] = useState(null);
+  
+  const { showMember } = useEntityModal();
 
   const { data: rawReservations, setData: setReservations, isLoading, error, refetch } = useApi(circulation.getReservations, []);
   const reservations = rawReservations || [];
@@ -196,6 +199,7 @@ export default function Reservations() {
             reservations={filteredReservations}
             statusTab={activeTab}
             onRowClick={(res) => setSelectedReservation(res)}
+            onMemberClick={showMember}
             onAllocate={handleAllocateClick}
             onFulfill={handleFulfill}
             onCancel={handleCancel}

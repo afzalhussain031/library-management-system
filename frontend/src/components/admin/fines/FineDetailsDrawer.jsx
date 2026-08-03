@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, BookOpen, User, Calendar, CheckCircle, XCircle, DollarSign, Tag, Printer, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 
 const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
+  const { showBook, showMember } = useEntityModal();
   const [isWaiving, setIsWaiving] = useState(false);
   const [waiveReason, setWaiveReason] = useState("");
   const [isPaying, setIsPaying] = useState(false);
@@ -67,7 +70,15 @@ const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
               <User size={14} /> Member Information
             </h3>
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2">
-              <p className="font-bold text-slate-800">{fine.borrower_name || 'Unknown'}</p>
+              <p className="font-bold text-slate-800">
+                {fine.borrower_id ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showMember(fine.borrower_id); }}>
+                    {fine.borrower_name || 'Unknown'}
+                  </EntityLink>
+                ) : (
+                  fine.borrower_name || 'Unknown'
+                )}
+              </p>
               <p className="text-sm text-slate-600">Email: {fine.borrower_email || 'N/A'}</p>
               {fine.borrower_id && <p className="text-sm text-slate-600">ID: {fine.borrower_id}</p>}
             </div>
@@ -79,7 +90,15 @@ const FineDetailsDrawer = ({ isOpen, onClose, fine, onMarkPaid, onWaive }) => {
               <BookOpen size={14} /> Book Information
             </h3>
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2">
-              <p className="font-bold text-slate-800 text-lg">{fine.loan_book_title}</p>
+              <p className="font-bold text-slate-800 text-lg">
+                {fine.loan_book_id ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showBook(fine.loan_book_id); }}>
+                    {fine.loan_book_title}
+                  </EntityLink>
+                ) : (
+                  fine.loan_book_title
+                )}
+              </p>
               <p className="text-sm text-slate-600">By {fine.loan_book_author}</p>
               {fine.loan_copy_barcode && (
                 <div className="mt-3 flex items-center gap-2 text-sm text-slate-600 bg-white p-2 rounded border border-slate-200">

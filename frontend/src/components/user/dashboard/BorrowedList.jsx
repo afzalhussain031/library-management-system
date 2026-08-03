@@ -8,9 +8,12 @@ import { SkeletonText } from "../../common/Skeleton";
 import { toast } from "react-hot-toast";
 import BookThumbnail from "../../common/BookThumbnail";
 import LoanTimeline from "../../common/LoanTimeline";
+import EntityLink from "../../common/EntityLink";
+import { useEntityModal } from "../../../context/EntityModalContext";
 
 export default function BorrowedList() {
   const navigate = useNavigate();
+  const { showBook } = useEntityModal();
   const { data, isLoading: loading, error, refetch } = useApi(dashboard.getBorrowedBooks, []);
   const loansList = Array.isArray(data) ? data : data?.results || [];
   
@@ -180,7 +183,11 @@ export default function BorrowedList() {
                   </div>
                   
                   <div className="flex-1 min-w-0 md:w-[200px] md:flex-none flex flex-col justify-center">
-                    <h3 className="font-semibold text-gray-900 line-clamp-1 text-sm leading-tight" title={loan.book_title || "Unknown Title"}>{loan.book_title || "Unknown Title"}</h3>
+                    <h3 className="font-semibold text-gray-900 line-clamp-1 text-sm leading-tight" title={loan.book_title || "Unknown Title"}>
+                      <EntityLink onClick={(e) => { e.stopPropagation(); showBook(loan.book_id); }}>
+                        {loan.book_title || "Unknown Title"}
+                      </EntityLink>
+                    </h3>
                     <p className="text-xs text-gray-500 line-clamp-1 mb-1 mt-0.5">by {loan.book_author || "Unknown Author"}</p>
                     <div className="flex items-center flex-wrap gap-2">
                        <span className={`text-[11px] font-medium flex items-center gap-1 ${timeInfo.color}`}>

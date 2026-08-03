@@ -48,8 +48,10 @@ const AdminDashboard = () => {
         bookInitial: res.book_title ? res.book_title.charAt(0).toUpperCase() : 'B',
         bookColor: 'bg-blue-400', 
         bookTitle: res.book_title,
+        bookId: res.book_id,
         bookAuthor: `by ${res.book_author}`,
         userName: res.user_name || `User #${res.user}`,
+        userId: res.user,
         date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
       }));
       setBookRequests(formattedRequests);
@@ -96,7 +98,9 @@ const AdminDashboard = () => {
         id: loan.id,
         eventType: isReturn ? 'return' : 'borrow',
         userName: loan.user_name || 'Unknown User',
+        userId: loan.borrower,
         bookTitle: loan.book_title,
+        bookId: loan.book_id,
         eventDate: new Date(eventDateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
       };
     });
@@ -105,9 +109,11 @@ const AdminDashboard = () => {
     overdueDetails = (analyticsData.overdue_loans || []).map(loan => ({
       id: loan.id,
       userName: loan.user_name || 'Unknown User',
+      userId: loan.borrower,
       bookInitial: loan.book_title ? loan.book_title.charAt(0).toUpperCase() : 'B',
       bookColor: bookColors[loan.id % bookColors.length],
       bookTitle: loan.book_title,
+      bookId: loan.book_id,
       bookAuthor: `by ${loan.book_author}`,
       overdue: `${loan.overdue_days || 0} Days`,
       fine: `₹ ${loan.current_fine_estimate || 0}`

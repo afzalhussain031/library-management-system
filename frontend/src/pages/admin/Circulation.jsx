@@ -17,9 +17,12 @@ import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 import toast from "react-hot-toast";
 import LendReturnModal from "../../components/admin/LendReturnModal";
 import LoanTimeline from "../../components/common/LoanTimeline";
+import EntityLink from "../../components/common/EntityLink";
+import { useEntityModal } from "../../context/EntityModalContext";
 
 const Circulation = () => {
   const location = useLocation();
+  const { showBook, showMember } = useEntityModal();
   const [activeTab, setActiveTab] = useState(location.state?.tab || "active");
   const [isLendModalOpen, setIsLendModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -228,10 +231,18 @@ const Circulation = () => {
                     </div>
                     <div className="w-[200px] shrink-0 pr-4 flex items-center gap-3">
                       <UserAvatar name={loan.user_name || 'Unknown'} size="sm" />
-                      <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.user_name}</p>
+                      <p className="font-bold text-[#1C2434] text-[14px] truncate">
+                        <EntityLink onClick={(e) => { e.stopPropagation(); showMember(loan.user_id); }}>
+                          {loan.user_name}
+                        </EntityLink>
+                      </p>
                     </div>
                     <div className="w-[200px] shrink-0 pr-4">
-                      <p className="font-bold text-[#1C2434] text-[14px] truncate">{loan.book_title}</p>
+                      <p className="font-bold text-[#1C2434] text-[14px] truncate">
+                        <EntityLink onClick={(e) => { e.stopPropagation(); showBook(loan.book_id); }}>
+                          {loan.book_title}
+                        </EntityLink>
+                      </p>
                       <p className="text-[12px] text-gray-500 truncate">ID: #{loan.book_id}</p>
                     </div>
                     <div className="w-[320px] shrink-0 px-4">

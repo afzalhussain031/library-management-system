@@ -1,7 +1,10 @@
 import React from 'react';
 import { X, Clock, BookOpen, User, Tag, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 
 const ReservationDetailsDrawer = ({ isOpen, onClose, reservation, onFulfill, onAllocate, onCancel }) => {
+  const { showBook, showMember } = useEntityModal();
   if (!isOpen || !reservation) return null;
 
   return (
@@ -49,7 +52,15 @@ const ReservationDetailsDrawer = ({ isOpen, onClose, reservation, onFulfill, onA
               <BookOpen size={14} /> Book Information
             </h3>
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <p className="font-bold text-[#1C2434] text-lg">{reservation.book_title}</p>
+              <p className="font-bold text-[#1C2434] text-lg">
+                {reservation.book_id ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showBook(reservation.book_id); }}>
+                    {reservation.book_title}
+                  </EntityLink>
+                ) : (
+                  reservation.book_title
+                )}
+              </p>
               {reservation.allocated_copy_barcode && (
                 <div className="mt-3 flex items-center gap-2 text-sm text-gray-600 bg-white p-2 rounded border border-gray-200">
                   <Tag size={16} className="text-[#F6BE0A]" />
@@ -66,7 +77,15 @@ const ReservationDetailsDrawer = ({ isOpen, onClose, reservation, onFulfill, onA
               <User size={14} /> Member Information
             </h3>
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-2">
-              <p className="font-bold text-[#1C2434]">{reservation.user_name}</p>
+              <p className="font-bold text-[#1C2434]">
+                {reservation.user ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showMember(reservation.user); }}>
+                    {reservation.user_name}
+                  </EntityLink>
+                ) : (
+                  reservation.user_name
+                )}
+              </p>
               <p className="text-sm text-gray-600">ID: {reservation.user_id || 'N/A'}</p>
             </div>
           </div>

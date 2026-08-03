@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Bell, SlidersHorizontal, LogOut, Loader2, Search, Book, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useEntityModal } from "../../context/EntityModalContext";
 import profileImg from "../../assets/profile.jpg";
 import NotificationDropdown from "./NotificationDropdown";
 import WishlistDropdown from "./WishlistDropdown";
@@ -11,6 +12,7 @@ import { catalog } from "../../services/api";
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
+  const { showBook, showMember } = useEntityModal();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,9 +76,9 @@ const Navbar = () => {
     setIsDropdownOpen(false);
     setSearchQuery("");
     if (type === 'book') {
-      navigate(`/books?search_book=${id}`);
+      showBook(id);
     } else if (type === 'user') {
-      navigate(`/admin/members?search_user=${id}`);
+      showMember(id);
     }
   };
 

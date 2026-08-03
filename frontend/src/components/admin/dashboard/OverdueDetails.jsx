@@ -4,9 +4,12 @@ import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 
 const OverdueDetails = ({ data, isLoading }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
+  const { showBook, showMember } = useEntityModal();
 
   const toggleMenu = (id) => {
     if (openMenuId === id) {
@@ -72,7 +75,11 @@ const OverdueDetails = ({ data, isLoading }) => {
                 {/* User Info */}
                 <div className="flex items-center gap-3 w-1/4">
                   <UserAvatar name={item.userName} size="sm" />
-                  <span className="text-sm font-bold text-gray-700 truncate">{item.userName}</span>
+                  <span className="text-sm font-bold text-gray-700 truncate">
+                    <EntityLink onClick={() => showMember(item.userId)}>
+                      {item.userName}
+                    </EntityLink>
+                  </span>
                 </div>
                 
                 {/* Book Info */}
@@ -81,7 +88,11 @@ const OverdueDetails = ({ data, isLoading }) => {
                     {item.bookInitial}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold text-gray-800 truncate">{item.bookTitle}</span>
+                    <span className="text-sm font-bold text-gray-800 truncate">
+                      <EntityLink onClick={() => showBook(item.bookId)}>
+                        {item.bookTitle}
+                      </EntityLink>
+                    </span>
                     <span className="text-[11px] text-gray-400 truncate">{item.bookAuthor}</span>
                   </div>
                 </div>

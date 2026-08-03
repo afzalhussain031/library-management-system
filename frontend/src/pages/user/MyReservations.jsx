@@ -6,6 +6,8 @@ import ErrorMessage from '../../components/common/ErrorMessage';
 import { Clock, BookOpen, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader2, MapPin, CalendarClock, CalendarPlus, ExternalLink, RefreshCw, Search, Filter } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import BookThumbnail from '../../components/common/BookThumbnail';
+import EntityLink from '../../components/common/EntityLink';
+import { useEntityModal } from '../../context/EntityModalContext';
 
 const FILTER_STATUSES = ['ALL', 'PENDING', 'READY', 'FULFILLED', 'CANCELLED'];
 
@@ -24,6 +26,7 @@ export default function MyReservations() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [processingHoldId, setProcessingHoldId] = useState(null);
+  const { showBook } = useEntityModal();
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -380,7 +383,11 @@ export default function MyReservations() {
                   </div>
                   <div className="w-[280px] shrink-0 pr-4">
                     <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center" title={reservation.book_title || "Unknown Title"}>
-                      <span className="truncate">{reservation.book_title || "Unknown Title"}</span>
+                      <span className="truncate">
+                        <EntityLink onClick={(e) => { e.stopPropagation(); showBook(reservation.book_id); }}>
+                          {reservation.book_title || "Unknown Title"}
+                        </EntityLink>
+                      </span>
                     </p>
                     <p className="text-[12px] text-gray-500 truncate">{reservation.book_author || "Unknown Author"}</p>
                   </div>
@@ -499,7 +506,11 @@ export default function MyReservations() {
                     />
                     <div className="flex-1 min-w-0">
                        <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center" title={reservation.book_title || "Unknown Title"}>
-                         <span className="truncate">{reservation.book_title || "Unknown Title"}</span>
+                         <span className="truncate">
+                           <EntityLink onClick={(e) => { e.stopPropagation(); showBook(reservation.book_id); }}>
+                             {reservation.book_title || "Unknown Title"}
+                           </EntityLink>
+                         </span>
                        </p>
                        <p className="text-[12px] text-gray-500 mb-2 truncate">by {reservation.book_author || "Unknown Author"}</p>
                        <div className="mb-2 flex flex-col gap-1">

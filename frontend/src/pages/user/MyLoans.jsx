@@ -7,11 +7,14 @@ import LoanTimeline from '../../components/common/LoanTimeline';
 import { Clock, BookOpen, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CalendarPlus, Star, MessageSquare, Search, Filter, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import BookThumbnail from '../../components/common/BookThumbnail';
+import EntityLink from '../../components/common/EntityLink';
+import { useEntityModal } from '../../context/EntityModalContext';
 
 export default function MyLoans() {
   const [searchParams] = useSearchParams();
   const targetLoanId = searchParams.get('loanId');
   const [highlightedId, setHighlightedId] = useState(null);
+  const { showBook } = useEntityModal();
 
   const { data, isLoading, error, refetch } = useApi(dashboard.getBorrowedBooks, []);
   const [activeTab, setActiveTab] = useState('CURRENT');
@@ -760,7 +763,11 @@ export default function MyLoans() {
                   </div>
                   <div className="w-[280px] shrink-0 pr-4">
                     <p className="font-bold text-[#1C2434] text-[14px] truncate flex items-center" title={loan.book_title || "Unknown Title"}>
-                      <span className="truncate">{loan.book_title || "Unknown Title"}</span>
+                      <span className="truncate">
+                        <EntityLink onClick={(e) => { e.stopPropagation(); showBook(loan.book_id); }}>
+                          {loan.book_title || "Unknown Title"}
+                        </EntityLink>
+                      </span>
                     </p>
                     <p className="text-[12px] text-gray-500 truncate">{loan.book_author || "Unknown Author"}</p>
                   </div>
@@ -865,7 +872,11 @@ export default function MyLoans() {
                     />
                     <div className="flex-1 min-w-0">
                        <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate flex items-center" title={loan.book_title || "Unknown Title"}>
-                         <span className="truncate">{loan.book_title || "Unknown Title"}</span>
+                         <span className="truncate">
+                           <EntityLink onClick={(e) => { e.stopPropagation(); showBook(loan.book_id); }}>
+                             {loan.book_title || "Unknown Title"}
+                           </EntityLink>
+                         </span>
                        </p>
                        <p className="text-[12px] text-gray-500 mb-2 truncate">by {loan.book_author || "Unknown Author"}</p>
                        <div className="mb-2 flex flex-wrap gap-2 items-center">

@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import LoanTimeline from '../../common/LoanTimeline';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 import { circulation, billing } from '../../../services/api';
 
 const MemberActivityPanel = ({ memberId }) => {
   const [activeTab, setActiveTab] = useState('Returned');
+  const { showBook } = useEntityModal();
   const [borrowed, setBorrowed] = useState([]);
   const [returned, setReturned] = useState([]);
   const [fines, setFines] = useState([]);
@@ -75,7 +78,15 @@ const MemberActivityPanel = ({ memberId }) => {
         return borrowed.map((item, idx) => (
           <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-200/50 last:border-0">
             <div className="w-[130px] shrink-0">
-              <h4 className="font-bold text-[13px] text-[#1C2434] truncate" title={item.book_title}>{item.book_title || 'Unknown Book'}</h4>
+              <h4 className="font-bold text-[13px] text-[#1C2434] truncate" title={item.book_title}>
+                {item.book_id ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showBook(item.book_id); }}>
+                    {item.book_title || 'Unknown Book'}
+                  </EntityLink>
+                ) : (
+                  item.book_title || 'Unknown Book'
+                )}
+              </h4>
               <p className="text-[11px] text-[#A0ABC0] truncate">by {item.book_author || 'Unknown'}</p>
               <p className="text-[10px] text-[#A0ABC0]">#{item.id}</p>
             </div>
@@ -95,7 +106,15 @@ const MemberActivityPanel = ({ memberId }) => {
         return returned.map((item, idx) => (
           <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-200/50 last:border-0">
             <div className="w-[130px] shrink-0">
-              <h4 className="font-bold text-[13px] text-[#1C2434] truncate" title={item.book_title}>{item.book_title || 'Unknown Book'}</h4>
+              <h4 className="font-bold text-[13px] text-[#1C2434] truncate" title={item.book_title}>
+                {item.book_id ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showBook(item.book_id); }}>
+                    {item.book_title || 'Unknown Book'}
+                  </EntityLink>
+                ) : (
+                  item.book_title || 'Unknown Book'
+                )}
+              </h4>
               <p className="text-[11px] text-[#A0ABC0] truncate">by {item.book_author || 'Unknown'}</p>
               <p className="text-[10px] text-[#A0ABC0]">#{item.id}</p>
             </div>
@@ -115,7 +134,15 @@ const MemberActivityPanel = ({ memberId }) => {
         return fines.map((item, idx) => (
           <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-200/50 last:border-0">
             <div className="w-[130px] shrink-0">
-              <h4 className="font-bold text-[13px] text-[#1C2434] truncate" title={item.loan_book_title}>{item.loan_book_title}</h4>
+              <h4 className="font-bold text-[13px] text-[#1C2434] truncate" title={item.loan_book_title}>
+                {item.loan_book_id ? (
+                  <EntityLink onClick={(e) => { e.stopPropagation(); showBook(item.loan_book_id); }}>
+                    {item.loan_book_title}
+                  </EntityLink>
+                ) : (
+                  item.loan_book_title
+                )}
+              </h4>
               <p className="text-[11px] text-[#A0ABC0] truncate">by {item.loan_book_author || 'Unknown'}</p>
               <p className="text-[10px] text-[#A0ABC0]">#{item.id}</p>
             </div>

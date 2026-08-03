@@ -66,6 +66,7 @@ class FineViewSet(viewsets.ModelViewSet):
                     "loan": loan.id,
                     "loan_book_title": loan.copy.book.title if loan.copy and loan.copy.book else "Unknown",
                     "loan_book_author": loan.copy.book.author if loan.copy and loan.copy.book else "Unknown",
+                    "loan_book_id": loan.copy.book.id if loan.copy and loan.copy.book else None,
                     "borrower_name": loan.borrower.get_full_name(),
                     "borrower_email": loan.borrower.email,
                     "borrower_id": loan.borrower.id,

@@ -7,11 +7,14 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 import toast from "react-hot-toast";
 import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 import FineDetailsDrawer from "../../components/admin/fines/FineDetailsDrawer";
+import EntityLink from "../../components/common/EntityLink";
+import { useEntityModal } from "../../context/EntityModalContext";
 
 export default function FinesAndPayments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
   const [selectedFine, setSelectedFine] = useState(null);
+  const { showBook, showMember } = useEntityModal();
 
   const { data: rawFines, setData: setFines, isLoading: loading, error } = useApi(billing.getFines, []);
   const fines = rawFines || [];
@@ -175,13 +178,29 @@ export default function FinesAndPayments() {
                       <div className="flex items-center gap-3">
                         <UserAvatar name={fine.borrower_name || 'Unknown'} size="md" />
                         <div>
-                          <p className="font-semibold text-slate-800">{fine.borrower_name || 'Unknown'}</p>
+                          <p className="font-semibold text-slate-800">
+                            {fine.borrower_id ? (
+                              <EntityLink onClick={(e) => { e.stopPropagation(); showMember(fine.borrower_id); }}>
+                                {fine.borrower_name || 'Unknown'}
+                              </EntityLink>
+                            ) : (
+                              fine.borrower_name || 'Unknown'
+                            )}
+                          </p>
                           <p className="text-xs text-slate-400">{fine.borrower_email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-slate-700 font-medium">{fine.loan_book_title}</p>
+                      <p className="text-slate-700 font-medium">
+                        {fine.loan_book_id ? (
+                          <EntityLink onClick={(e) => { e.stopPropagation(); showBook(fine.loan_book_id); }}>
+                            {fine.loan_book_title}
+                          </EntityLink>
+                        ) : (
+                          fine.loan_book_title
+                        )}
+                      </p>
                     </td>
                     <td className="px-6 py-4">{fine.reason}</td>
                     <td className="px-6 py-4 font-bold text-slate-800">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fine.amount)}</td>
@@ -237,7 +256,15 @@ export default function FinesAndPayments() {
                     <div className="flex items-center gap-3">
                       <UserAvatar name={fine.borrower_name || 'Unknown'} size="sm" />
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-800 text-[14px] truncate">{fine.borrower_name || 'Unknown'}</p>
+                        <p className="font-semibold text-slate-800 text-[14px] truncate">
+                          {fine.borrower_id ? (
+                            <EntityLink onClick={(e) => { e.stopPropagation(); showMember(fine.borrower_id); }}>
+                              {fine.borrower_name || 'Unknown'}
+                            </EntityLink>
+                          ) : (
+                            fine.borrower_name || 'Unknown'
+                          )}
+                        </p>
                         <p className="text-xs text-slate-400 truncate max-w-[150px]">{fine.borrower_email}</p>
                       </div>
                     </div>
@@ -251,7 +278,15 @@ export default function FinesAndPayments() {
                   </div>
                   
                   <div className="flex flex-col gap-1 mt-1">
-                    <p className="text-[13px] text-slate-700 font-medium leading-snug">{fine.loan_book_title}</p>
+                    <p className="text-[13px] text-slate-700 font-medium leading-snug">
+                      {fine.loan_book_id ? (
+                        <EntityLink onClick={(e) => { e.stopPropagation(); showBook(fine.loan_book_id); }}>
+                          {fine.loan_book_title}
+                        </EntityLink>
+                      ) : (
+                        fine.loan_book_title
+                      )}
+                    </p>
                     <p className="text-[12px] text-slate-500">{fine.reason}</p>
                   </div>
                   

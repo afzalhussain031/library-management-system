@@ -3,9 +3,11 @@ import { catalog } from "../../../services/api";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonCard } from "../../common/Skeleton";
+import { useEntityModal } from "../../../context/EntityModalContext";
 
 export default function Recommended() {
   const navigate = useNavigate();
+  const { showBook } = useEntityModal();
   const { data, isLoading: loading, error } = useApi(catalog.getRecommendations, null);
   
   const bookList = data?.results || [];
@@ -47,7 +49,7 @@ export default function Recommended() {
             recommendedBooks.map((book) => (
               <div
                 key={book.id}
-                onClick={() => navigate('/books', { state: { initialFilter: 'Recommended' } })}
+                onClick={() => showBook(book.id)}
                 title={`${book.title} ${book.author ? `by ${book.author}` : ''}`}
                 className="w-25 min-w-20 h-29 bg-gray-100 border border-gray-200 rounded-md flex items-center justify-center text-[10px] text-center font-medium text-gray-700 cursor-pointer shrink-0 transition-all duration-200 hover:bg-yellow-400 hover:text-black hover:shadow-md p-2"
               >

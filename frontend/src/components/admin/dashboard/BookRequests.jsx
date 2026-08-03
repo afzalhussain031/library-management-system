@@ -3,8 +3,11 @@ import { ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
+import EntityLink from '../../common/EntityLink';
+import { useEntityModal } from '../../../context/EntityModalContext';
 
 const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) => {
+  const { showBook, showMember } = useEntityModal();
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
@@ -43,7 +46,11 @@ const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) =
                     {item.bookInitial}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold text-gray-800 truncate">{item.bookTitle}</span>
+                    <span className="text-sm font-bold text-gray-800 truncate">
+                      <EntityLink onClick={() => showBook(item.bookId)}>
+                        {item.bookTitle}
+                      </EntityLink>
+                    </span>
                     <span className="text-[11px] text-gray-400 truncate">{item.bookAuthor}</span>
                   </div>
                 </div>
@@ -52,7 +59,11 @@ const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) =
                 <div className="flex items-center gap-2 shrink-0 mx-2">
                   <UserAvatar name={item.userName} size="xs" />
                   <div className="flex flex-col hidden sm:flex">
-                      <span className="text-xs font-bold text-gray-700 truncate w-20">{item.userName}</span>
+                      <span className="text-xs font-bold text-gray-700 truncate w-20">
+                        <EntityLink onClick={() => showMember(item.userId)}>
+                          {item.userName}
+                        </EntityLink>
+                      </span>
                       <span className="text-[10px] text-gray-400">Requested on {item.date}</span>
                   </div>
                 </div>

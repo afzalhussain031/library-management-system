@@ -5,9 +5,12 @@ import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonAvatar, SkeletonText } from "../../common/Skeleton";
 import { toast } from 'react-hot-toast';
 import { PartyPopper, AlertCircle } from "lucide-react";
+import EntityLink from "../../common/EntityLink";
+import { useEntityModal } from "../../../context/EntityModalContext";
 
 export default function FineCard() {
   const navigate = useNavigate();
+  const { showBook } = useEntityModal();
   const { data, isLoading: loading, error } = useApi(dashboard.getFines, []);
   
   const finesList = Array.isArray(data) ? data : data?.results || [];
@@ -108,7 +111,15 @@ export default function FineCard() {
                   const title = fine.loan_book_title || 'Library Item';
                   return (
                     <div key={fine.id || index} className="flex items-center gap-1.5 shrink-0 bg-red-50/50 px-3 py-1.5 rounded-full border border-red-100 transition-colors hover:bg-red-50">
-                      <span className="font-medium text-gray-700 text-xs truncate max-w-[150px]">{title}</span>
+                      <span className="font-medium text-gray-700 text-xs truncate max-w-[150px]">
+                        {fine.loan_book_id ? (
+                          <EntityLink onClick={(e) => { e.stopPropagation(); showBook(fine.loan_book_id); }}>
+                            {title}
+                          </EntityLink>
+                        ) : (
+                          title
+                        )}
+                      </span>
                       <span className="font-semibold text-red-500 text-xs">₹{fine.amount || 0}</span>
                     </div>
                   );

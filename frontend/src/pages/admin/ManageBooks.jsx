@@ -22,6 +22,8 @@ import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
 import AddBookModal from "../../components/admin/dashboard/AddBookModal";
 import PhysicalCopiesTable from "../../components/admin/dashboard/PhysicalCopiesTable";
 import BookThumbnail from "../../components/common/BookThumbnail";
+import EntityLink from "../../components/common/EntityLink";
+import { useEntityModal } from "../../context/EntityModalContext";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
@@ -34,6 +36,8 @@ const Books = () => {
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const { showBook, showPublisher } = useEntityModal();
 
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -297,11 +301,21 @@ const Books = () => {
                       />
                     </div>
                     <div className="w-[240px] shrink-0 pr-4">
-                      <p className="font-bold text-[#1C2434] text-[14px] truncate">{book.title}</p>
+                      <p className="font-bold text-[#1C2434] text-[14px] truncate">
+                        <EntityLink onClick={() => showBook(book.id)}>
+                          {book.title}
+                        </EntityLink>
+                      </p>
                       <p className="text-[12px] text-gray-500 truncate">by {book.author}</p>
                     </div>
                     <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium pr-2">
-                      {book.publisher?.name || "N/A"}
+                      {book.publisher ? (
+                        <EntityLink onClick={() => showPublisher(book.publisher.id)}>
+                          {book.publisher.name}
+                        </EntityLink>
+                      ) : (
+                        "N/A"
+                      )}
                     </div>
                     <div className="w-[120px] shrink-0 text-[13px] text-gray-600 font-medium">
                       #{book.id}
@@ -437,7 +451,11 @@ const Books = () => {
                         className="w-16 h-24 text-[14px] rounded-md"
                       />
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate">{book.title}</p>
+                      <p className="font-bold text-[#1C2434] text-[14px] leading-tight mb-1 truncate">
+                        <EntityLink onClick={() => showBook(book.id)}>
+                          {book.title}
+                        </EntityLink>
+                      </p>
                       <p className="text-[12px] text-gray-500 mb-2 truncate">by {book.author}</p>
                       
                       {book.total_copies === 0 ? (
