@@ -50,6 +50,8 @@ const AdminDashboard = () => {
         bookTitle: res.book_title,
         bookAuthor: `by ${res.book_author}`,
         userName: res.user_name || `User #${res.user}`,
+        bookId: res.book_id,
+        memberId: res.user,
         date: new Date(res.reserved_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'),
       }));
       setBookRequests(formattedRequests);
@@ -97,6 +99,8 @@ const AdminDashboard = () => {
         eventType: isReturn ? 'return' : 'borrow',
         userName: loan.user_name || 'Unknown User',
         bookTitle: loan.book_title,
+        bookId: loan.book_id,
+        memberId: loan.borrower,
         eventDate: new Date(eventDateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
       };
     });
@@ -109,6 +113,8 @@ const AdminDashboard = () => {
       bookColor: bookColors[loan.id % bookColors.length],
       bookTitle: loan.book_title,
       bookAuthor: `by ${loan.book_author}`,
+      bookId: loan.book_id,
+      memberId: loan.borrower,
       overdue: `${loan.overdue_days || 0} Days`,
       fine: `₹ ${loan.current_fine_estimate || 0}`
     }));

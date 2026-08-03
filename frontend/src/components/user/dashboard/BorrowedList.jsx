@@ -165,7 +165,7 @@ export default function BorrowedList() {
             return (
               <div 
                 key={loan.id} 
-                onClick={() => navigate(`/books/${loan.book_id}`)}
+                onClick={() => navigate(`/my-loans?loanId=${loan.id}`)}
                 className={`cursor-pointer flex flex-col p-3 rounded-2xl transition-all border-b last:border-0 mb-1 ${timeInfo.isOverdue ? 'bg-red-50/40 border-l-4 border-red-500 hover:bg-red-50/70 border-b-transparent' : 'hover:bg-gray-50/80 border-gray-50'}`}
               >
                 <div className="flex gap-3 md:gap-4 items-center relative">
@@ -236,7 +236,7 @@ export default function BorrowedList() {
                           <CalendarPlus size={14} /> Add to Calendar
                         </button>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); navigate(`/books/${loan.book_id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/my-loans?loanId=${loan.id}`); }}
                           className="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
                         >
                           <Info size={14} /> View Details

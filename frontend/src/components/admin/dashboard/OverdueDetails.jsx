@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { ChevronRight, MoreVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
 
 const OverdueDetails = ({ data, isLoading }) => {
+  const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
 
   const toggleMenu = (id) => {
@@ -70,13 +71,19 @@ const OverdueDetails = ({ data, isLoading }) => {
             data.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-3 hover:bg-orange-50/50 rounded-xl transition-colors mb-1 relative">
                 {/* User Info */}
-                <div className="flex items-center gap-3 w-1/4">
+                <div 
+                  className="flex items-center gap-3 w-1/4 cursor-pointer hover:underline"
+                  onClick={() => item.memberId && navigate(`/admin/members?memberId=${item.memberId}`)}
+                >
                   <UserAvatar name={item.userName} size="sm" />
                   <span className="text-sm font-bold text-gray-700 truncate">{item.userName}</span>
                 </div>
                 
                 {/* Book Info */}
-                <div className="flex items-center gap-3 w-1/3">
+                <div 
+                  className="flex items-center gap-3 w-1/3 cursor-pointer hover:underline"
+                  onClick={() => item.bookId && navigate(`/admin/books?bookId=${item.bookId}`)}
+                >
                   <div className={`w-9 h-9 rounded-lg ${item.bookColor} flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0`}>
                     {item.bookInitial}
                   </div>

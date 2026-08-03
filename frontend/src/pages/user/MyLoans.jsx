@@ -176,6 +176,8 @@ export default function MyLoans() {
       if (targetLoan) {
         setExpandedId(loanIdNum);
         setHighlightedId(loanIdNum);
+        setSubFilter('ALL');
+        setSearchQuery('');
         
         const targetStatus = getLoanStatus(targetLoan);
         if (targetStatus) {

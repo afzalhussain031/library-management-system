@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Calendar,
   Plus,
@@ -24,6 +25,9 @@ import PhysicalCopiesTable from "../../components/admin/dashboard/PhysicalCopies
 import BookThumbnail from "../../components/common/BookThumbnail";
 
 const Books = () => {
+  const [searchParams] = useSearchParams();
+  const bookId = searchParams.get('bookId');
+
   const [expandedRow, setExpandedRow] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [bookToEdit, setBookToEdit] = useState(null);
@@ -38,6 +42,15 @@ const Books = () => {
   const toggleRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
   };
+
+  useEffect(() => {
+    if (bookId) {
+      setActiveTopFilter("All books");
+      setActiveBottomFilter("All");
+      setSearchQuery("");
+      setExpandedRow(Number(bookId));
+    }
+  }, [bookId]);
 
   const { data: rawBooks, isLoading: loading, error, refetch: fetchBooks } = useApi(catalog.getBooks, []);
   const books = rawBooks || [];
@@ -274,11 +287,22 @@ const Books = () => {
                   </div>
                 ))
               ) : (
-                filteredBooks.map((book, idx) => (
-                  <div
-                  key={book.id}
-                    className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative hover:z-30"
-                >
+                filteredBooks.map((book, idx) => {
+                  const isHighlighted = bookId && book.id.toString() === bookId;
+                  return (
+                    <div
+                      key={book.id}
+                      ref={el => {
+                        if (el && isHighlighted) {
+                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                      }}
+                      className={`backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 relative ${
+                        isHighlighted 
+                          ? 'ring-4 ring-blue-400 bg-blue-50/40 z-30' 
+                          : 'bg-white/60 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 hover:z-30'
+                      }`}
+                    >
                   {/* Main Row */}
                   <div
                     className="flex items-center px-6 py-4 cursor-pointer"
@@ -395,8 +419,10 @@ const Books = () => {
                       <PhysicalCopiesTable bookId={book.id} />
                     </div>
                   )}
-                </div>
-              )))}
+                    </div>
+                  );
+                })
+              )}
             </div>
             
             {/* NEW: Changed to check filteredBooks length */}

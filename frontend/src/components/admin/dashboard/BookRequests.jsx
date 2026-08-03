@@ -1,10 +1,11 @@
 import React from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
 
 const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) => {
+  const navigate = useNavigate();
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center">
@@ -38,7 +39,10 @@ const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) =
             data.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-3 hover:bg-orange-50/50 rounded-xl transition-colors">
                 {/* Book Info */}
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div 
+                  className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer hover:underline"
+                  onClick={() => item.bookId && navigate(`/admin/books?bookId=${item.bookId}`)}
+                >
                   <div className={`w-8 h-8 rounded-lg ${item.bookColor} flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0`}>
                     {item.bookInitial}
                   </div>
@@ -49,7 +53,10 @@ const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) =
                 </div>
 
                 {/* User Info & Date */}
-                <div className="flex items-center gap-2 shrink-0 mx-2">
+                <div 
+                  className="flex items-center gap-2 shrink-0 mx-2 cursor-pointer hover:underline"
+                  onClick={() => item.memberId && navigate(`/admin/members?memberId=${item.memberId}`)}
+                >
                   <UserAvatar name={item.userName} size="xs" />
                   <div className="flex flex-col hidden sm:flex">
                       <span className="text-xs font-bold text-gray-700 truncate w-20">{item.userName}</span>

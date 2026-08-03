@@ -47,7 +47,7 @@ export default function Recommended() {
             recommendedBooks.map((book) => (
               <div
                 key={book.id}
-                onClick={() => navigate('/books', { state: { initialFilter: 'Recommended' } })}
+                onClick={() => navigate(`/books?bookId=${book.id}`)}
                 title={`${book.title} ${book.author ? `by ${book.author}` : ''}`}
                 className="w-25 min-w-20 h-29 bg-gray-100 border border-gray-200 rounded-md flex items-center justify-center text-[10px] text-center font-medium text-gray-700 cursor-pointer shrink-0 transition-all duration-200 hover:bg-yellow-400 hover:text-black hover:shadow-md p-2"
               >

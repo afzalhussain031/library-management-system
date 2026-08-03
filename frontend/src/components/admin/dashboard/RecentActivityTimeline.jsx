@@ -1,10 +1,11 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import UserAvatar from '../../common/UserAvatar';
 import { SkeletonAvatar, SkeletonText } from '../../common/Skeleton';
 
 const RecentActivityTimeline = ({ data, isLoading }) => {
+  const navigate = useNavigate();
   return (
     <div className="bg-[#fcfaf8] rounded-2xl shadow-sm border border-orange-100/50 flex flex-col h-full">
       <div className="p-5 border-b border-orange-100/50 flex justify-between items-center shrink-0">
@@ -51,9 +52,18 @@ const RecentActivityTimeline = ({ data, isLoading }) => {
                   <div className="flex-1 min-w-0 flex flex-col">
                      <div className="text-sm text-gray-600 leading-snug flex flex-wrap items-center gap-x-1.5">
                         <UserAvatar name={item.userName} size="xs" className="w-5 h-5 text-[9px]" />
-                        <span className="font-bold text-gray-800">{item.userName}</span>
+                        <span 
+                          className="font-bold text-gray-800 cursor-pointer hover:underline"
+                          onClick={() => item.memberId && navigate(`/admin/members?memberId=${item.memberId}`)}
+                        >
+                          {item.userName}
+                        </span>
                         <span>{isReturn ? 'returned' : 'borrowed'}</span>
-                        <span className="font-semibold text-gray-800 truncate max-w-[150px] 2xl:max-w-[200px]" title={item.bookTitle}>
+                        <span 
+                          className="font-semibold text-gray-800 truncate max-w-[150px] 2xl:max-w-[200px] cursor-pointer hover:underline" 
+                          title={item.bookTitle}
+                          onClick={() => item.bookId && navigate(`/admin/books?bookId=${item.bookId}`)}
+                        >
                           "{item.bookTitle}"
                         </span>
                      </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, Edit2, Activity, DollarSign, Ban, Phone, Building, GraduationCap } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 
-const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSuspend }) => {
+const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSuspend, isHighlighted = false }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -15,6 +15,18 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (isHighlighted) {
+      setTimeout(() => {
+        if (cardRef.current) {
+          cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [isHighlighted]);
 
   const handleMenuClick = (e) => {
     e.stopPropagation();
@@ -29,8 +41,13 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
 
   return (
     <div 
+      ref={cardRef}
       onClick={onClick}
-      className="flex flex-col relative w-full max-w-[280px] h-full rounded-[18px] bg-white border border-gray-100/50 backdrop-blur-[25px] p-5 mx-auto cursor-pointer hover:scale-[1.03] hover:shadow-md transition-all duration-300 group"
+      className={`flex flex-col relative w-full max-w-[280px] h-full rounded-[18px] border border-gray-100/50 backdrop-blur-[25px] p-5 mx-auto cursor-pointer hover:scale-[1.03] hover:shadow-md transition-all duration-300 group ${
+        isHighlighted 
+          ? 'ring-4 ring-blue-400 bg-blue-50/50 z-10' 
+          : 'bg-white hover:z-10'
+      }`}
       style={{
         boxShadow: '0px 12px 35px 0px #0000000C',
       }}

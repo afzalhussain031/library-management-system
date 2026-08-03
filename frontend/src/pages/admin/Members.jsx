@@ -16,6 +16,7 @@ const FILTER_TAGS = ['All', 'CSE', 'IT', 'ECE', 'ME', 'Civil'];
 const Members = () => {
   const [searchParams] = useSearchParams();
   const searchUserId = searchParams.get('search_user');
+  const memberId = searchParams.get('memberId');
 
   const [activeTab, setActiveTab] = useState('Students');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -23,6 +24,16 @@ const Members = () => {
   
   const [selectedMember, setSelectedMember] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (memberId) {
+      setActiveFilter('All');
+      setActiveBatch('All');
+      setSearchQuery('');
+      setStatusFilter('All');
+      setPendingFinesOnly(false);
+    }
+  }, [memberId]);
   
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
@@ -65,8 +76,9 @@ const Members = () => {
   });
 
   useEffect(() => {
-    if (searchUserId && members.length > 0) {
-      const foundMember = members.find(m => m.id.toString() === searchUserId);
+    const targetId = memberId || searchUserId;
+    if (targetId && members.length > 0) {
+      const foundMember = members.find(m => m.id.toString() === targetId);
       if (foundMember) {
         setSelectedMember(foundMember);
         setIsDetailsExpanded(true);
@@ -77,7 +89,7 @@ const Members = () => {
         }
       }
     }
-  }, [searchUserId, members.length]); // Wait for members to load
+  }, [memberId, searchUserId, members.length]); // Wait for members to load
 
   const totalStudents = members.filter(m => m.role === 'student').length;
   const totalFaculties = members.filter(m => m.role !== 'student').length;
@@ -355,6 +367,7 @@ const Members = () => {
                 onViewActivity={handleViewActivity}
                 onClearFine={handleClearFineClick}
                 onSuspend={handleSuspendClick}
+                isHighlighted={memberId && member.id.toString() === memberId}
               />
             ))}
           </div>

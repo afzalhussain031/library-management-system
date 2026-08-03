@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Heart, ChevronDown, ChevronUp, BookOpen, Loader2 } from "lucide-react";
 import { circulation } from "../../../services/api";
 import { toast } from "react-hot-toast";
@@ -10,9 +10,17 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
   const [isUpdating, setIsUpdating] = useState(false);
   const [expanded, setExpanded] = useState(isHighlighted);
 
+  const cardRef = useRef(null);
+
   useEffect(() => {
     if (isHighlighted) {
       setExpanded(true);
+      // Wait slightly to ensure page layout completes before scrolling
+      setTimeout(() => {
+        if (cardRef.current) {
+          cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     }
   }, [isHighlighted]);
 
@@ -147,7 +155,14 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
   };
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative mb-3 hover:z-30">
+    <div 
+      ref={cardRef}
+      className={`backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 relative mb-3 ${
+        isHighlighted 
+          ? 'ring-4 ring-blue-400 bg-blue-50 z-30' 
+          : 'bg-white/60 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 hover:z-30'
+      }`}
+    >
       {/* Desktop Row View */}
       <div 
         className="hidden lg:flex items-center px-6 py-4 cursor-pointer transition-colors"

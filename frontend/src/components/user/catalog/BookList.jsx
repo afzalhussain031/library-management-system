@@ -1,7 +1,7 @@
 import React from "react";
 import BookCard from "./BookCard";
 
-const BookList = ({ books = [], isLoading = false, onReservationUpdate, highlightBookId }) => {
+const BookList = ({ books = [], isLoading = false, onReservationUpdate, targetBookId }) => {
   return (
     <div className="w-full">
       {/* Desktop Table View Header */}
@@ -47,7 +47,7 @@ const BookList = ({ books = [], isLoading = false, onReservationUpdate, highligh
               book={book} 
               idx={idx} 
               onReservationUpdate={onReservationUpdate}
-              isHighlighted={highlightBookId && book.id.toString() === highlightBookId}
+              isHighlighted={targetBookId && book.id.toString() === targetBookId.toString()}
             />
           ))
         )}

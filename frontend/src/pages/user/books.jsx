@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import { catalog, dashboard, circulation } from "../../services/api";
@@ -9,6 +9,7 @@ import BookList from "../../components/user/catalog/BookList";
 export default function Books() {
   const [searchParams] = useSearchParams();
   const searchBookId = searchParams.get('search_book');
+  const bookId = searchParams.get('bookId');
 
   const [activeTopFilter, setActiveTopFilter] = useState("All Books");
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
@@ -25,6 +26,18 @@ export default function Books() {
   
   const [activeLanguageFilter, setActiveLanguageFilter] = useState("All");
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    if (bookId) {
+      setActiveTopFilter("All Books");
+      setActiveBottomFilter("All");
+      setSearchQuery("");
+      setActiveCategoryFilter("All");
+      setActiveAuthorFilter("All");
+      setActiveYearFilter("All");
+      setActiveLanguageFilter("All");
+    }
+  }, [bookId]);
 
 
   const fetchBooks = useCallback(() => catalog.getBooks({ sort: 'popularity' }), []);
@@ -320,7 +333,7 @@ export default function Books() {
            books={filteredBooks} 
            isLoading={isLoading} 
            onReservationUpdate={handleReservationUpdate}
-           highlightBookId={searchBookId}
+           targetBookId={bookId || searchBookId}
          />
       </div>
 
