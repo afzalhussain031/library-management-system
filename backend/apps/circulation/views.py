@@ -47,7 +47,8 @@ class LoanViewSet(viewsets.ModelViewSet):
             user=loan.borrower,
             notif_type="book_issued",
             title="Book Issued",
-            message=f"You have successfully borrowed '{copy.book.title}'. It is due on {loan.due_at.strftime('%Y-%m-%d')}."
+            message=f"You have successfully borrowed '{copy.book.title}'. It is due on {loan.due_at.strftime('%Y-%m-%d')}.",
+            related_entity_id=loan.id
         )
         return loan
 
@@ -62,7 +63,8 @@ class LoanViewSet(viewsets.ModelViewSet):
                 user=loan.borrower,
                 notif_type="book_returned",
                 title="Book Returned",
-                message=f"You have successfully returned '{loan.copy.book.title}'."
+                message=f"You have successfully returned '{loan.copy.book.title}'.",
+                related_entity_id=loan.id
             )
 
             if loan.returned_at.date() > loan.due_at.date() and not hasattr(loan, "fine"):
@@ -77,7 +79,8 @@ class LoanViewSet(viewsets.ModelViewSet):
                     user=loan.borrower,
                     notif_type="fine_created",
                     title="Fine Generated",
-                    message=f"An overdue fine of ₹{fine.amount} has been added to your account for returning '{loan.copy.book.title}' late."
+                    message=f"An overdue fine of ₹{fine.amount} has been added to your account for returning '{loan.copy.book.title}' late.",
+                    related_entity_id=fine.id
                 )
 
     @action(detail=True, methods=["get"])
@@ -109,7 +112,8 @@ class LoanViewSet(viewsets.ModelViewSet):
             user=loan.borrower,
             notif_type="book_returned",
             title="Book Returned",
-            message=f"You have successfully returned '{loan.copy.book.title}'."
+            message=f"You have successfully returned '{loan.copy.book.title}'.",
+            related_entity_id=loan.id
         )
 
         if loan.returned_at.date() > loan.due_at.date() and not hasattr(loan, "fine"):
@@ -131,7 +135,8 @@ class LoanViewSet(viewsets.ModelViewSet):
                 user=loan.borrower,
                 notif_type="fine_created",
                 title="Fine Generated",
-                message=f"An overdue fine of ₹{fine.amount} has been added to your account for returning '{loan.copy.book.title}' late."
+                message=f"An overdue fine of ₹{fine.amount} has been added to your account for returning '{loan.copy.book.title}' late.",
+                related_entity_id=fine.id
             )
             
             msg = "Book returned. Fine marked as paid." if fine_status == Fine.PAID else "Book returned. Fine added to account."
@@ -225,7 +230,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 user=instance.user,
                 notif_type="reservation_ready",
                 title="Reservation Ready!",
-                message=f"Good news! Your reserved book '{instance.book.title}' is now available. Please pick it up from the library."
+                message=f"Good news! Your reserved book '{instance.book.title}' is now available. Please pick it up from the library.",
+                related_entity_id=instance.id
             )
         # 2. Handling Cancellation/Denial
         elif instance.status == Reservation.CANCELLED and old_status != Reservation.CANCELLED:
@@ -247,7 +253,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 user=instance.user,
                 notif_type="reservation_cancelled",
                 title="Reservation Cancelled",
-                message=f"Your reservation for '{instance.book.title}' has been cancelled by the library."
+                message=f"Your reservation for '{instance.book.title}' has been cancelled by the library.",
+                related_entity_id=instance.id
             )
 
     @action(detail=True, methods=["post"])
@@ -269,7 +276,7 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # 2. Create the loan using the specific locked copy
         due_date = timezone.now() + timezone.timedelta(days=14)
-        Loan.objects.create(
+        loan = Loan.objects.create(
             copy=locked_copy,
             borrower=reservation.user,
             due_at=due_date
@@ -287,7 +294,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
             user=reservation.user,
             notif_type="book_issued",
             title="Book Issued",
-            message=f"You have successfully borrowed '{locked_copy.book.title}'. It is due on {due_date.strftime('%Y-%m-%d')}."
+            message=f"You have successfully borrowed '{locked_copy.book.title}'. It is due on {due_date.strftime('%Y-%m-%d')}.",
+            related_entity_id=loan.id
         )
         
         return Response({"detail": "Book issued and reservation fulfilled!"}, status=status.HTTP_200_OK)
@@ -311,7 +319,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
             user=reservation.user,
             notif_type="reservation_extended",
             title="Reservation Extended",
-            message=f"Your pickup deadline for '{reservation.book.title}' has been extended by 24 hours."
+            message=f"Your pickup deadline for '{reservation.book.title}' has been extended by 24 hours.",
+            related_entity_id=reservation.id
         )
         
         return Response({"detail": "Pickup deadline extended successfully."}, status=status.HTTP_200_OK)

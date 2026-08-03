@@ -168,7 +168,7 @@ export default function BorrowedList() {
             return (
               <div 
                 key={loan.id} 
-                onClick={() => navigate(`/books/${loan.book_id}`)}
+                onClick={() => navigate('/my-loans', { state: { highlightId: loan.id } })}
                 className={`group cursor-pointer flex flex-col p-3 rounded-2xl transition-all mb-2 ${timeInfo.isOverdue ? 'bg-red-50/40 border-l-4 border-red-500 hover:bg-red-50/70 hover:-translate-y-[2px] hover:shadow-md' : 'bg-white border border-transparent hover:border-gray-100 shadow-sm hover:-translate-y-[2px] hover:shadow-md'}`}
               >
                 <div className="flex gap-3 md:gap-4 items-center relative">

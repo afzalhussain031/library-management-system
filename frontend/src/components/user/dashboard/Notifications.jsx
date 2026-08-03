@@ -26,20 +26,23 @@ export default function Notifications() {
   const notifList = Array.isArray(data) ? data : data?.results || [];
   const notifications = notifList.slice(0, 3);
 
-  const handleNotificationClick = (type) => {
+  const handleNotificationClick = (notif) => {
+    const type = notif.notification_type;
+    const entityId = notif.related_entity_id;
+    
     switch (type) {
       case 'fine_created':
       case 'fine_paid':
-        navigate('/my-fines');
+        navigate('/my-fines', entityId ? { state: { highlightId: entityId } } : {});
         break;
       case 'reservation_ready':
       case 'reservation_cancelled':
-        navigate('/my-reservations');
+        navigate('/my-reservations', entityId ? { state: { highlightId: entityId } } : {});
         break;
       case 'book_issued':
       case 'book_returned':
       case 'book_overdue':
-        navigate('/my-loans');
+        navigate('/my-loans', entityId ? { state: { highlightId: entityId } } : {});
         break;
       default:
         break;
@@ -89,7 +92,7 @@ export default function Notifications() {
             return (
               <div 
                 key={idx} 
-                onClick={() => handleNotificationClick(notif.notification_type)}
+                onClick={() => handleNotificationClick(notif)}
                 className="group flex items-center justify-between p-3 rounded-xl bg-white border border-transparent hover:border-gray-100 shadow-sm hover:-translate-y-[2px] hover:shadow-md transition-all duration-300 cursor-pointer mb-2"
               >
                 <div className="flex items-start gap-4 w-full">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useApi } from '../../hook/useApi';
 import { dashboard, circulation, catalog } from '../../services/api';
 import ErrorMessage from '../../components/common/ErrorMessage';
@@ -11,8 +11,8 @@ import EntityLink from '../../components/common/EntityLink';
 import { useEntityModal } from '../../context/EntityModalContext';
 
 export default function MyLoans() {
-  const [searchParams] = useSearchParams();
-  const targetLoanId = searchParams.get('loanId');
+  const location = useLocation();
+  const targetLoanId = location.state?.highlightId;
   const [highlightedId, setHighlightedId] = useState(null);
   const { showBook } = useEntityModal();
 
@@ -177,7 +177,6 @@ export default function MyLoans() {
       const loanIdNum = parseInt(targetLoanId, 10);
       const targetLoan = loansList.find(l => l.id === loanIdNum);
       if (targetLoan) {
-        setExpandedId(loanIdNum);
         setHighlightedId(loanIdNum);
         
         const targetStatus = getLoanStatus(targetLoan);
@@ -197,7 +196,7 @@ export default function MyLoans() {
 
         setTimeout(() => {
           setHighlightedId(null);
-        }, 3000);
+        }, 4000);
       }
     }
   }, [targetLoanId, loansList.length, activeTab]);
@@ -746,7 +745,7 @@ export default function MyLoans() {
               <div 
                 key={loan.id} 
                 id={`loan-${loan.id}`}
-                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 group ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-[2px] hover:shadow-md'} ${highlightedId === loan.id ? 'ring-4 ring-blue-400 bg-blue-50/30' : ''}`}
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 group ${isOverdue ? 'bg-red-50/50 border-l-4 border-red-500 border-y-white border-r-white hover:bg-red-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === loan.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-[2px] hover:shadow-md'} ${highlightedId === loan.id ? 'ring-2 ring-yellow-400 bg-yellow-50/80 animate-pulse' : ''}`}
                 onClick={() => toggleExpand(loan.id)}
               >
                 

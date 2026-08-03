@@ -102,5 +102,6 @@ class FineViewSet(viewsets.ModelViewSet):
                 user=fine.loan.borrower,
                 notif_type="fine_paid",
                 title="Fine Paid Successfully",
-                message=f"Your fine payment of ₹{fine.amount} for '{fine.loan.copy.book.title}' has been processed. Thank you!"
+                message=f"Your fine payment of ₹{fine.amount} for '{fine.loan.copy.book.title}' has been processed. Thank you!",
+                related_entity_id=fine.id
             )
