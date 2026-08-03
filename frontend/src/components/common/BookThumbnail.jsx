@@ -113,7 +113,7 @@ const BookThumbnail = ({
   const hasImage = (defaultCoverUrl || largeCoverUrl) && !imageError;
 
   return (
-    <div className="relative group select-none shrink-0">
+    <div className="relative group/thumb select-none shrink-0">
       {/* Thumbnail Container */}
       <div className={`w-[40px] h-[50px] overflow-hidden rounded-sm shadow-sm border border-gray-100 flex items-center justify-center bg-gray-50 ${className}`}>
         {hasImage ? (
@@ -135,9 +135,9 @@ const BookThumbnail = ({
           className="absolute left-full top-1/2 -translate-y-1/2 ml-4 z-50 pointer-events-none 
                      hidden lg:flex flex-col
                      w-[180px] h-[260px] bg-slate-900 border border-white/10 rounded-2xl overflow-hidden
-                     opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                     opacity-0 invisible group-hover/thumb:opacity-100 group-hover/thumb:visible
                      shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)]
-                     transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform scale-90 -translate-x-1 group-hover:scale-100 group-hover:translate-x-0"
+                     transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform scale-90 -translate-x-1 group-hover/thumb:scale-100 group-hover/thumb:translate-x-0"
         >
           {hasImage ? (
             <div className="relative w-full h-full">

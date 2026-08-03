@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { dashboard, circulation } from "../../../services/api";
-import { Clock, Loader2, ArrowRight, BookOpen, MoreVertical, CalendarPlus, Info, Check } from "lucide-react";
+import { Clock, Loader2, ArrowRight, BookOpen, MoreVertical, CalendarPlus, Info, Check, ChevronRight } from "lucide-react";
 import { useApi } from "../../../hook/useApi";
 import ErrorMessage from "../../common/ErrorMessage";
 import { SkeletonText } from "../../common/Skeleton";
@@ -168,8 +168,8 @@ export default function BorrowedList() {
             return (
               <div 
                 key={loan.id} 
-                onClick={() => navigate(`/books/${loan.book_id}`)}
-                className={`cursor-pointer flex flex-col p-3 rounded-2xl transition-all border-b last:border-0 mb-1 ${timeInfo.isOverdue ? 'bg-red-50/40 border-l-4 border-red-500 hover:bg-red-50/70 border-b-transparent' : 'hover:bg-gray-50/80 border-gray-50'}`}
+                onClick={() => navigate('/my-loans', { state: { highlightId: loan.id } })}
+                className={`group cursor-pointer flex flex-col p-3 rounded-2xl transition-all mb-2 ${timeInfo.isOverdue ? 'bg-red-50/40 border-l-4 border-red-500 hover:bg-red-50/70 hover:-translate-y-[2px] hover:shadow-md' : 'bg-white border border-transparent hover:border-gray-100 shadow-sm hover:-translate-y-[2px] hover:shadow-md'}`}
               >
                 <div className="flex gap-3 md:gap-4 items-center relative">
                   <div className="shrink-0 transition-transform hover:-translate-y-0.5 group">
@@ -177,7 +177,7 @@ export default function BorrowedList() {
                       title={loan.book_title} 
                       isbn={loan.book_isbn} 
                       author={loan.book_author}
-                      hoverExpand={false} 
+                      hoverExpand={true} 
                       className="w-10 h-14 text-sm rounded-md shadow-sm group-hover:shadow-md transition-shadow"
                     />
                   </div>
@@ -250,6 +250,7 @@ export default function BorrowedList() {
                         </button>
                       </div>
                     )}
+                    <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 ml-1 hidden sm:block" />
                   </div>
                 </div>
 

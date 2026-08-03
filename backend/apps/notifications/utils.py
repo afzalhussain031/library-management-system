@@ -1,6 +1,6 @@
 from .models import Notification
 
-def create_student_notification(user, notif_type, title, message):
+def create_student_notification(user, notif_type, title, message, related_entity_id=None):
     """
     Helper function to create notifications.
     Valid notif_type values: "book_issued", "book_returned", "book_overdue",
@@ -13,5 +13,6 @@ def create_student_notification(user, notif_type, title, message):
         user=user,
         notification_type=notif_type,
         title=title,
-        message=message
+        message=message,
+        related_entity_id=related_entity_id
     )

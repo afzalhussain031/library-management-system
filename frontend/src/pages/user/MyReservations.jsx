@@ -367,7 +367,7 @@ export default function MyReservations() {
             return (
               <div 
                 key={reservation.id} 
-                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 ${isReady ? 'bg-green-50/50 border-l-4 border-green-500 border-y-white border-r-white hover:bg-green-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === reservation.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-1 hover:shadow-md'}`}
+                className={`backdrop-blur-xl rounded-[20px] shadow-sm transition-all duration-300 relative cursor-pointer hover:z-30 group ${isReady ? 'bg-green-50/50 border-l-4 border-green-500 border-y-white border-r-white hover:bg-green-50/80' : 'bg-white/60 border border-white hover:bg-white/80'} ${expandedId === reservation.id ? 'ring-2 ring-gray-200' : 'hover:-translate-y-[2px] hover:shadow-md'}`}
                 onClick={() => toggleExpand(reservation.id)}
               >
                 
@@ -488,7 +488,11 @@ export default function MyReservations() {
                          View Loan Details
                       </button>
                     )}
-                    <button className="text-gray-400 hover:text-gray-700 transition-colors ml-2 hidden lg:block shrink-0">
+                    <button className={`transition-all duration-300 ml-2 hidden lg:block shrink-0 ${
+                      expandedId === reservation.id 
+                        ? 'text-gray-700 opacity-100' 
+                        : 'text-gray-400 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0'
+                    }`}>
                       {expandedId === reservation.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                   </div>

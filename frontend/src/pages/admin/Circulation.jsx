@@ -7,7 +7,8 @@ import {
   CheckCircle,
   RefreshCw,
   AlertCircle,
-  X
+  X,
+  ChevronRight
 } from "lucide-react";
 import UserAvatar from "../../components/common/UserAvatar";
 import { useApi } from "../../hook/useApi";
@@ -24,6 +25,7 @@ const Circulation = () => {
   const location = useLocation();
   const { showBook, showMember } = useEntityModal();
   const [activeTab, setActiveTab] = useState(location.state?.tab || "active");
+  const [highlightedLoanId, setHighlightedLoanId] = useState(location.state?.highlightId || null);
   const [isLendModalOpen, setIsLendModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmModal, setConfirmModal] = useState({
@@ -126,6 +128,24 @@ const Circulation = () => {
     return true;
   });
 
+  // Highlight Effect
+  useEffect(() => {
+    if (!loading && highlightedLoanId) {
+      const element = document.getElementById(`loan-${highlightedLoanId}`);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+        
+        // Remove highlight after 4 seconds
+        const timer = setTimeout(() => {
+          setHighlightedLoanId(null);
+        }, 4000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading, highlightedLoanId, activeTab]);
+
   return (
     <div className="px-0 py-0 sm:p-0 md:p-0 space-y-6 w-full max-w-[1600px] mx-auto font-sans min-h-screen overflow-hidden">
       
@@ -225,7 +245,14 @@ const Circulation = () => {
                 </div>
               ) : (
                 filteredLoans.map((loan) => (
-                  <div key={loan.id} className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80">
+                  <div 
+                    key={loan.id} 
+                    id={`loan-${loan.id}`}
+                    className={`bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white flex items-center px-6 py-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 group cursor-pointer ${
+                      loan.id === highlightedLoanId ? 'ring-2 ring-yellow-400 bg-yellow-50/80 animate-pulse' : ''
+                    }`}
+                    onClick={() => showBook(loan.book_id)}
+                  >
                     <div className="w-[80px] shrink-0 text-[13px] font-medium text-gray-400">
                       #{loan.id}
                     </div>
@@ -268,14 +295,14 @@ const Circulation = () => {
                       {!loan.returned_at && (
                         <>
                           <button 
-                            onClick={() => handleReturn(loan.id)} 
+                            onClick={(e) => { e.stopPropagation(); handleReturn(loan.id); }} 
                             className="hover:text-green-500 transition-colors flex items-center gap-1 text-[12px]"
                             title="Mark as Returned"
                           >
                             <CheckCircle size={18} /> Return
                           </button>
                           <button 
-                            onClick={() => handleRenew(loan.id)}
+                            onClick={(e) => { e.stopPropagation(); handleRenew(loan.id); }}
                             className="hover:text-blue-500 transition-colors flex items-center gap-1 text-[12px] ml-2"
                             title="Renew (Add 14 days)"
                           >
@@ -283,6 +310,7 @@ const Circulation = () => {
                           </button>
                         </>
                       )}
+                      <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 ml-2" />
                     </div>
                   </div>
                 ))

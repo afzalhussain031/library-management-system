@@ -7,10 +7,12 @@ import { dashboard } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import { Pause,Wallet,Mail, Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 
 export default function Dashboard() {
   const { data: dashboardData, isLoading: loading, error } = useApi(dashboard.getStats, null);
+  const navigate = useNavigate();
 
   if (error) return <div className="p-6"><ErrorMessage message={error} /></div>
 
@@ -20,11 +22,11 @@ export default function Dashboard() {
     <div className="p-6 bg-linear-to-r from-gray-100 to-yellow-100 min-h-screen">
 
       {/* Top Cards */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">        
-    <StatCard title="Borrowed" value={libInfo.currently_borrowed || 0} color="bg-blue-100" icon = {<Pause strokeWidth={1.5} />} isLoading={loading} />
-        <StatCard title="Due Soon" value={libInfo.due_soon || 0} color="bg-yellow-100"  icon={<Wallet strokeWidth={1.5} />} isLoading={loading} />
-        <StatCard title="Total Fine" value={`₹${libInfo.pending_fines || 0}`} color="bg-pink-100" icon={<Mail strokeWidth={1.5} />} isLoading={loading} />
-        <StatCard title="Wishlist" value={libInfo.wishlist || 0} color="bg-green-100" icon={<Heart strokeWidth={1.5} />} isLoading={loading} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">        
+        <StatCard title="Borrowed" value={libInfo.currently_borrowed || 0} color="bg-blue-100" icon={<Pause strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/my-loans')} />
+        <StatCard title="Due Soon" value={libInfo.due_soon || 0} color="bg-yellow-100" icon={<Wallet strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/my-loans')} />
+        <StatCard title="Total Fine" value={`₹${libInfo.pending_fines || 0}`} color="bg-pink-100" icon={<Mail strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/my-fines')} />
+        <StatCard title="Wishlist" value={libInfo.wishlist || 0} color="bg-green-100" icon={<Heart strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/books')} />
       </div>
 
       {/* Middle Section */}

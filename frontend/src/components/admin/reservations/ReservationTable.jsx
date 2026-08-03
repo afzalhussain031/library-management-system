@@ -1,10 +1,10 @@
-import React from 'react';
-import { BookOpen } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { BookOpen, ChevronRight } from 'lucide-react';
 import WaitlistAccordionRow from './WaitlistAccordionRow';
 import EntityLink from '../../common/EntityLink';
 import { useEntityModal } from '../../../context/EntityModalContext';
 
-const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, onAllocate, onFulfill, onCancel }) => {
+const ReservationTable = ({ reservations, statusTab, highlightId, setHighlightId, onRowClick, onMemberClick, onAllocate, onFulfill, onCancel }) => {
   const { showBook } = useEntityModal();
   if (!reservations || reservations.length === 0) {
     return (
@@ -14,6 +14,23 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, 
       </div>
     );
   }
+
+  // Highlight Effect for standard tabs
+  useEffect(() => {
+    if (statusTab !== 'Pending' && highlightId) {
+      const element = document.getElementById(`reservation-${highlightId}`);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+        
+        const timer = setTimeout(() => {
+          if (setHighlightId) setHighlightId(null);
+        }, 4000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [highlightId, statusTab, setHighlightId]);
 
   // --- PENDING TAB (Grouped by Book) ---
   if (statusTab === 'Pending') {
@@ -32,7 +49,7 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, 
 
     return (
       <div className="w-full overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-separate" style={{ borderSpacing: '0 8px' }}>
           <thead>
             <tr className="border-b border-gray-100 text-[11px] font-bold text-[#A0ABC0] uppercase tracking-wider">
               <th className="p-4 w-1/3">Book Title</th>
@@ -48,6 +65,8 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, 
                 bookTitle={queue[0].book_title}
                 bookId={queue[0].book_id}
                 queue={queue}
+                highlightId={highlightId}
+                setHighlightId={setHighlightId}
                 onAllocate={onAllocate}
                 onRowClick={onRowClick}
                 onMemberClick={onMemberClick}
@@ -62,7 +81,7 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, 
   // --- READY / HISTORY TABS (Standard List) ---
   return (
     <div className="w-full overflow-x-auto">
-      <table className="w-full text-left border-collapse">
+      <table className="w-full text-left border-separate" style={{ borderSpacing: '0 8px' }}>
         <thead>
           <tr className="border-b border-gray-100 text-[11px] font-bold text-[#A0ABC0] uppercase tracking-wider">
             <th className="p-4">Book Title</th>
@@ -78,18 +97,23 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, 
         <tbody className="divide-y divide-gray-100">
           {reservations.map(res => {
             const isHistory = statusTab === 'History';
-            const bgClass = isHistory 
+            let bgClass = isHistory 
               ? (res.status === 'fulfilled' ? 'bg-emerald-50/40 hover:bg-emerald-50/80' : 
-                 res.status === 'cancelled' ? 'bg-red-50/40 hover:bg-red-50/80' : 'hover:bg-gray-50/80')
-              : 'hover:bg-gray-50/80';
+                 res.status === 'cancelled' ? 'bg-red-50/40 hover:bg-red-50/80' : 'bg-white hover:bg-gray-50/80')
+              : 'bg-white hover:bg-gray-50/80';
+              
+            if (res.id === highlightId) {
+              bgClass = 'ring-2 ring-yellow-400 bg-yellow-50/80 animate-pulse';
+            }
               
             return (
               <tr 
                 key={res.id} 
+                id={`reservation-${res.id}`}
                 onClick={() => onRowClick(res)}
-                className={`${bgClass} cursor-pointer transition-colors group`}
+                className={`${bgClass} cursor-pointer transition-all duration-300 group hover:-translate-y-[2px] hover:shadow-md rounded-xl shadow-sm`}
               >
-                <td className="p-4 font-bold text-[#1C2434] text-sm">
+                <td className="p-4 font-bold text-[#1C2434] text-sm first:rounded-l-xl border border-transparent hover:border-gray-100 border-r-0">
                   {res.book_id ? (
                     <EntityLink onClick={(e) => { e.stopPropagation(); showBook(res.book_id); }}>
                       {res.book_title}
@@ -114,13 +138,20 @@ const ReservationTable = ({ reservations, statusTab, onRowClick, onMemberClick, 
                 </td>
               )}
               {statusTab === 'History' && (
-                <td className="p-4 text-sm font-bold capitalize">
-                  <span className={res.status === 'fulfilled' ? 'text-emerald-600' : 'text-red-600'}>
-                    {res.status}
-                  </span>
+                <td className="p-4 text-sm font-medium border-transparent">
+                  <div className="flex items-center justify-between">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      res.status === 'fulfilled' ? 'bg-emerald-100 text-emerald-700' :
+                      res.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {res.status}
+                    </span>
+                    <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+                  </div>
                 </td>
               )}
-              <td className="p-4 text-right">
+              <td className="p-4 text-right rounded-r-xl">
                 {statusTab === 'Ready for Pickup' && (
                   <button
                     onClick={(e) => {
