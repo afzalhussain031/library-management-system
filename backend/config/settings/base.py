@@ -123,8 +123,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://192.168.1.8:5173",
+    "http://192.168.0.101:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
+    "http://192.168.0.101:5174",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -139,3 +141,13 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 AUTHENTICATION_BACKENDS = [
     'apps.accounts.backends.CustomUserAuthBackend',
 ]
+
+# Mailjet Configuration
+MAILJET_API_KEY = 'd05c3da6be65e93d7b7ef6b28da81ea3'
+MAILJET_API_SECRET = 'd6bbd6b0471b5bd6dd337df338d9a349'
+MAILJET_SENDER_EMAIL = 'tammanas.5558@gmail.com'
+
+# The URL of your frontend page that handles verification
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+EMAIL_VERIFICATION_URL = os.getenv("EMAIL_VERIFICATION_URL", f"{FRONTEND_URL}/verify-email")
+

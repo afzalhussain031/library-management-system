@@ -1,17 +1,20 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema } from '../../schemas/formSchemas'
 import { useAuth } from '../../context/AuthContext'
 import { toast } from 'react-hot-toast'
-import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap } from 'lucide-react'
+import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap, CheckCircle } from 'lucide-react'
 import loginImage from "../../assets/signup-image.jpg"
 import Button from '../../components/common/Button'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const registered = location.state?.registered
+
 
   // ====== REACT HOOK FORM SETUP ======
   // This connects the form to Zod validation
@@ -125,6 +128,14 @@ export default function Login() {
             <p className="text-sm text-gray-400 mt-1 mb-8">
               Sign in to your LibraryHub account
             </p>
+
+            {/* Show registered verification notification */}
+            {registered && (
+              <div className="bg-green-50 border border-green-200 text-green-600 rounded-2xl px-4 py-3 text-sm flex items-center gap-2 mb-5">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>A verification link has been sent to your email. Please verify your email before logging in.</span>
+              </div>
+            )}
 
             {/* ============ FORM STARTS HERE ============ */}
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-3">

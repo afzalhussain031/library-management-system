@@ -13,6 +13,7 @@ from .views import (
     StaffCreateView,
     UserProfileView,
     MemberListView,
+    VerifyEmailView,
 )
 
 urlpatterns = [
@@ -28,4 +29,5 @@ urlpatterns = [
     path("staff/create/", StaffCreateView.as_view(), name="staff-create"),
     path("forgot-password/", ForgotPasswordView.as_view(), name="forgot-password"),
     path("reset-password/", ResetPasswordView.as_view(), name="reset-password"),
+    path("verify-email/", VerifyEmailView.as_view(), name="verify-email"),
 ]
