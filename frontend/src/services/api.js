@@ -22,6 +22,11 @@ export const auth = {
     return response.data
   },
 
+  verifyEmail: async (token) => {
+    const response = await client.get(`/verify-email/?token=${token}`)
+    return response.data
+  },
+
   getCurrentUser: async () => {
     const response = await client.get('/me/')
     return response.data

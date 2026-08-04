@@ -22,6 +22,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .emails import verify_token
 
 from .models import Membership
 from .serializers import (
@@ -33,6 +34,7 @@ from .serializers import (
     ResetPasswordSerializer,
     StaffCreateSerializer,
     MemberListSerializer,
+    CustomTokenObtainPairSerializer,
 )
 
 # Fetch our CustomUser model setup from base.py settings
@@ -74,6 +76,8 @@ class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserRegistrationSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []
+
 
 
 class StaffCreateView(generics.CreateAPIView):
@@ -96,6 +100,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     for SimpleJWT, and drops the refresh token into a highly secure cookie.
     """
 
+    serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -309,6 +314,8 @@ class ForgotPasswordView(APIView):
     """Generates encrypted system tokens targeted to a confirmed CustomUser account email."""
 
     permission_classes = [AllowAny]
+    authentication_classes = []
+
 
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
@@ -359,6 +366,8 @@ class ResetPasswordView(APIView):
     """Decrypts incoming access strings to change a user's password securely."""
 
     permission_classes = [AllowAny]
+    authentication_classes = []
+
 
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
@@ -390,3 +399,32 @@ class ResetPasswordView(APIView):
         return JsonResponse(
             {"detail": "Password has been reset successfully."}, status=200
         )
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+
+    def get(self, request):
+        token = request.query_params.get('token')
+        if not token:
+            return Response({"detail": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Unsign and verify token
+        user_id = verify_token(token)
+        if not user_id:
+            return Response({"detail": "Token is invalid or expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(user_id=user_id)
+            if user.is_active:
+                return Response({"detail": "Email already verified. You can log in."}, status=status.HTTP_200_OK)
+            
+            # Activate user
+            user.is_active = True
+            user.save()
+            return Response({"detail": "Account verified successfully! You can now log in."}, status=status.HTTP_200_OK)
+            
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)

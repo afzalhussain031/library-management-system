@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from .emails import send_verification_email
 
 CustomUser = get_user_model()
 
@@ -68,7 +69,20 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         validated_data.pop("password2")
 
-        user = CustomUser.objects.create_user(**validated_data, password=password)
+        # Create user as INACTIVE to prevent logins before verification
+        user = CustomUser.objects.create_user(
+            **validated_data, 
+            password=password,
+            is_active=False  # Block login
+        )
+        
+        # Send verification email
+        send_verification_email(
+            email=user.email,
+            user_id=user.user_id,
+            student_name=user.student_name or f"{user.first_name} {user.last_name}"
+        )
+        
         return user
 
 
@@ -268,3 +282,34 @@ class ResetPasswordSerializer(serializers.Serializer):
                 {"new_password2": "Passwords do not match"}
             )
         return data
+
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom JWT Token Obtain Pair Serializer that checks if a user is active (verified)
+    before completing authentication, and provides a clear validation message if not.
+    """
+    def validate(self, attrs):
+        # Obtain username field (e.g., user_id)
+        username = attrs.get(self.username_field)
+        password = attrs.get("password")
+
+        # Retrieve the user to check is_active flag
+        try:
+            user = CustomUser.objects.get(user_id=username)
+        except CustomUser.DoesNotExist:
+            user = None
+
+        if user is not None:
+            # If user exists, check if inactive (unverified) and if password is correct
+            if not user.is_active and user.check_password(password):
+                raise AuthenticationFailed(
+                    "Your email is not verified. Please check your inbox for the verification link.",
+                    code="unverified_email"
+                )
+
+        return super().validate(attrs)
+

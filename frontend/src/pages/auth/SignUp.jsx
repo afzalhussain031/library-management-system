@@ -79,7 +79,7 @@ export default function SignUp() {
 
       // Success! Show banner and redirect
       setShowSuccess(true)
-      setTimeout(() => navigate('/login'), 2000)
+      setTimeout(() => navigate('/login', { state: { registered: true } }), 4000)
     } catch (err) {
       // Handle backend validation errors
       if (err.response?.data) {
@@ -198,7 +198,7 @@ export default function SignUp() {
             {showSuccess && (
               <div className="bg-green-50 border border-green-200 text-green-600 rounded-2xl px-4 py-3 mb-5 text-sm flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                Registration successful! Redirecting to login...
+                Registration successful! A verification link has been sent to your email. Redirecting to login...
               </div>
             )}
 

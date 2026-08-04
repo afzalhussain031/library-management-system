@@ -14,7 +14,7 @@ client.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   
   // Don't send the token for public authentication routes
-  const isPublicAuthRoute = ['/token/', '/register/'].some(url => config.url?.includes(url))
+  const isPublicAuthRoute = ['/token/', '/register/', '/verify-email/', '/forgot-password/', '/reset-password/'].some(url => config.url?.includes(url))
   
   if (token && !isPublicAuthRoute) {
     config.headers.Authorization = `Bearer ${token}`
@@ -29,7 +29,7 @@ client.interceptors.response.use(
     const originalRequest = error.config
 
     // Don't try to refresh on auth endpoints
-    const isAuthRequest = ['/token/', '/token/refresh/', '/register/'].some(url => originalRequest.url?.includes(url))
+    const isAuthRequest = ['/token/', '/token/refresh/', '/register/', '/verify-email/', '/forgot-password/', '/reset-password/'].some(url => originalRequest.url?.includes(url))
 
     // If token expired (401) and we haven't retried yet
     const hasToken = !!localStorage.getItem('access_token')
