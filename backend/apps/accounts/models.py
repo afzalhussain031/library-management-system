@@ -80,6 +80,12 @@ class CustomUser(AbstractUser):
     # Determines what user_id represents
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="student")
 
+    # Email verification status
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="Designates whether this user has verified their email address.",
+    )
+
     # Profile fields (merged from UserProfile, no duplication)
     bio = models.TextField(blank=True)
     phone_number = models.CharField(max_length=20, blank=True)

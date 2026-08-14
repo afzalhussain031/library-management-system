@@ -1,8 +1,12 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+import dotenv
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+
+# Load environment variables from backend/.env
+dotenv.load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY", "django-insecure-your-secret-key-change-in-production"
@@ -139,3 +143,23 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 AUTHENTICATION_BACKENDS = [
     'apps.accounts.backends.CustomUserAuthBackend',
 ]
+
+# ===== EMAIL CONFIGURATION =====
+MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
+MAILJET_SECRET_KEY = os.getenv("MAILJET_SECRET_KEY")
+MAILJET_SENDER_EMAIL = os.getenv("MAILJET_SENDER_EMAIL")
+
+if MAILJET_API_KEY and MAILJET_SECRET_KEY:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "in-v3.mailjet.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = MAILJET_API_KEY
+    EMAIL_HOST_PASSWORD = MAILJET_SECRET_KEY
+    DEFAULT_FROM_EMAIL = MAILJET_SENDER_EMAIL
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = "noreply@library.local"
+
+# Frontend URL for link generations
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")

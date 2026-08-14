@@ -33,6 +33,7 @@ from .serializers import (
     ResetPasswordSerializer,
     StaffCreateSerializer,
     MemberListSerializer,
+    CustomTokenObtainPairSerializer,
 )
 
 # Fetch our CustomUser model setup from base.py settings
@@ -75,6 +76,11 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = CustomUserRegistrationSerializer
     permission_classes = [AllowAny]
 
+    def perform_create(self, serializer):
+        user = serializer.save()
+        from .emails import send_verification_email
+        send_verification_email(user)
+
 
 class StaffCreateView(generics.CreateAPIView):
     """Protected endpoint to create staff users (admin only)"""
@@ -87,7 +93,9 @@ class StaffCreateView(generics.CreateAPIView):
         # Verify requester is admin/superuser
         if not self.request.user.is_staff and not self.request.user.is_superuser:
             raise PermissionDenied("Only staff can create staff accounts")
-        serializer.save()
+        user = serializer.save()
+        from .emails import send_verification_email
+        send_verification_email(user)
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
@@ -97,6 +105,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     """
 
     permission_classes = [AllowAny]
+    serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -317,32 +326,13 @@ class ForgotPasswordView(APIView):
         email = serializer.validated_data["email"]
         user = CustomUser.objects.get(email=email)
 
-        # Generate token
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
+        # Send password reset email using helper function
+        from .emails import send_password_reset_email
+        success = send_password_reset_email(user)
 
-        # Create reset link
-        frontend_url = getattr(
-            settings, "FRONTEND_URL", "http://localhost:5173"
-        ).rstrip("/")
-        reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
-
-        # Send email
-        try:
-            send_mail(
-                subject="Reset your password",
-                message=f"Click here to reset: {reset_link}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                html_message=f"""
-                    <p>Click the link below to reset your password:</p>
-                    <a href="{reset_link}">Reset Password</a>
-                """,
-                fail_silently=False,
-            )
-        except Exception as e:
+        if not success:
             return Response(
-                {"detail": f"Error sending email: {str(e)}"},
+                {"detail": "Error sending email. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -390,3 +380,42 @@ class ResetPasswordView(APIView):
         return JsonResponse(
             {"detail": "Password has been reset successfully."}, status=200
         )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class VerifyEmailView(APIView):
+    """Verifies incoming uid and token to activate the user's account."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        uidb64 = request.data.get("uid")
+        token = request.data.get("token")
+
+        if not uidb64 or not token:
+            return JsonResponse(
+                {"detail": "Both uid and token are required."}, status=400
+            )
+
+        try:
+            target_pk = force_str(urlsafe_base64_decode(uidb64))
+            user = CustomUser.objects.get(pk=target_pk)
+        except (
+            BinasciiError,
+            TypeError,
+            ValueError,
+            OverflowError,
+            UnicodeDecodeError,
+            CustomUser.DoesNotExist,
+        ):
+            return JsonResponse({"detail": "Invalid verification link."}, status=400)
+
+        from .emails import email_verification_token_generator
+        if email_verification_token_generator.check_token(user, token):
+            user.is_verified = True
+            user.save(update_fields=["is_verified"])
+            return JsonResponse(
+                {"detail": "Email verified successfully. You can now login."}, status=200
+            )
+        else:
+            return JsonResponse({"detail": "Invalid or expired token."}, status=400)

@@ -184,9 +184,9 @@ export default function Login() {
 
               {/* Forgot password link */}
               <div className="flex justify-end">
-                <a href="#" className="text-xs text-gray-400 hover:underline">
+                <Link to="/forgot-password" className="text-xs text-gray-400 hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               {/* Show root error message if login fails */}
