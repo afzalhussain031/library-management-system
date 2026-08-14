@@ -268,3 +268,25 @@ class ResetPasswordSerializer(serializers.Serializer):
                 {"new_password2": "Passwords do not match"}
             )
         return data
+
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Override JWT token serializer to block logins if email is unverified,
+    and automatically trigger/send a verification link.
+    """
+    def validate(self, attrs):
+        # Authenticate user credentials using CustomUserAuthBackend
+        data = super().validate(attrs)
+
+        if not self.user.is_verified:
+            raise AuthenticationFailed(
+                "Your email is not verified. Please verify your email before logging in.",
+                code="email_not_verified"
+            )
+
+        return data

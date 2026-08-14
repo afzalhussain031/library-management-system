@@ -31,7 +31,27 @@ export const auth = {
     client.post('/logout/', {}),
   
   refreshToken: () =>
-    client.post('/token/refresh/', {})
+    client.post('/token/refresh/', {}),
+
+  verifyEmail: async (uid, token) => {
+    const response = await client.post('/verify-email/', { uid, token })
+    return response.data
+  },
+
+  forgotPassword: async (email) => {
+    const response = await client.post('/forgot-password/', { email })
+    return response.data
+  },
+
+  resetPassword: async (userId, token, newPassword, newPassword2) => {
+    const response = await client.post('/reset-password/', {
+      user_id: userId,
+      token,
+      new_password: newPassword,
+      new_password2: newPassword2,
+    })
+    return response.data
+  }
 }
 
 // ===================== PROFILE =====================
