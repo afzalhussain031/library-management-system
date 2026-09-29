@@ -11,7 +11,17 @@ import { membersApi } from '../../services/api';
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
 
-const FILTER_TAGS = ['All', 'CSE', 'IT', 'ECE', 'ME', 'Civil'];
+const FILTER_TAGS = ['All', 'CSE', 'IT', 'ECE', 'ME', 'Civil', 'Electrical', 'Other'];
+
+const BRANCH_MAP = {
+  'CSE': ['CSE', 'Computer Science'],
+  'IT': ['IT', 'Information Technology'],
+  'ECE': ['ECE', 'Electronics', 'Electronics & Communication'],
+  'ME': ['ME', 'Mechanical', 'Mechanical Engineering'],
+  'Civil': ['Civil', 'Civil Engineering'],
+  'Electrical': ['Electrical', 'EE', 'Electrical Engineering'],
+  'Other': ['Other'],
+};
 
 const Members = () => {
   const [searchParams] = useSearchParams();
@@ -136,7 +146,9 @@ const Members = () => {
                           member.enr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           member.phone?.includes(searchQuery);
     
-    const matchesBranch = activeFilter === 'All' || member.branch === activeFilter;
+    const matchesBranch = activeFilter === 'All' || 
+                          member.branch === activeFilter ||
+                          (BRANCH_MAP[activeFilter] && BRANCH_MAP[activeFilter].includes(member.branch));
     const matchesBatch = activeBatch === 'All' || member.year === activeBatch;
     const matchesTab = activeTab === 'Students' ? member.role === 'student' : member.role !== 'student';
     
@@ -185,7 +197,7 @@ const Members = () => {
             <div className="relative w-48 lg:w-64">
               <input 
                 type="text" 
-                placeholder="Search by name, ID or phone..." 
+                placeholder="Search by name, Roll No. or phone..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-gray-200 rounded-full py-1.5 pl-4 pr-8 text-sm outline-none focus:border-[#F6BE0A] shadow-sm"

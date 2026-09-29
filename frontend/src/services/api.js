@@ -49,6 +49,12 @@ export const membersApi = {
   createMember: (data) => client.post('/register/', data),
 }
 
+// ===================== DEPARTMENTS =====================
+export const departmentsApi = {
+  getAll: () => client.get('/departments/'),
+  create: (name) => client.post('/departments/', { name }),
+}
+
 // ===================== DASHBOARD =====================
 export const dashboard = {
   getStats: () =>

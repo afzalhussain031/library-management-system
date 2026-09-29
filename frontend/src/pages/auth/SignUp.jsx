@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { signupSchema } from '../../schemas/formSchemas'
-import { auth } from '../../services/api'
+import { auth, departmentsApi } from '../../services/api'
 import {
   User, IdCard, Phone, Mail, Building2,
   Lock, KeyRound, Eye, EyeOff,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import signupImage from "../../assets/signup-image.jpg"
 import Button from '../../components/common/Button'
+import { DEPARTMENTS } from '../../config/constants'
 
 // ====== PASSWORD STRENGTH CALCULATOR ======
 // Returns a score from 0 to 4 based on password complexity
@@ -34,16 +35,7 @@ const strengthConfig = {
   4: { label: 'Strong', color: 'bg-green-500' },
 }
 
-// Department options for the dropdown
-const DEPARTMENTS = [
-  'Computer Science',
-  'Electronics',
-  'Mechanical',
-  'Civil',
-  'Electrical',
-  'Information Technology',
-  'Other',
-]
+
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -51,6 +43,20 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [serverError, setServerError] = useState('')
+  const [departmentList, setDepartmentList] = useState(DEPARTMENTS)
+
+  useEffect(() => {
+    departmentsApi.getAll()
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : (res.data?.results || [])
+        if (data.length > 0) {
+          setDepartmentList(data.map(d => d.name))
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to load departments from server, using fallback', err)
+      })
+  }, [])
 
   // ====== REACT HOOK FORM SETUP ======
   const {
@@ -252,7 +258,7 @@ export default function SignUp() {
                     disabled={isSubmitting}
                   >
                     <option value="">Select Department (Optional)</option>
-                    {DEPARTMENTS.map((dept) => (
+                    {departmentList.map((dept) => (
                       <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>

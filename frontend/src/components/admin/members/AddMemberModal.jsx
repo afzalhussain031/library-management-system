@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addMemberSchema } from '../../../schemas/formSchemas';
-import { X, Loader } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../../common/Button';
-import { membersApi } from '../../../services/api';
+import { membersApi, departmentsApi } from '../../../services/api';
+import { DEPARTMENTS } from '../../../config/constants';
 
 export default function AddMemberModal({ open, onClose, onSuccess }) {
   if (!open) return null;
@@ -13,6 +14,8 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
   const {
     register,
     handleSubmit,
+    setError,
+    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm({
@@ -28,25 +31,87 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
     },
   });
 
+  const selectedDepartment = watch('department');
+  const [departments, setDepartments] = useState(DEPARTMENTS);
+  const [customDept, setCustomDept] = useState('');
+  const [customDeptError, setCustomDeptError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      departmentsApi.getAll()
+        .then(res => {
+          const data = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+          if (data.length > 0) {
+            setDepartments(data.map(d => d.name));
+          }
+        })
+        .catch(err => {
+          console.warn('Failed to load departments from API, using fallback', err);
+        });
+    } else {
+      setCustomDept('');
+      setCustomDeptError('');
+    }
+  }, [open]);
+
+  const handleModalClose = () => {
+    setCustomDept('');
+    setCustomDeptError('');
+    reset();
+    onClose();
+  };
+
   const onSubmit = async (data) => {
+    let resolvedDepartment = data.department;
+
+    if (data.department === 'Other') {
+      const trimmed = customDept.trim();
+      if (!trimmed) {
+        setCustomDeptError('Please specify the department / branch');
+        return;
+      }
+      resolvedDepartment = trimmed;
+      // Auto-save the new department in the database so it's permanently available!
+      departmentsApi.create(trimmed).catch(() => {});
+    }
+
     try {
       const payload = {
         ...data,
+        department: resolvedDepartment,
         password2: data.password,
       };
 
       await membersApi.createMember(payload);
       toast.success('Member added successfully!');
       reset();
+      setCustomDept('');
+      setCustomDeptError('');
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error('Failed to add member:', error);
-      const errorMessage = error.response?.data?.detail 
-        || error.response?.data?.email?.[0] 
-        || error.response?.data?.user_id?.[0]
-        || 'Failed to add member. Please try again.';
-      toast.error(errorMessage);
+      
+      const backendErrors = error.response?.data;
+      let hasFieldError = false;
+
+      if (backendErrors && typeof backendErrors === 'object') {
+        Object.entries(backendErrors).forEach(([field, messages]) => {
+          const message = Array.isArray(messages) ? messages[0] : messages;
+          if (['student_name', 'user_id', 'email', 'phone_number', 'department', 'password'].includes(field)) {
+            setError(field, { type: 'server', message });
+            hasFieldError = true;
+          }
+        });
+      }
+
+      if (!hasFieldError) {
+        const errorMessage = backendErrors?.detail 
+          || backendErrors?.message 
+          || error.message 
+          || 'Failed to add member. Please try again.';
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -76,11 +141,11 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
     <>
       <div 
         className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] transition-opacity animate-[fadeIn_0.15s_ease-out]" 
-        onClick={onClose} 
+        onClick={handleModalClose} 
       />
       
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
-        <div className="w-full max-w-[460px] bg-white rounded-[26px] p-6 shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto max-h-[92vh] overflow-hidden transform scale-100 transition-all duration-150 animate-[scaleUp_0.2s_ease-out]">
+        <div className="w-full max-w-[460px] bg-white rounded-[26px] p-6 shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto max-h-[90vh] overflow-hidden transform scale-100 transition-all duration-150 animate-[scaleUp_0.2s_ease-out]">
           
           <div className="flex items-start justify-between mb-5 mt-1 shrink-0">
             <div>
@@ -89,7 +154,7 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
             </div>
             <button 
               type="button" 
-              onClick={onClose} 
+              onClick={handleModalClose} 
               className="flex-shrink-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-2"
             >
               <X size={18} />
@@ -102,7 +167,71 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
               {renderField('user_id', 'Roll No. / Employee ID', 'text', 'e.g. CS2023001')}
               {renderField('email', 'Email Address', 'email', 'e.g. john@example.com')}
               {renderField('phone_number', 'Phone Number', 'tel', '10-digit number')}
-              {renderField('department', 'Department / Branch', 'text', 'e.g. Computer Science')}
+              
+              {/* Department / Branch Dropdown */}
+              <div className="mb-4">
+                <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
+                  Department / Branch
+                </label>
+                <div className="relative">
+                  <select
+                    {...register('department')}
+                    onChange={(e) => {
+                      register('department').onChange(e);
+                      if (e.target.value !== 'Other') {
+                        setCustomDept('');
+                        setCustomDeptError('');
+                      }
+                    }}
+                    className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 bg-white outline-none transition cursor-pointer appearance-none ${
+                      errors.department
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                    }`}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Select Department / Branch</option>
+                    {departments.filter(d => d !== 'Other').map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                    <option value="Other">Other (Specify below...)</option>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+                {errors.department && (
+                  <p className="text-xs text-red-600 mt-1">{errors.department.message}</p>
+                )}
+              </div>
+
+              {/* Conditional Custom Department Input */}
+              {selectedDepartment === 'Other' && (
+                <div className="mb-4 animate-[fadeIn_0.15s_ease-out]">
+                  <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
+                    Specify Department / Branch <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={customDept}
+                    onChange={(e) => {
+                      setCustomDept(e.target.value);
+                      if (customDeptError) setCustomDeptError('');
+                    }}
+                    placeholder="e.g. Biotechnology, Data Science"
+                    className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition ${
+                      customDeptError
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                    }`}
+                    disabled={isSubmitting}
+                    autoFocus
+                  />
+                  {customDeptError && (
+                    <p className="text-xs text-red-600 mt-1">{customDeptError}</p>
+                  )}
+                </div>
+              )}
               
               <div className="mb-4">
                 <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
@@ -130,7 +259,7 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
           <div className="flex items-center justify-end gap-3 pt-5 mt-4 border-t border-slate-100 shrink-0">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleModalClose}
               disabled={isSubmitting}
               className="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
             >

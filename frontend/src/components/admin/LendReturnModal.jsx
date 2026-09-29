@@ -430,7 +430,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
 
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <form id="circulation-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
-              {renderAutocomplete('enrollmentId', 'Student / Member', users, 'Search by Name or ID...')}
+              {renderAutocomplete('enrollmentId', 'Student / Member', users, 'Search by Name or Roll No...')}
               
               {activeTab === 'lend' ? (
                 <>

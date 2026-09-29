@@ -1,4 +1,4 @@
-from apps.accounts.models import CustomUser, Membership
+from apps.accounts.models import CustomUser, Membership, Department
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
@@ -47,6 +47,12 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
         """Email must be unique"""
         if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already registered")
+        return value
+
+    def validate_phone_number(self, value):
+        """Phone number must be unique if provided"""
+        if value and CustomUser.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError("Phone number already registered")
         return value
 
     def validate_password(self, value):
@@ -268,3 +274,16 @@ class ResetPasswordSerializer(serializers.Serializer):
                 {"new_password2": "Passwords do not match"}
             )
         return data
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ["id", "name"]
+
+    def validate_name(self, value):
+        name = value.strip()
+        if not name:
+            raise serializers.ValidationError("Department name cannot be empty")
+        return name
+

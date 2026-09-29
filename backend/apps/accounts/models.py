@@ -154,3 +154,18 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"Membership {self.membership_id} ({self.user.user_id})"
+
+
+class Department(models.Model):
+    """Department / Branch list for institutions"""
+
+    name = models.CharField(max_length=120, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "library_department"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+

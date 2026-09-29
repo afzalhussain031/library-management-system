@@ -23,7 +23,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import Membership
+from .models import Membership, Department
 from .serializers import (
     CustomUserProfileSerializer,
     CustomUserRegistrationSerializer,
@@ -33,6 +33,7 @@ from .serializers import (
     ResetPasswordSerializer,
     StaffCreateSerializer,
     MemberListSerializer,
+    DepartmentSerializer,
 )
 
 # Fetch our CustomUser model setup from base.py settings
@@ -390,3 +391,12 @@ class ResetPasswordView(APIView):
         return JsonResponse(
             {"detail": "Password has been reset successfully."}, status=200
         )
+
+
+class DepartmentListCreateView(generics.ListCreateAPIView):
+    """List and create departments / branches"""
+
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
+    permission_classes = [AllowAny]
+
