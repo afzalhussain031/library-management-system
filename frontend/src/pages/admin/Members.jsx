@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader } from 'lucide-react';
+import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader, AlertTriangle } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberCardSkeleton from '../../components/admin/members/MemberCardSkeleton';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
@@ -10,6 +10,7 @@ import ActionConfirmDialog from '../../components/common/ActionConfirmDialog';
 import { membersApi } from '../../services/api';
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import toast from 'react-hot-toast';
 
 const FILTER_TAGS = ['All', 'CSE', 'IT', 'ECE', 'ME', 'Civil', 'Electrical', 'Other'];
 
@@ -47,7 +48,7 @@ const Members = () => {
   const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
   
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('All'); // 'All', 'Active', 'Suspended'
+  const [statusFilter, setStatusFilter] = useState('Active'); // Defaults to 'Active'
   const [pendingFinesOnly, setPendingFinesOnly] = useState(false);
   
   // 1. Fetch data safely using the custom hook
@@ -92,6 +93,20 @@ const Members = () => {
   const totalStudents = members.filter(m => m.role === 'student').length;
   const totalFaculties = members.filter(m => m.role !== 'student').length;
 
+  const currentTabMembers = members.filter(m => activeTab === 'Students' ? m.role === 'student' : m.role !== 'student');
+  const activeCount = currentTabMembers.filter(m => m.isActive).length;
+  const suspendedCount = currentTabMembers.filter(m => !m.isActive).length;
+  const allCount = currentTabMembers.length;
+
+  const suspendedMatches = searchQuery.trim() && statusFilter === 'Active'
+    ? currentTabMembers.filter(m => {
+        const matchesSearch = m.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              m.enr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              m.phone?.includes(searchQuery);
+        return matchesSearch && !m.isActive;
+      })
+    : [];
+
   const availableBatches = ['All', ...new Set(members.map(m => m.year).filter(y => y && y !== 'N/A'))].sort();
 
   const handleRemoveMember = (id) => {
@@ -124,16 +139,24 @@ const Members = () => {
     });
   };
 
-  const handleActionConfirm = (reason) => {
+  const handleActionConfirm = async (reason) => {
     const { type, member } = actionConfirm;
+    setActionConfirm({ isOpen: false, type: null, member: null });
+
     if (type === 'clear_fine') {
       console.log(`Cleared fine for ${member.name}`);
-      // Add toast notification here
+      toast.success(`Fine cleared for ${member.name}`);
     } else if (type === 'suspend') {
-      console.log(`Suspended ${member.name} for reason: ${reason}`);
-      // Add toast notification here
+      try {
+        const res = await membersApi.toggleStatus(member.id, reason);
+        const actionWord = member.isActive ? 'suspended' : 'activated';
+        toast.success(res.data?.message || `Member ${actionWord} successfully.`);
+        refetch();
+      } catch (error) {
+        console.error('Failed to toggle member status:', error);
+        toast.error(error.response?.data?.detail || 'Failed to update member status.');
+      }
     }
-    setActionConfirm({ isOpen: false, type: null, member: null });
   };
   
   const handleCloseDetails = () => {
@@ -285,9 +308,20 @@ const Members = () => {
             <div className="relative">
               <button 
                 onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-1 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#F6BE0A]"
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-xs font-bold transition-all shadow-sm ${
+                  statusFilter === 'Active'
+                    ? 'border-emerald-300 text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100/60'
+                    : statusFilter === 'Suspended'
+                    ? 'border-red-300 text-red-700 bg-red-50/60 hover:bg-red-100/60'
+                    : 'border-gray-200 text-gray-700 bg-white hover:bg-gray-50'
+                } focus:outline-none focus:ring-2 focus:ring-[#F6BE0A]`}
               >
-                {statusFilter === 'All' ? 'Status' : statusFilter} <ChevronDown size={14} className={`transition-transform ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
+                <span>
+                  {statusFilter === 'Active' && `Active (${activeCount})`}
+                  {statusFilter === 'Suspended' && `Suspended (${suspendedCount})`}
+                  {statusFilter === 'All' && `All (${allCount})`}
+                </span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isStatusDropdownOpen && (
@@ -296,20 +330,30 @@ const Members = () => {
                     className="fixed inset-0 z-10"
                     onClick={() => setIsStatusDropdownOpen(false)}
                   ></div>
-                  <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 overflow-hidden">
-                    <ul className="max-h-60 overflow-y-auto">
-                      {['All', 'Active', 'Suspended'].map(status => (
-                        <li key={status}>
+                  <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 py-1.5 overflow-hidden">
+                    <ul>
+                      {[
+                        { id: 'Active', label: 'Active', count: activeCount, dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
+                        { id: 'Suspended', label: 'Suspended', count: suspendedCount, dot: 'bg-red-500', badge: 'bg-red-50 text-red-700 border border-red-100' },
+                        { id: 'All', label: 'All Members', count: allCount, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-700' },
+                      ].map(({ id, label, count, dot, badge }) => (
+                        <li key={id}>
                           <button
                             onClick={() => {
-                              setStatusFilter(status);
+                              setStatusFilter(id);
                               setIsStatusDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                              statusFilter === status ? 'text-[#F6BE0A] font-bold bg-[#F6BE0A]/5' : 'text-gray-700 font-medium'
+                            className={`w-full flex items-center justify-between px-3.5 py-2 text-xs transition-colors ${
+                              statusFilter === id ? 'text-[#1C2434] font-bold bg-[#F6BE0A]/10' : 'text-gray-700 font-medium hover:bg-gray-50'
                             }`}
                           >
-                            {status}
+                            <span className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${dot}`} />
+                              {label}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badge}`}>
+                              {count}
+                            </span>
                           </button>
                         </li>
                       ))}
@@ -371,9 +415,37 @@ const Members = () => {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500 font-medium">
-            <GraduationCap size={48} className="text-gray-300 mb-2" />
-            <p>No members found matching your search.</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            {suspendedMatches.length > 0 ? (
+              <div className="flex flex-col items-center max-w-sm">
+                <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mb-3">
+                  <AlertTriangle size={24} className="text-amber-500" />
+                </div>
+                <p className="text-gray-800 font-bold text-sm">No active members found for "{searchQuery}"</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  Found <span className="text-red-600 font-bold">{suspendedMatches.length} suspended member{suspendedMatches.length > 1 ? 's' : ''}</span> matching this search.
+                </p>
+                <button
+                  onClick={() => setStatusFilter('Suspended')}
+                  className="mt-3.5 px-4 py-1.5 bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 rounded-full text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  View in Suspended ({suspendedMatches.length})
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center text-gray-500 font-medium">
+                <GraduationCap size={48} className="text-gray-300 mb-2" />
+                <p>No {statusFilter.toLowerCase()} members found{searchQuery ? ` matching "${searchQuery}"` : ''}.</p>
+                {statusFilter !== 'All' && (
+                  <button
+                    onClick={() => setStatusFilter('All')}
+                    className="mt-2 text-xs text-[#F6BE0A] hover:underline font-semibold"
+                  >
+                    View all {activeTab.toLowerCase()}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -404,15 +476,26 @@ const Members = () => {
         isOpen={actionConfirm.isOpen}
         onClose={() => setActionConfirm({ isOpen: false, type: null, member: null })}
         onConfirm={handleActionConfirm}
-        title={actionConfirm.type === 'clear_fine' ? 'Clear Fine' : 'Suspend Member'}
+        title={
+          actionConfirm.type === 'clear_fine' 
+            ? 'Clear Fine' 
+            : (actionConfirm.member?.isActive ? 'Suspend Member' : 'Activate Member')
+        }
         description={
           actionConfirm.type === 'clear_fine' 
             ? `Are you sure you want to clear the pending fine of ₹${actionConfirm.member?.fine} for ${actionConfirm.member?.name}?` 
-            : `Are you sure you want to suspend the membership of ${actionConfirm.member?.name}? They will not be able to borrow books until unsuspended.`
+            : (actionConfirm.member?.isActive 
+                ? `Are you sure you want to suspend the membership of ${actionConfirm.member?.name}? They will not be able to borrow books until unsuspended.`
+                : `Are you sure you want to activate the membership of ${actionConfirm.member?.name}? They will regain full borrowing privileges.`
+              )
         }
-        confirmText={actionConfirm.type === 'clear_fine' ? 'Clear Fine' : 'Suspend Member'}
-        isDestructive={actionConfirm.type === 'suspend'}
-        requiresReason={actionConfirm.type === 'suspend'}
+        confirmText={
+          actionConfirm.type === 'clear_fine' 
+            ? 'Clear Fine' 
+            : (actionConfirm.member?.isActive ? 'Suspend Member' : 'Activate Member')
+        }
+        isDestructive={actionConfirm.type === 'suspend' && actionConfirm.member?.isActive}
+        requiresReason={actionConfirm.type === 'suspend' && actionConfirm.member?.isActive}
       />
     </div>
   );

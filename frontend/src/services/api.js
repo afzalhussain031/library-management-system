@@ -47,6 +47,7 @@ export const profile = {
 export const membersApi = {
   getAll: () => client.get('/members/'),
   createMember: (data) => client.post('/register/', data),
+  toggleStatus: (id, reason) => client.post(`/members/${id}/toggle-status/`, { reason }),
 }
 
 // ===================== DEPARTMENTS =====================

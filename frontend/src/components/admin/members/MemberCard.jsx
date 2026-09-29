@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Activity, DollarSign, Ban, Phone, Building, GraduationCap } from 'lucide-react';
+import { MoreVertical, Edit2, Activity, DollarSign, Ban, CheckCircle, Phone, Building, GraduationCap } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 
 const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSuspend }) => {
@@ -30,7 +30,9 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
   return (
     <div 
       onClick={onClick}
-      className="flex flex-col relative w-full max-w-[280px] h-full rounded-[18px] bg-white border border-gray-100/50 backdrop-blur-[25px] p-5 mx-auto cursor-pointer hover:scale-[1.03] hover:shadow-md transition-all duration-300 group"
+      className={`flex flex-col relative w-full max-w-[280px] h-full rounded-[18px] bg-white border ${
+        !member.isActive ? 'border-red-200/80 bg-red-50/10' : 'border-gray-100/50'
+      } backdrop-blur-[25px] p-5 mx-auto cursor-pointer hover:scale-[1.03] hover:shadow-md transition-all duration-300 group`}
       style={{
         boxShadow: '0px 12px 35px 0px #0000000C',
       }}
@@ -69,9 +71,21 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
             <div className="h-px bg-gray-100 my-1"></div>
             <button 
               onClick={(e) => handleAction(e, onSuspend)}
-              className="w-full text-left px-4 py-2 text-[13px] font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
+              className={`w-full text-left px-4 py-2 text-[13px] font-medium flex items-center gap-2 ${
+                member.isActive 
+                  ? 'text-red-600 hover:bg-red-50' 
+                  : 'text-emerald-600 hover:bg-emerald-50'
+              }`}
             >
-              <Ban size={14} /> Suspend Member
+              {member.isActive ? (
+                <>
+                  <Ban size={14} /> Suspend Member
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={14} /> Activate Member
+                </>
+              )}
             </button>
           </div>
         )}
@@ -84,8 +98,17 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
           size="md" 
           className="border-[2px] border-[#DEB853] shadow-sm group-hover:border-[#F6BE0A] transition-all duration-300" 
         />
-        <div>
-          <h3 className="font-bold text-[#1C2434] text-[15px] leading-tight group-hover:text-[#F6BE0A] transition-colors duration-300 truncate w-[130px]" title={member.name}>{member.name}</h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h3 className="font-bold text-[#1C2434] text-[15px] leading-tight group-hover:text-[#F6BE0A] transition-colors duration-300 truncate max-w-[120px]" title={member.name}>
+              {member.name}
+            </h3>
+            {!member.isActive && (
+              <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 rounded-md">
+                Suspended
+              </span>
+            )}
+          </div>
           <p className="text-[#A0ABC0] text-[12px] mt-0.5 font-medium">{member.enr}</p>
         </div>
       </div>

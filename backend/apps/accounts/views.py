@@ -227,6 +227,36 @@ class MemberListView(generics.ListAPIView):
             pending_fines=Coalesce(Sum('loans__fine__amount', filter=Q(loans__fine__status='pending')), Decimal('0.00'))
         )
 
+
+class MemberToggleStatusView(APIView):
+    """Toggle is_active status of a member (suspend or activate)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if request.user.role not in ['librarian', 'superadmin'] and not request.user.is_staff:
+            return Response(
+                {"detail": "Permission denied. Only staff or librarians can suspend members."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            target_user = CustomUser.objects.get(pk=pk)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if target_user == request.user:
+            return Response({"detail": "You cannot suspend your own account."}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_user.is_active = not target_user.is_active
+        target_user.save(update_fields=['is_active'])
+
+        action = "activated" if target_user.is_active else "suspended"
+        return Response({
+            "id": target_user.id,
+            "is_active": target_user.is_active,
+            "message": f"Member {target_user.user_id} has been {action} successfully."
+        }, status=status.HTTP_200_OK)
+
 # =========================================================================
 # 📊 METRICS & DASHBOARD DATA VIEWS
 # =========================================================================

@@ -13,6 +13,7 @@ from .views import (
     StaffCreateView,
     UserProfileView,
     MemberListView,
+    MemberToggleStatusView,
     DepartmentListCreateView,
 )
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", UserProfileView.as_view(), name="user-profile"),
     path("members/", MemberListView.as_view(), name="member-list"),
+    path("members/<int:pk>/toggle-status/", MemberToggleStatusView.as_view(), name="member-toggle-status"),
     path("me/", CurrentUserView.as_view(), name="current-user"),
     path("me/password/", PasswordChangeView.as_view(), name="password-change"),
     path("me/dashboard/", DashboardView.as_view(), name="dashboard"),
