@@ -42,7 +42,8 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
         .then(res => {
           const data = Array.isArray(res.data) ? res.data : (res.data?.results || []);
           if (data.length > 0) {
-            setDepartments(data.map(d => d.name));
+            const merged = Array.from(new Set([...DEPARTMENTS, ...data.map(d => d.name)]));
+            setDepartments(merged);
           }
         })
         .catch(err => {

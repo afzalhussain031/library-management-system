@@ -50,7 +50,8 @@ export default function SignUp() {
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : (res.data?.results || [])
         if (data.length > 0) {
-          setDepartmentList(data.map(d => d.name))
+          const merged = Array.from(new Set([...DEPARTMENTS, ...data.map(d => d.name)]))
+          setDepartmentList(merged)
         }
       })
       .catch(err => {
