@@ -7,12 +7,12 @@ CustomUser = get_user_model()
 class CustomUserAuthBackend(ModelBackend):
     """
     Authenticate using user_id instead of username.
-    user_id can be Enrollment Number or Employee ID.
+    user_id can be Roll No. or Employee ID.
     """
 
     def authenticate(self, request, user_id=None, password=None, **kwargs):
         """
-        user_id parameter contains Enrollment Number or Employee ID.
+        user_id parameter contains Roll No. or Employee ID.
         We also check kwargs for 'username' because Django's Admin panel
         stubbornly passes the credentials using that keyword!
         """

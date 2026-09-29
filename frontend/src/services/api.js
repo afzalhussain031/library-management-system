@@ -4,7 +4,7 @@ import client from './httpClient'
 // ===================== AUTH =====================
 export const auth = {
   login: async (userId, password) => {
-    // userId is Enrollment Number or Employee ID
+    // userId is Roll No. or Employee ID
     const response = await client.post('/token/', { 
       user_id: userId,  // Send as user_id, not username
       password 

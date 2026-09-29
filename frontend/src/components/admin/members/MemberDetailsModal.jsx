@@ -108,7 +108,7 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
               <h3 className="text-base font-extrabold text-[#1C2434] mb-4">Account Information</h3>
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                 <div>
-                  <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Enrollment ID</p>
+                  <p className="text-[10px] font-bold text-[#A0ABC0] uppercase tracking-wider">Roll No.</p>
                   <p className="text-[13px] font-extrabold text-[#334155] mt-0.5">
                     {enrollmentId ? enrollmentId : <span className="text-gray-400 italic font-medium">Not Set</span>}
                   </p>

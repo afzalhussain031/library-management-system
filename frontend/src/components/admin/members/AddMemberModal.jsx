@@ -99,7 +99,7 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <form id="add-member-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
               {renderField('student_name', 'Full Name', 'text', 'e.g. John Doe')}
-              {renderField('user_id', 'Enrollment / Employee ID', 'text', 'e.g. CS2023001')}
+              {renderField('user_id', 'Roll No. / Employee ID', 'text', 'e.g. CS2023001')}
               {renderField('email', 'Email Address', 'email', 'e.g. john@example.com')}
               {renderField('phone_number', 'Phone Number', 'tel', '10-digit number')}
               {renderField('department', 'Department / Branch', 'text', 'e.g. Computer Science')}

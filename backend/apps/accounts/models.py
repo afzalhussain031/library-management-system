@@ -44,11 +44,11 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractUser):
     """
-    Custom user model that uses user_id (Enrollment/Employee ID)
+    Custom user model that uses user_id (Roll No./Employee ID)
     instead of username for authentication.
 
     Fields:
-    - user_id: Enrollment Number (students) or Employee ID (staff) - unique identifier
+    - user_id: Roll No. (students) or Employee ID (staff) - unique identifier
     - role: Determines what user_id represents (student, staff, librarian, superadmin)
     - email: User's email address (unique)
     - password: Hashed password
@@ -69,12 +69,12 @@ class CustomUser(AbstractUser):
     # Remove username field (AbstractUser has it by default)
     username = None
 
-    # Single identifier: either Enrollment Number or Employee ID
+    # Single identifier: either Roll No. or Employee ID
     user_id = models.CharField(
         max_length=50,
         unique=True,
         db_index=True,
-        help_text="Enrollment Number (students) or Employee ID (staff)",
+        help_text="Roll No. (students) or Employee ID (staff)",
     )
 
     # Determines what user_id represents

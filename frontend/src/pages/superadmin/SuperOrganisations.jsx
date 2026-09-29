@@ -111,7 +111,7 @@ const SuperOrganisations = () => {
           <div className="relative w-full sm:w-60 md:w-72">
             <input 
               type="text" 
-              placeholder="Search by name, ID or enrollment..." 
+              placeholder="Search by name, ID or Roll No..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#F8FAFC] border border-gray-100 rounded-full py-2 pl-4 pr-10 text-xs font-semibold outline-none focus:border-[#F6BE0A] focus:bg-white transition-all shadow-inner"

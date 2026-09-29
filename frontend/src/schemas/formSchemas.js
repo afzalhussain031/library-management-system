@@ -5,7 +5,7 @@ export const loginSchema = z.object({
   // enrollmentNumber field
   enrollmentNumber: z
     .string()
-    .min(1, 'Enrollment number or Employee ID is required') 
+    .min(1, 'Roll No. or Employee ID is required') 
     .min(4, 'Must be at least 4 characters') 
     .max(50, 'Must be at most 50 characters') 
     .regex(/^[a-zA-Z0-9-_]+$/, 'Only letters, numbers, hyphens, and underscores allowed'),
@@ -27,10 +27,10 @@ export const signupSchema = z.object({
 
   user_id: z
     .string()
-    .min(1, 'Enrollment number is required')
+    .min(1, 'Roll No. is required')
     .min(4, 'Must be at least 4 characters')
-    .max(10, 'Must be at most 10 characters')
-    .regex(/^[a-zA-Z0-9]+$/, 'Only letters and numbers allowed'),
+    .max(20, 'Must be at most 20 characters')
+    .regex(/^[a-zA-Z0-9-_]+$/, 'Only letters, numbers, hyphens, and underscores allowed'),
 
   email: z
     .string()
@@ -76,10 +76,10 @@ export const addMemberSchema = z.object({
 
   user_id: z
     .string()
-    .min(1, 'Enrollment number is required')
+    .min(1, 'Roll No. is required')
     .min(4, 'Must be at least 4 characters')
-    .max(10, 'Must be at most 10 characters')
-    .regex(/^[a-zA-Z0-9]+$/, 'Only letters and numbers allowed'),
+    .max(20, 'Must be at most 20 characters')
+    .regex(/^[a-zA-Z0-9-_]+$/, 'Only letters, numbers, hyphens, and underscores allowed'),
 
   email: z
     .string()

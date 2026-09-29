@@ -27,7 +27,7 @@ export default function UserProfile() {
           <InfoSection
             title="Account Information"
             data={[
-              ["Enrollment ID", safeProfile.user_id || "N/A"],
+              ["Roll No.", safeProfile.user_id || "N/A"],
               ["Email", safeProfile.email || "N/A"],
               ["Phone", safeProfile.phone_number || "N/A"],
               ["Year of Study", safeProfile.batch || "N/A"],

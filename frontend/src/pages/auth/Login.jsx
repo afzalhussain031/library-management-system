@@ -49,7 +49,7 @@ export default function Login() {
       }
     } catch (err) {
       // If API call fails, show error as a general form error
-      const errorMessage = err.response?.data?.detail || err.response?.data?.message || err.message || 'Invalid enrollment number or password'
+      const errorMessage = err.response?.data?.detail || err.response?.data?.message || err.message || 'Invalid Roll No. or password'
       setError('root', {
         message: errorMessage
       })
@@ -137,7 +137,7 @@ export default function Login() {
                   <IdCard className={iconClass} />
                   <input
                     type="text"
-                    placeholder="Enrollment number / Employee ID"
+                    placeholder="Roll No. / Employee ID"
                     {...register('enrollmentNumber')}
                     // ^^^ This connects the input to RHF
                     // RHF will automatically track changes and validate with Zod
