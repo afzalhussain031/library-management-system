@@ -28,11 +28,13 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
             "phone_number",
             "department",
             "student_name",
+            "batch",
         ]
         extra_kwargs = {
             "first_name": {"required": False},
             "last_name": {"required": False},
             "student_name": {"required": False},
+            "batch": {"required": False},
             "email": {"required": True},
             "role": {"required": False},
         }

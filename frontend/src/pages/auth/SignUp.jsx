@@ -5,13 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { signupSchema } from '../../schemas/formSchemas'
 import { auth, departmentsApi } from '../../services/api'
 import {
-  User, IdCard, Phone, Mail, Building2,
+  User, IdCard, Phone, Mail, Building2, GraduationCap,
   Lock, KeyRound, Eye, EyeOff,
   AlertCircle, Bell, CheckCircle
 } from 'lucide-react'
 import signupImage from "../../assets/signup-image.jpg"
 import Button from '../../components/common/Button'
-import { DEPARTMENTS } from '../../config/constants'
+import { DEPARTMENTS, BATCHES } from '../../config/constants'
 
 // ====== PASSWORD STRENGTH CALCULATOR ======
 // Returns a score from 0 to 4 based on password complexity
@@ -247,26 +247,51 @@ export default function SignUp() {
                 </div>
               </div>
 
-              {/* Department Dropdown */}
-              <div>
-                <div className="relative">
-                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  <select
-                    {...register('department')}
-                    className={`w-full rounded-full border border-gray-200 bg-gray-50 px-5 py-2.5 pl-10 text-sm outline-none transition focus:border-yellow-400 focus:ring-2 focus:ring-yellow-300/40 text-gray-800 appearance-none cursor-pointer ${
-                      errors.department ? 'border-red-500 bg-red-50' : ''
-                    }`}
-                    disabled={isSubmitting}
-                  >
-                    <option value="">Select Department (Optional)</option>
-                    {departmentList.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
+              {/* Department & Batch Dropdowns */}
+              <div className="flex gap-3">
+                {/* Department Dropdown */}
+                <div className="flex-1">
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <select
+                      {...register('department')}
+                      className={`w-full rounded-full border border-gray-200 bg-gray-50 px-5 py-2.5 pl-10 text-sm outline-none transition focus:border-yellow-400 focus:ring-2 focus:ring-yellow-300/40 text-gray-800 appearance-none cursor-pointer ${
+                        errors.department ? 'border-red-500 bg-red-50' : ''
+                      }`}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">Department</option>
+                      {departmentList.map((dept) => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.department && (
+                    <p className="text-xs text-red-600 mt-1.5">{errors.department.message}</p>
+                  )}
                 </div>
-                {errors.department && (
-                  <p className="text-xs text-red-600 mt-1.5">{errors.department.message}</p>
-                )}
+
+                {/* Batch Dropdown */}
+                <div className="flex-1">
+                  <div className="relative">
+                    <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <select
+                      {...register('batch')}
+                      className={`w-full rounded-full border border-gray-200 bg-gray-50 px-5 py-2.5 pl-10 text-sm outline-none transition focus:border-yellow-400 focus:ring-2 focus:ring-yellow-300/40 text-gray-800 appearance-none cursor-pointer ${
+                        errors.batch ? 'border-red-500 bg-red-50' : ''
+                      }`}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">Batch Year</option>
+                      {BATCHES.map((batch) => (
+                        <option key={batch} value={batch}>{batch}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.batch && (
+                    <p className="text-xs text-red-600 mt-1.5">{errors.batch.message}</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-3">

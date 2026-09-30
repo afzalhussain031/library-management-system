@@ -6,7 +6,7 @@ import { X, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../../common/Button';
 import { membersApi, departmentsApi } from '../../../services/api';
-import { DEPARTMENTS } from '../../../config/constants';
+import { DEPARTMENTS, BATCHES } from '../../../config/constants';
 
 export default function AddMemberModal({ open, onClose, onSuccess }) {
   if (!open) return null;
@@ -27,6 +27,7 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
       email: '',
       phone_number: '',
       department: '',
+      batch: '',
       password: '',
     },
   });
@@ -234,6 +235,35 @@ export default function AddMemberModal({ open, onClose, onSuccess }) {
                 </div>
               )}
               
+              {/* Graduation Batch Dropdown */}
+              <div className="mb-4">
+                <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
+                  Graduation Batch
+                </label>
+                <div className="relative">
+                  <select
+                    {...register('batch')}
+                    className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 bg-white outline-none transition cursor-pointer appearance-none ${
+                      errors.batch
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                    }`}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Select Batch (e.g. 2023 - 2027)</option>
+                    {BATCHES.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+                {errors.batch && (
+                  <p className="text-xs text-red-600 mt-1">{errors.batch.message}</p>
+                )}
+              </div>
+
               <div className="mb-4">
                 <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
                   Initial Password

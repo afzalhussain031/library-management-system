@@ -47,6 +47,11 @@ export const signupSchema = z.object({
     .optional()
     .default(''),
 
+  batch: z
+    .string()
+    .optional()
+    .default(''),
+
   password: z
     .string()
     .min(1, 'Password is required')
@@ -92,6 +97,11 @@ export const addMemberSchema = z.object({
     .regex(/^[0-9]{10}$/, 'Phone must be exactly 10 digits'),
 
   department: z
+    .string()
+    .optional()
+    .default(''),
+
+  batch: z
     .string()
     .optional()
     .default(''),
