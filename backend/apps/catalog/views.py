@@ -2,6 +2,7 @@ from rest_framework import viewsets, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from django.db.models import Count, Q, Value
 from django.db.models.functions import Concat
 
@@ -153,6 +154,8 @@ class WishlistViewSet(viewsets.ModelViewSet):
         return Wishlist.objects.filter(user=self.request.user).select_related("book")
 
     def perform_create(self, serializer):
+        if not self.request.user.is_active:
+            raise ValidationError({"detail": "Your account is currently suspended."})
         serializer.save(user=self.request.user)
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -174,6 +177,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        if not self.request.user.is_active:
+            raise ValidationError({"detail": "Your account is currently suspended. You cannot submit reviews."})
         serializer.save(user=self.request.user)
         
     def perform_update(self, serializer):

@@ -35,6 +35,10 @@ class LoanViewSet(viewsets.ModelViewSet):
         return queryset.filter(borrower=self.request.user)
 
     def perform_create(self, serializer):
+        borrower = serializer.validated_data.get("borrower")
+        if borrower and not borrower.is_active:
+            raise ValidationError({"borrower": "This member's account is currently suspended and cannot borrow books."})
+
         copy = serializer.validated_data["copy"]
         if copy.status != BookCopy.AVAILABLE:
             raise ValidationError({"copy": "This copy is not available."})
@@ -155,6 +159,10 @@ class LoanViewSet(viewsets.ModelViewSet):
         if not (request.user.is_staff or getattr(request.user, 'is_librarian_staff', False) or request.user == loan.borrower):
             return Response({"detail": "You can only renew your own books."}, status=status.HTTP_403_FORBIDDEN)
 
+        # Rule 0.5: Cannot renew if borrower is suspended
+        if not loan.borrower.is_active:
+            raise ValidationError({"detail": "Cannot renew loan. This account is currently suspended."})
+
         # Rule 1: Cannot renew if returned or overdue
         if loan.returned_at:
             raise ValidationError({"detail": "Returned loans cannot be renewed."})
@@ -194,6 +202,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return queryset.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        if not self.request.user.is_active:
+            raise ValidationError({"detail": "Your account is currently suspended. You cannot place reservations on books."})
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):

@@ -13,8 +13,8 @@ const client = axios.create({
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   
-  // Don't send the token for public authentication routes
-  const isPublicAuthRoute = ['/token/', '/register/'].some(url => config.url?.includes(url))
+  // Don't send the token for public authentication and metadata routes
+  const isPublicAuthRoute = ['/token/', '/register/', '/departments/'].some(url => config.url?.includes(url))
   
   if (token && !isPublicAuthRoute) {
     config.headers.Authorization = `Bearer ${token}`
@@ -51,7 +51,11 @@ client.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${refreshRes.data.access}`
         return client(originalRequest)
       } catch (refreshError) {
-        if (window.location.pathname !== '/login') {
+        // Clear dead token so it doesn't poison future requests
+        localStorage.removeItem('access_token')
+
+        // Never redirect away from login or registration pages
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
           window.location.href = '/login'
         }
         return Promise.reject(refreshError)

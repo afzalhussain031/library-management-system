@@ -171,6 +171,7 @@ class CurrentUserView(APIView):
             "last_name": user.last_name,
             "is_staff": user.is_staff,
             "is_superuser": user.is_superuser,
+            "is_active": user.is_active,
             "date_joined": user.date_joined,
             "role": user.role,
             "phone_number": user.phone_number,

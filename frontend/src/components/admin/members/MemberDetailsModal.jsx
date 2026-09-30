@@ -96,11 +96,19 @@ const MemberDetailsModal = ({ member, onClose, onRemove, initialExpanded = false
                 <h2 className="text-xl font-extrabold text-[#1C2434] tracking-tight mt-1">{member.name}</h2>
                 <p className="text-[12px] font-bold text-[#A0ABC0] mt-0.5">Student • {member.branch || 'CSE'} Department</p>
               </div>
-              <span 
-                className="px-5 py-1.5 rounded-full text-[11px] font-extrabold text-white shadow-sm bg-[#DFBE6B] hover:bg-[#D5B55E] cursor-default select-none mt-1"
-              >
-                Active Member
-              </span>
+              {member.isActive !== false ? (
+                <span 
+                  className="px-5 py-1.5 rounded-full text-[11px] font-extrabold text-white shadow-sm bg-[#DFBE6B] hover:bg-[#D5B55E] cursor-default select-none mt-1"
+                >
+                  Active Member
+                </span>
+              ) : (
+                <span 
+                  className="px-5 py-1.5 rounded-full text-[11px] font-extrabold text-red-600 bg-red-100 border border-red-200 shadow-sm cursor-default select-none mt-1"
+                >
+                  Account Suspended
+                </span>
+              )}
             </div>
 
             {/* Account Information Card */}

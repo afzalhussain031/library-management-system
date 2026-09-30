@@ -86,7 +86,14 @@ class LoanSerializer(serializers.ModelSerializer):
         DAILY_FINE_RATE = 10 # You can later move this to django settings if you want!
         return self.get_overdue_days(obj) * DAILY_FINE_RATE
 
+    def validate_borrower(self, value):
+        if value and not value.is_active:
+            raise serializers.ValidationError("This member's account is currently suspended and cannot borrow books.")
+        return value
+
     def get_renewal_status(self, obj):
+        if not obj.borrower.is_active:
+            return {"can_renew": False, "reason": "Cannot renew. Your account is currently suspended."}
         if obj.returned_at:
             return {"can_renew": False, "reason": "Returned loans cannot be renewed."}
         if timezone.now().date() > obj.due_at.date():

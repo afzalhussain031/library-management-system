@@ -71,7 +71,7 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
       }
     } catch (error) {
       console.error("Failed to reserve book:", error);
-      toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to reserve book");
+      toast.error(error.response?.data?.detail || error.response?.data?.error || error.response?.data?.message || "Failed to reserve book");
     } finally {
       setIsUpdating(false);
     }

@@ -63,7 +63,11 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
           const usersData = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data?.results || []);
           const booksData = Array.isArray(booksRes.data) ? booksRes.data : (booksRes.data?.results || []);
 
-          setUsers(usersData.map(u => ({ value: u.id?.toString(), label: `${u.user_id} - ${u.student_name || u.name || 'Unknown'}` })));
+          setUsers(usersData.map(u => ({ 
+            value: u.id?.toString(), 
+            label: `${u.user_id} - ${u.student_name || u.name || 'Unknown'}${u.is_active === false ? ' (Suspended)' : ''}`,
+            isActive: u.is_active !== false
+          })));
           setBooks(booksData.map(b => ({ value: b.id?.toString(), label: `${b.isbn || 'No-ISBN'} - ${b.title || 'Unknown'}` })));
         } catch (error) {
           console.error("Failed to load autocomplete options", error);
@@ -158,6 +162,11 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
   const onSubmit = async (data) => {
     try {
       if (activeTab === 'lend') {
+        const targetUser = users.find(u => u.value === data.enrollmentId);
+        if (targetUser && !targetUser.isActive) {
+          toast.error("Cannot issue book: This member's account is currently suspended.");
+          return;
+        }
         if (!data.copyId) {
           toast.error("Please select an available book copy to issue.");
           return;
@@ -183,7 +192,8 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
       onClose();
     } catch (err) {
       console.error('Error:', err);
-      toast.error(err.response?.data?.detail || "An error occurred.");
+      const msg = err.response?.data?.borrower?.[0] || err.response?.data?.borrower || err.response?.data?.detail || "An error occurred.";
+      toast.error(msg);
     }
   };
 
@@ -430,7 +440,12 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
 
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <form id="circulation-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
-              {renderAutocomplete('enrollmentId', 'Student / Member', users, 'Search by Name or Roll No...')}
+              {renderAutocomplete(
+                'enrollmentId', 
+                'Student / Member', 
+                activeTab === 'lend' ? users.filter(u => u.isActive) : users, 
+                activeTab === 'lend' ? 'Search Active Member by Name or Roll No...' : 'Search by Name or Roll No...'
+              )}
               
               {activeTab === 'lend' ? (
                 <>

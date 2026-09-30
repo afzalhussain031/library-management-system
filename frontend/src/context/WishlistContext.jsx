@@ -63,7 +63,7 @@ export function WishlistProvider({ children }) {
       setWishlistItems(prev => prev.filter(item => item.id !== wishlistId));
       toast.success("Book reserved successfully!");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reserve the book");
+      toast.error(err.response?.data?.detail || err.response?.data?.message || "Failed to reserve the book");
       throw err;
     }
   };
