@@ -1,15 +1,11 @@
 from binascii import Error as BinasciiError
+from decimal import Decimal
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
-from django.db import models
 from django.db.models import Count, Sum, Q
 from django.db.models.functions import Coalesce
-from decimal import Decimal
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_str
@@ -19,11 +15,10 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import Membership, Department
+from .models import CustomUser, Membership, Department
 from .serializers import (
     CustomUserProfileSerializer,
     CustomUserRegistrationSerializer,
@@ -36,8 +31,6 @@ from .serializers import (
     DepartmentSerializer,
 )
 
-# Fetch our CustomUser model setup from base.py settings
-CustomUser = get_user_model()
 
 # =========================================================================
 # 🍪 JWT COOKIE UTILITIES
@@ -347,42 +340,105 @@ class ForgotPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data["email"]
-        user = CustomUser.objects.get(email=email)
+        user = CustomUser.objects.filter(email=email).first()
 
-        # Generate token
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
+        # If user exists, create token and send reset email
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
 
-        # Create reset link
-        frontend_url = getattr(
-            settings, "FRONTEND_URL", "http://localhost:5173"
-        ).rstrip("/")
-        reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+            frontend_url = getattr(
+                settings, "FRONTEND_URL", "http://localhost:5173"
+            ).rstrip("/")
+            reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
 
-        # Send email
-        try:
-            send_mail(
-                subject="Reset your password",
-                message=f"Click here to reset: {reset_link}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                html_message=f"""
-                    <p>Click the link below to reset your password:</p>
-                    <a href="{reset_link}">Reset Password</a>
-                """,
-                fail_silently=False,
-            )
-        except Exception as e:
-            return Response(
-                {"detail": f"Error sending email: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            try:
+                user_display = user.get_full_name() or user.user_id
+                send_mail(
+                    subject="Reset Your Library Account Password",
+                    message=(
+                        f"Hello {user_display},\n\n"
+                        f"We received a request to reset your password. Use the link below to set a new password:\n"
+                        f"{reset_link}\n\n"
+                        f"This link will expire in 1 hour.\n\n"
+                        f"If you did not request a password reset, please ignore this email."
+                    ),
+                    from_email=getattr(
+                        settings,
+                        "DEFAULT_FROM_EMAIL",
+                        "Library Support <noreply@library.local>",
+                    ),
+                    recipient_list=[user.email],
+
+                    html_message=f"""
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px;">
+                            <h2 style="color: #111827; margin-bottom: 12px; font-size: 20px;">Reset Your Password</h2>
+                            <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Hello <strong>{user_display}</strong>,</p>
+                            <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">We received a request to reset the password for your Library Management account. Click the button below to choose a new password:</p>
+                            <div style="margin: 24px 0;">
+                                <a href="{reset_link}" style="background-color: #facc15; color: #111827; text-decoration: none; font-weight: 600; padding: 12px 24px; border-radius: 9999px; display: inline-block; font-size: 14px;">Reset Password</a>
+                            </div>
+                            <p style="color: #6b7280; font-size: 12px; line-height: 1.5;">This link will expire in <strong>1 hour</strong>. If the button above does not work, copy and paste this link into your browser:</p>
+                            <p style="color: #3b82f6; font-size: 12px; word-break: break-all;"><a href="{reset_link}">{reset_link}</a></p>
+                            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+                            <p style="color: #9ca3af; font-size: 11px;">If you didn't request this change, you can safely ignore this email. Your password will remain unchanged.</p>
+                        </div>
+                    """,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                return Response(
+                    {"detail": f"Error sending email: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
         return JsonResponse(
             {
                 "detail": "If an account exists for that email, instructions have been sent."
             },
             status=200,
+        )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class VerifyResetTokenView(APIView):
+    """Verifies whether a password reset token and uid are valid and active."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        uid = request.query_params.get("uid")
+        token = request.query_params.get("token")
+
+        if not uid or not token:
+            return JsonResponse(
+                {"valid": False, "detail": "Missing uid or token parameter."},
+                status=400,
+            )
+
+        try:
+            target_pk = force_str(urlsafe_base64_decode(uid))
+            user = CustomUser.objects.get(pk=target_pk)
+        except (
+            BinasciiError,
+            TypeError,
+            ValueError,
+            OverflowError,
+            UnicodeDecodeError,
+            CustomUser.DoesNotExist,
+        ):
+            return JsonResponse(
+                {"valid": False, "detail": "Invalid reset link."}, status=400
+            )
+
+        if not default_token_generator.check_token(user, token):
+            return JsonResponse(
+                {"valid": False, "detail": "Invalid or expired token."},
+                status=400,
+            )
+
+        return JsonResponse(
+            {"valid": True, "detail": "Token is valid."}, status=200
         )
 
 
@@ -422,6 +478,7 @@ class ResetPasswordView(APIView):
         return JsonResponse(
             {"detail": "Password has been reset successfully."}, status=200
         )
+
 
 
 class DepartmentListCreateView(generics.ListCreateAPIView):

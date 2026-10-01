@@ -151,3 +151,28 @@ export const addOrganisationSchema = z.object({
     .min(1, 'Number of books is required')
     .regex(/^[0-9k]+$/, 'Invalid format (use numbers or "k" for thousands)')
 })
+
+// ===== FORGOT PASSWORD FORM =====
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please enter a valid email address'),
+})
+
+// ===== RESET PASSWORD FORM =====
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .min(8, 'Password must be at least 8 characters'),
+    password2: z
+      .string()
+      .min(1, 'Please confirm your password')
+      .min(8, 'Confirm password must be at least 8 characters'),
+  })
+  .refine((data) => data.password === data.password2, {
+    message: 'Passwords do not match',
+    path: ['password2'],
+  })

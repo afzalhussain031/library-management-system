@@ -6,6 +6,8 @@ import ProtectedRoute from '../components/layout/ProtectedRoute';
 // Pages
 import Login from '../pages/auth/Login';
 import SignUp from '../pages/auth/SignUp';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword';
 import Dashboard from '../pages/user/Dashboard';
 import UserProfile from "../pages/user/profile";
 
@@ -57,6 +59,9 @@ const AppRouter = () => {
       {/* ================= PUBLIC ROUTES ================= */}
       <Route path="/login" element={<Login />} />
       <Route path='/register' element={<SignUp />} />
+      <Route path='/forgot-password' element={<ForgotPassword />} />
+      <Route path='/reset-password' element={<ResetPassword />} />
+
 
       {/* ================= GROUP 1: GENERAL USER ROUTES ================= */}
       {/* Leaving allowedRoles blank here means ANY logged-in account can access these hallways */}

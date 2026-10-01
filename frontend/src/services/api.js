@@ -31,8 +31,18 @@ export const auth = {
     client.post('/logout/', {}),
   
   refreshToken: () =>
-    client.post('/token/refresh/', {})
+    client.post('/token/refresh/', {}),
+
+  forgotPassword: (email) =>
+    client.post('/forgot-password/', { email }),
+
+  verifyResetToken: (uid, token) =>
+    client.get('/reset-password/verify/', { params: { uid, token } }),
+
+  resetPassword: (payload) =>
+    client.post('/reset-password/', payload),
 }
+
 
 // ===================== PROFILE =====================
 export const profile = {

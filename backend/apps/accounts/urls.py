@@ -10,6 +10,7 @@ from .views import (
     PasswordChangeView,
     RegisterView,
     ResetPasswordView,
+    VerifyResetTokenView,
     StaffCreateView,
     UserProfileView,
     MemberListView,
@@ -31,5 +32,6 @@ urlpatterns = [
     path("staff/create/", StaffCreateView.as_view(), name="staff-create"),
     path("departments/", DepartmentListCreateView.as_view(), name="departments"),
     path("forgot-password/", ForgotPasswordView.as_view(), name="forgot-password"),
+    path("reset-password/verify/", VerifyResetTokenView.as_view(), name="verify-reset-token"),
     path("reset-password/", ResetPasswordView.as_view(), name="reset-password"),
 ]

@@ -132,6 +132,10 @@ CORS_ALLOW_ALL_ORIGINS = False
 
 STAFF_INVITE_CODE = os.getenv("STAFF_INVITE_CODE", "some-secret-code")
 
+# ===== EMAIL & PASSWORD RESET =====
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Library Support <noreply@library.local>")
+PASSWORD_RESET_TIMEOUT = 3600  # Token valid for 1 hour (in seconds)
+
 # ===== CUSTOM USER MODEL =====
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -139,3 +143,4 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 AUTHENTICATION_BACKENDS = [
     'apps.accounts.backends.CustomUserAuthBackend',
 ]
+

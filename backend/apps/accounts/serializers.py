@@ -252,9 +252,7 @@ class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate_email(self, value):
-        if not CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("User with this email does not exist")
-        return value
+        return value.lower().strip()
 
 
 class ResetPasswordSerializer(serializers.Serializer):
