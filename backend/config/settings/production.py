@@ -22,7 +22,15 @@ DATABASES = {
 # 4. Add Vercel Frontend to CORS
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 if FRONTEND_URL:
-    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+    clean_url = FRONTEND_URL.strip().rstrip("/")
+    if clean_url not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(clean_url)
+
+# Allow all Vercel subdomains (previews & production)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https:\/\/.*\.vercel\.app$",
+]
+
 
 # 5. Tell Django where to collect static files
 STATIC_ROOT = BASE_DIR / "staticfiles"
