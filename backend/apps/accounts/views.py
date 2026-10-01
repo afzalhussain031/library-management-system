@@ -18,7 +18,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from .emails import send_password_reset_email
 from .models import CustomUser, Membership, Department
+
 from .serializers import (
     CustomUserProfileSerializer,
     CustomUserRegistrationSerializer,
@@ -354,43 +356,13 @@ class ForgotPasswordView(APIView):
 
             try:
                 user_display = user.get_full_name() or user.user_id
-                send_mail(
-                    subject="Reset Your Library Account Password",
-                    message=(
-                        f"Hello {user_display},\n\n"
-                        f"We received a request to reset your password. Use the link below to set a new password:\n"
-                        f"{reset_link}\n\n"
-                        f"This link will expire in 1 hour.\n\n"
-                        f"If you did not request a password reset, please ignore this email."
-                    ),
-                    from_email=getattr(
-                        settings,
-                        "DEFAULT_FROM_EMAIL",
-                        "Library Support <noreply@library.local>",
-                    ),
-                    recipient_list=[user.email],
-
-                    html_message=f"""
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px;">
-                            <h2 style="color: #111827; margin-bottom: 12px; font-size: 20px;">Reset Your Password</h2>
-                            <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">Hello <strong>{user_display}</strong>,</p>
-                            <p style="color: #4b5563; font-size: 14px; line-height: 1.6;">We received a request to reset the password for your Library Management account. Click the button below to choose a new password:</p>
-                            <div style="margin: 24px 0;">
-                                <a href="{reset_link}" style="background-color: #facc15; color: #111827; text-decoration: none; font-weight: 600; padding: 12px 24px; border-radius: 9999px; display: inline-block; font-size: 14px;">Reset Password</a>
-                            </div>
-                            <p style="color: #6b7280; font-size: 12px; line-height: 1.5;">This link will expire in <strong>1 hour</strong>. If the button above does not work, copy and paste this link into your browser:</p>
-                            <p style="color: #3b82f6; font-size: 12px; word-break: break-all;"><a href="{reset_link}">{reset_link}</a></p>
-                            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-                            <p style="color: #9ca3af; font-size: 11px;">If you didn't request this change, you can safely ignore this email. Your password will remain unchanged.</p>
-                        </div>
-                    """,
-                    fail_silently=False,
-                )
+                send_password_reset_email(user.email, user_display, reset_link)
             except Exception as e:
                 return Response(
                     {"detail": f"Error sending email: {str(e)}"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
+
 
         return JsonResponse(
             {
