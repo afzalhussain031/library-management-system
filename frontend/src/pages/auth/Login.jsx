@@ -5,13 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema } from '../../schemas/formSchemas'
 import { useAuth } from '../../context/AuthContext'
 import { toast } from 'react-hot-toast'
-import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap } from 'lucide-react'
+import { IdCard, Lock, AlertCircle, BookOpen, GraduationCap, Eye, EyeOff } from 'lucide-react'
 import loginImage from "../../assets/signup-image.jpg"
 import Button from '../../components/common/Button'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [showPassword, setShowPassword] = useState(false)
 
   // ====== REACT HOOK FORM SETUP ======
   // This connects the form to Zod validation
@@ -164,16 +165,30 @@ export default function Login() {
                 <div className="relative">
                   <Lock className={iconClass} />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="Password"
                     {...register('password')}
-                    className={`${inputClass} ${errors.password
+                    className={`${inputClass} pr-10 ${errors.password
                         ? 'border-red-500 bg-red-50'
                         : ''
                       }`}
                     disabled={isSubmitting}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
+
                 {errors.password && (
                   <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-4 py-3 mt-2 text-sm flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
