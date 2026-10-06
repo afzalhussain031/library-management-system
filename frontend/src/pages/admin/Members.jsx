@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader, AlertTriangle } from 'lucide-react';
+import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader, AlertTriangle, Archive, Trash2 } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberCardSkeleton from '../../components/admin/members/MemberCardSkeleton';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
 import AddMemberModal from '../../components/admin/members/AddMemberModal';
 import EditMemberDrawer from '../../components/admin/members/EditMemberDrawer';
 import ActionConfirmDialog from '../../components/common/ActionConfirmDialog';
+import BatchArchiveModal from '../../components/admin/members/BatchArchiveModal';
 import { membersApi } from '../../services/api';
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
@@ -34,12 +35,13 @@ const Members = () => {
   
   const [selectedMember, setSelectedMember] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isBatchArchiveOpen, setIsBatchArchiveOpen] = useState(false);
   
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [actionConfirm, setActionConfirm] = useState({
     isOpen: false,
-    type: null, // 'clear_fine' | 'suspend'
+    type: null, // 'clear_fine' | 'suspend' | 'archive' | 'delete'
     member: null
   });
   
@@ -71,7 +73,9 @@ const Members = () => {
       validTill: user.membership_valid_till || null,
       fine: user.pending_fines ? parseFloat(user.pending_fines) : 0,
       role: user.role || 'student',
-      isActive: user.is_active ?? true
+      isActive: user.is_active ?? true,
+      isArchived: user.is_archived ?? false,
+      canHardDelete: user.can_hard_delete ?? false,
     };
   });
 
@@ -94,8 +98,9 @@ const Members = () => {
   const totalFaculties = members.filter(m => m.role !== 'student').length;
 
   const currentTabMembers = members.filter(m => activeTab === 'Students' ? m.role === 'student' : m.role !== 'student');
-  const activeCount = currentTabMembers.filter(m => m.isActive).length;
-  const suspendedCount = currentTabMembers.filter(m => !m.isActive).length;
+  const activeCount = currentTabMembers.filter(m => m.isActive && !m.isArchived).length;
+  const suspendedCount = currentTabMembers.filter(m => !m.isActive && !m.isArchived).length;
+  const archivedCount = currentTabMembers.filter(m => m.isArchived).length;
   const allCount = currentTabMembers.length;
 
   const suspendedMatches = searchQuery.trim() && statusFilter === 'Active'
@@ -103,7 +108,7 @@ const Members = () => {
         const matchesSearch = m.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                               m.enr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                               m.phone?.includes(searchQuery);
-        return matchesSearch && !m.isActive;
+        return matchesSearch && !m.isActive && !m.isArchived;
       })
     : [];
 
@@ -139,6 +144,29 @@ const Members = () => {
     });
   };
 
+  const handleArchiveClick = (member) => {
+    setActionConfirm({
+      isOpen: true,
+      type: 'archive',
+      member
+    });
+  };
+
+  const handleDeleteClick = (member) => {
+    if (!member.canHardDelete) {
+      toast.error(
+        `Cannot delete ${member.name}: Circulation history exists. Use 'Archive' to preserve library records.`,
+        { duration: 4500 }
+      );
+      return;
+    }
+    setActionConfirm({
+      isOpen: true,
+      type: 'delete',
+      member
+    });
+  };
+
   const handleActionConfirm = async (reason) => {
     const { type, member } = actionConfirm;
     setActionConfirm({ isOpen: false, type: null, member: null });
@@ -155,6 +183,25 @@ const Members = () => {
       } catch (error) {
         console.error('Failed to toggle member status:', error);
         toast.error(error.response?.data?.detail || 'Failed to update member status.');
+      }
+    } else if (type === 'archive') {
+      try {
+        const res = await membersApi.archiveMember(member.id, reason);
+        const actionWord = member.isArchived ? 'restored from archive' : 'archived';
+        toast.success(res.data?.message || `Member ${actionWord} successfully.`);
+        refetch();
+      } catch (error) {
+        console.error('Failed to archive/restore member:', error);
+        toast.error(error.response?.data?.detail || 'Failed to archive member.');
+      }
+    } else if (type === 'delete') {
+      try {
+        const res = await membersApi.deleteMember(member.id);
+        toast.success(res.data?.message || 'Member deleted permanently.');
+        refetch();
+      } catch (error) {
+        console.error('Failed to delete member:', error);
+        toast.error(error.response?.data?.detail || 'Failed to delete member.');
       }
     }
   };
@@ -176,8 +223,9 @@ const Members = () => {
     const matchesTab = activeTab === 'Students' ? member.role === 'student' : member.role !== 'student';
     
     const matchesStatus = statusFilter === 'All' || 
-                          (statusFilter === 'Active' && member.isActive) ||
-                          (statusFilter === 'Suspended' && !member.isActive);
+                          (statusFilter === 'Active' && member.isActive && !member.isArchived) ||
+                          (statusFilter === 'Suspended' && !member.isActive && !member.isArchived) ||
+                          (statusFilter === 'Archived' && member.isArchived);
     const matchesFines = pendingFinesOnly ? member.fine > 0 : true;
     
     return matchesSearch && matchesBranch && matchesBatch && matchesTab && matchesStatus && matchesFines;
@@ -304,6 +352,18 @@ const Members = () => {
               )}
             </div>
 
+            {/* Bulk Archive Batch Button (When a specific batch is chosen) */}
+            {activeTab === 'Students' && activeBatch !== 'All' && (
+              <button
+                onClick={() => setIsBatchArchiveOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 rounded-full text-xs font-bold transition-all shadow-sm"
+                title={`Archive all eligible graduating students in Batch ${activeBatch}`}
+              >
+                <Archive size={13} className="text-amber-600" />
+                <span>Archive Batch</span>
+              </button>
+            )}
+
             {/* Status Dropdown */}
             <div className="relative">
               <button 
@@ -313,12 +373,15 @@ const Members = () => {
                     ? 'border-emerald-300 text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100/60'
                     : statusFilter === 'Suspended'
                     ? 'border-red-300 text-red-700 bg-red-50/60 hover:bg-red-100/60'
+                    : statusFilter === 'Archived'
+                    ? 'border-amber-300 text-amber-800 bg-amber-50/60 hover:bg-amber-100/60'
                     : 'border-gray-200 text-gray-700 bg-white hover:bg-gray-50'
                 } focus:outline-none focus:ring-2 focus:ring-[#F6BE0A]`}
               >
                 <span>
                   {statusFilter === 'Active' && `Active (${activeCount})`}
                   {statusFilter === 'Suspended' && `Suspended (${suspendedCount})`}
+                  {statusFilter === 'Archived' && `Archived (${archivedCount})`}
                   {statusFilter === 'All' && `All (${allCount})`}
                 </span>
                 <ChevronDown size={14} className={`transition-transform duration-200 ${isStatusDropdownOpen ? 'rotate-180' : ''}`} />
@@ -335,6 +398,7 @@ const Members = () => {
                       {[
                         { id: 'Active', label: 'Active', count: activeCount, dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
                         { id: 'Suspended', label: 'Suspended', count: suspendedCount, dot: 'bg-red-500', badge: 'bg-red-50 text-red-700 border border-red-100' },
+                        { id: 'Archived', label: 'Archived', count: archivedCount, dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border border-amber-100' },
                         { id: 'All', label: 'All Members', count: allCount, dot: 'bg-gray-400', badge: 'bg-gray-100 text-gray-700' },
                       ].map(({ id, label, count, dot, badge }) => (
                         <li key={id}>
@@ -411,6 +475,8 @@ const Members = () => {
                 onViewActivity={handleViewActivity}
                 onClearFine={handleClearFineClick}
                 onSuspend={handleSuspendClick}
+                onArchive={handleArchiveClick}
+                onDelete={handleDeleteClick}
               />
             ))}
           </div>
@@ -455,7 +521,12 @@ const Members = () => {
         <MemberDetailsModal 
           member={selectedMember} 
           onClose={handleCloseDetails} 
-          onRemove={handleRemoveMember} 
+          onRemove={() => {
+            const target = selectedMember;
+            setSelectedMember(null);
+            setIsDetailsExpanded(false);
+            handleDeleteClick(target);
+          }} 
           initialExpanded={isDetailsExpanded}
         />
       )}
@@ -470,6 +541,7 @@ const Members = () => {
         isOpen={!!editingMember}
         onClose={() => setEditingMember(null)}
         member={editingMember}
+        onSuccess={() => refetch()}
       />
 
       <ActionConfirmDialog
@@ -479,11 +551,21 @@ const Members = () => {
         title={
           actionConfirm.type === 'clear_fine' 
             ? 'Clear Fine' 
+            : actionConfirm.type === 'delete'
+            ? 'Permanently Delete Member'
+            : actionConfirm.type === 'archive'
+            ? (actionConfirm.member?.isArchived ? 'Restore Member' : 'Archive Member')
             : (actionConfirm.member?.isActive ? 'Suspend Member' : 'Activate Member')
         }
         description={
           actionConfirm.type === 'clear_fine' 
             ? `Are you sure you want to clear the pending fine of ₹${actionConfirm.member?.fine} for ${actionConfirm.member?.name}?` 
+            : actionConfirm.type === 'delete'
+            ? `Are you sure you want to permanently delete ${actionConfirm.member?.name} (${actionConfirm.member?.enr})? This account has no transaction history and will be completely removed.`
+            : actionConfirm.type === 'archive'
+            ? (actionConfirm.member?.isArchived
+                ? `Restore ${actionConfirm.member?.name} from archive? They will regain active membership.`
+                : `Archive ${actionConfirm.member?.name}? This member will be marked as graduated/left and login access will be closed. Their circulation and fine records will be permanently preserved.`)
             : (actionConfirm.member?.isActive 
                 ? `Are you sure you want to suspend the membership of ${actionConfirm.member?.name}? They will not be able to borrow books until unsuspended.`
                 : `Are you sure you want to activate the membership of ${actionConfirm.member?.name}? They will regain full borrowing privileges.`
@@ -492,10 +574,28 @@ const Members = () => {
         confirmText={
           actionConfirm.type === 'clear_fine' 
             ? 'Clear Fine' 
+            : actionConfirm.type === 'delete'
+            ? 'Delete Permanently'
+            : actionConfirm.type === 'archive'
+            ? (actionConfirm.member?.isArchived ? 'Restore Member' : 'Archive Member')
             : (actionConfirm.member?.isActive ? 'Suspend Member' : 'Activate Member')
         }
-        isDestructive={actionConfirm.type === 'suspend' && actionConfirm.member?.isActive}
-        requiresReason={actionConfirm.type === 'suspend' && actionConfirm.member?.isActive}
+        isDestructive={
+          actionConfirm.type === 'delete' ||
+          (actionConfirm.type === 'suspend' && actionConfirm.member?.isActive) ||
+          (actionConfirm.type === 'archive' && !actionConfirm.member?.isArchived)
+        }
+        requiresReason={
+          (actionConfirm.type === 'suspend' && actionConfirm.member?.isActive) ||
+          (actionConfirm.type === 'archive' && !actionConfirm.member?.isArchived)
+        }
+      />
+
+      <BatchArchiveModal
+        isOpen={isBatchArchiveOpen}
+        onClose={() => setIsBatchArchiveOpen(false)}
+        batch={activeBatch}
+        onComplete={refetch}
       />
     </div>
   );

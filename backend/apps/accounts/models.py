@@ -94,6 +94,15 @@ class CustomUser(AbstractUser):
     # Address info
     address = models.TextField(blank=True)
 
+    # Archival fields
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Designates whether this member has graduated or been archived."
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archive_reason = models.CharField(max_length=255, blank=True, null=True)
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

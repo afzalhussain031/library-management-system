@@ -168,6 +168,10 @@ class MemberListSerializer(CustomUserProfileSerializer):
     pending_fines = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     membership_valid_till = serializers.DateField(source='membership.valid_till', read_only=True)
     membership_id = serializers.CharField(source='membership.membership_id', read_only=True)
+    is_archived = serializers.BooleanField(read_only=True)
+    archived_at = serializers.DateTimeField(read_only=True)
+    archive_reason = serializers.CharField(read_only=True)
+    can_hard_delete = serializers.SerializerMethodField()
 
     class Meta(CustomUserProfileSerializer.Meta):
         fields = CustomUserProfileSerializer.Meta.fields + [
@@ -175,16 +179,31 @@ class MemberListSerializer(CustomUserProfileSerializer):
             "total_borrowed",
             "pending_fines",
             "membership_valid_till",
-            "membership_id"
+            "membership_id",
+            "is_archived",
+            "archived_at",
+            "archive_reason",
+            "can_hard_delete",
         ]
+
+    def get_can_hard_delete(self, obj):
+        return not obj.loans.exists() and not obj.reservations.exists()
 
 
 class CustomUserUpdateSerializer(serializers.ModelSerializer):
-    """Update user profile (limited fields)"""
+    """Update user profile (supports standard model fields and frontend aliases)"""
+    name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    branch = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    year = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = CustomUser
         fields = [
+            "name",
+            "phone",
+            "branch",
+            "year",
             "email",
             "first_name",
             "last_name",
@@ -200,6 +219,27 @@ class CustomUserUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "email": {"required": False},
         }
+
+    def update(self, instance, validated_data):
+        # Map frontend convenience fields if supplied
+        if "name" in validated_data:
+            name_val = validated_data.pop("name", "").strip()
+            if instance.role == "student":
+                instance.student_name = name_val
+            parts = name_val.split(" ", 1)
+            instance.first_name = parts[0]
+            instance.last_name = parts[1] if len(parts) > 1 else ""
+
+        if "phone" in validated_data:
+            validated_data["phone_number"] = validated_data.pop("phone")
+
+        if "branch" in validated_data:
+            validated_data["department"] = validated_data.pop("branch")
+
+        if "year" in validated_data:
+            validated_data["batch"] = validated_data.pop("year")
+
+        return super().update(instance, validated_data)
 
 
 # ===== PASSWORD CHANGE SERIALIZER =====

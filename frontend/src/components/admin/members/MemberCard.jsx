@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Activity, DollarSign, Ban, CheckCircle, Phone, Building, GraduationCap } from 'lucide-react';
+import { MoreVertical, Edit2, Activity, DollarSign, Ban, CheckCircle, Phone, Building, GraduationCap, Archive, Trash2 } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 
-const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSuspend }) => {
+const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSuspend, onArchive, onDelete }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -24,14 +24,18 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
   const handleAction = (e, action) => {
     e.stopPropagation();
     setIsMenuOpen(false);
-    action(member);
+    if (action) action(member);
   };
 
   return (
     <div 
       onClick={onClick}
       className={`flex flex-col relative w-full max-w-[280px] h-full rounded-[18px] bg-white border ${
-        !member.isActive ? 'border-red-200/80 bg-red-50/10' : 'border-gray-100/50'
+        member.isArchived
+          ? 'border-amber-200/80 bg-amber-50/10'
+          : !member.isActive
+            ? 'border-red-200/80 bg-red-50/10'
+            : 'border-gray-100/50'
       } backdrop-blur-[25px] p-5 mx-auto cursor-pointer hover:scale-[1.03] hover:shadow-md transition-all duration-300 group`}
       style={{
         boxShadow: '0px 12px 35px 0px #0000000C',
@@ -68,24 +72,54 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
                 <DollarSign size={14} /> Clear Fine
               </button>
             )}
+            
             <div className="h-px bg-gray-100 my-1"></div>
+
+            {/* Suspend / Activate (Only if not archived) */}
+            {!member.isArchived && (
+              <button 
+                onClick={(e) => handleAction(e, onSuspend)}
+                className={`w-full text-left px-4 py-2 text-[13px] font-medium flex items-center gap-2 ${
+                  member.isActive 
+                    ? 'text-red-600 hover:bg-red-50' 
+                    : 'text-emerald-600 hover:bg-emerald-50'
+                }`}
+              >
+                {member.isActive ? (
+                  <>
+                    <Ban size={14} /> Suspend Member
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={14} /> Activate Member
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Archive / Restore Member */}
             <button 
-              onClick={(e) => handleAction(e, onSuspend)}
+              onClick={(e) => handleAction(e, onArchive)}
               className={`w-full text-left px-4 py-2 text-[13px] font-medium flex items-center gap-2 ${
-                member.isActive 
-                  ? 'text-red-600 hover:bg-red-50' 
-                  : 'text-emerald-600 hover:bg-emerald-50'
+                member.isArchived
+                  ? 'text-emerald-600 hover:bg-emerald-50'
+                  : 'text-amber-600 hover:bg-amber-50'
               }`}
             >
-              {member.isActive ? (
-                <>
-                  <Ban size={14} /> Suspend Member
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={14} /> Activate Member
-                </>
-              )}
+              <Archive size={14} /> {member.isArchived ? 'Restore Member' : 'Archive Member'}
+            </button>
+
+            {/* Delete Account */}
+            <button 
+              onClick={(e) => handleAction(e, onDelete)}
+              className={`w-full text-left px-4 py-2 text-[13px] font-medium flex items-center gap-2 border-t border-gray-100 ${
+                member.canHardDelete 
+                  ? 'text-red-600 hover:bg-red-50' 
+                  : 'text-gray-400 hover:bg-gray-50'
+              }`}
+              title={member.canHardDelete ? 'Permanently Delete Member' : 'Circulation records exist (Archive recommended)'}
+            >
+              <Trash2 size={14} /> Delete Account
             </button>
           </div>
         )}
@@ -103,11 +137,15 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
             <h3 className="font-bold text-[#1C2434] text-[15px] leading-tight group-hover:text-[#F6BE0A] transition-colors duration-300 truncate max-w-[120px]" title={member.name}>
               {member.name}
             </h3>
-            {!member.isActive && (
+            {member.isArchived ? (
+              <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
+                Archived
+              </span>
+            ) : !member.isActive ? (
               <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 rounded-md">
                 Suspended
               </span>
-            )}
+            ) : null}
           </div>
           <p className="text-[#A0ABC0] text-[12px] mt-0.5 font-medium">{member.enr}</p>
         </div>
@@ -129,43 +167,66 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
         </div>
       </div>
 
-      {/* Tags Bottom */}
-      <div className="mt-4 flex flex-col gap-2">
-        <div 
-          className="w-fit h-[22px] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
-          style={{
-            background: 'var(--color-orange-65, #E0C36E)',
-            padding: '0 10px',
-          }}
-        >
-          <div className="flex gap-[1.5px] mr-1.5 items-end h-[10px]">
-            <div className="w-[2.5px] h-full bg-[#4FC9E0] rounded-[1px]" />
-            <div className="w-[2.5px] h-[80%] bg-[#F06A6A] rounded-[1px]" />
-            <div className="w-[2.5px] h-[60%] bg-[#5D5D5D] rounded-[1px]" />
+      {/* Bottom Section: Tags + Direct Quick Action Button */}
+      <div className="mt-4 flex items-end justify-between gap-2">
+        <div className="flex flex-col gap-2">
+          <div 
+            className="w-fit h-[22px] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+            style={{
+              background: 'var(--color-orange-65, #E0C36E)',
+              padding: '0 10px',
+            }}
+          >
+            <div className="flex gap-[1.5px] mr-1.5 items-end h-[10px]">
+              <div className="w-[2.5px] h-full bg-[#4FC9E0] rounded-[1px]" />
+              <div className="w-[2.5px] h-[80%] bg-[#F06A6A] rounded-[1px]" />
+              <div className="w-[2.5px] h-[60%] bg-[#5D5D5D] rounded-[1px]" />
+            </div>
+            {member.borrowed} Borrowed
           </div>
-          {member.borrowed} Borrowed
+          {member.fine > 0 ? (
+            <div 
+              className="w-fit h-[22px] rounded-full flex items-center justify-center text-[10px] font-bold text-[#D97736]"
+              style={{
+                background: '#FCE1D4',
+                padding: '0 10px',
+              }}
+            >
+              ₹{member.fine} Pending Fine
+            </div>
+          ) : (
+            <div 
+              className="w-fit h-[22px] rounded-full flex items-center justify-center text-[10px] font-bold text-[#2ecc71]"
+              style={{
+                background: 'var(--color-spring-green-4915, #2ECC7126)',
+                padding: '0 10px',
+              }}
+            >
+              No Pending Fine
+            </div>
+          )}
         </div>
-        {member.fine > 0 ? (
-          <div 
-            className="w-fit h-[22px] rounded-full flex items-center justify-center text-[10px] font-bold text-[#D97736]"
-            style={{
-              background: '#FCE1D4',
-              padding: '0 10px',
-            }}
-          >
-            ₹{member.fine} Pending Fine
-          </div>
-        ) : (
-          <div 
-            className="w-fit h-[22px] rounded-full flex items-center justify-center text-[10px] font-bold text-[#2ecc71]"
-            style={{
-              background: 'var(--color-spring-green-4915, #2ECC7126)',
-              padding: '0 10px',
-            }}
-          >
-            No Pending Fine
-          </div>
-        )}
+
+        {/* Quick Delete Action (Bottom-Right on hover) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onDelete) onDelete(member);
+          }}
+          title={
+            member.canHardDelete
+              ? 'Permanently Delete Member'
+              : 'Cannot delete: Circulation history exists. Use Archive instead.'
+          }
+          className={`p-2 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm ${
+            member.canHardDelete
+              ? 'text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 border border-gray-100 hover:border-red-200 active:scale-95'
+              : 'text-gray-300 bg-gray-50/50 hover:bg-gray-100 border border-gray-100 cursor-help'
+          }`}
+        >
+          <Trash2 size={15} />
+        </button>
       </div>
     </div>
   );

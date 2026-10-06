@@ -7,6 +7,7 @@ from django.core.mail import send_mail
 from django.db.models import Count, Sum, Q
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -225,6 +226,18 @@ class MemberListView(generics.ListAPIView):
         )
 
 
+class MemberDetailUpdateView(generics.RetrieveUpdateAPIView):
+    """Allows staff or librarians to retrieve and update any member's details."""
+    permission_classes = [IsAuthenticated]
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserUpdateSerializer
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user.role not in ['librarian', 'superadmin'] and not request.user.is_staff:
+            raise PermissionDenied("Permission denied. Only staff or librarians can view or edit member details.")
+
+
 class MemberToggleStatusView(APIView):
     """Toggle is_active status of a member (suspend or activate)."""
     permission_classes = [IsAuthenticated]
@@ -252,6 +265,188 @@ class MemberToggleStatusView(APIView):
             "id": target_user.id,
             "is_active": target_user.is_active,
             "message": f"Member {target_user.user_id} has been {action} successfully."
+        }, status=status.HTTP_200_OK)
+
+
+class MemberHardDeleteView(APIView):
+    """Permanently delete a member if they have zero loans, reservations, or fines."""
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        if request.user.role not in ['librarian', 'superadmin'] and not request.user.is_staff:
+            return Response(
+                {"detail": "Permission denied. Only staff or librarians can delete members."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            target_user = CustomUser.objects.get(pk=pk)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if target_user == request.user:
+            return Response({"detail": "You cannot delete your own account."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Safety check: does the user have any loan history or reservations?
+        if target_user.loans.exists():
+            return Response(
+                {"detail": "Cannot permanently delete: Member has circulation history in the system. Use Archival instead to preserve records."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if target_user.reservations.exists():
+            return Response(
+                {"detail": "Cannot permanently delete: Member has reservation history. Use Archival instead."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user_display = target_user.user_id
+        target_user.delete()
+
+        return Response(
+            {"message": f"Member {user_display} was permanently deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+
+
+class MemberArchiveView(APIView):
+    """Toggles archival status of a member with Clearance checks."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if request.user.role not in ['librarian', 'superadmin'] and not request.user.is_staff:
+            return Response(
+                {"detail": "Permission denied. Only staff or librarians can archive members."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            target_user = CustomUser.objects.get(pk=pk)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if target_user == request.user:
+            return Response({"detail": "You cannot archive your own account."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If already archived, allow un-archiving / restoration
+        if target_user.is_archived:
+            target_user.is_archived = False
+            target_user.is_active = True
+            target_user.archived_at = None
+            target_user.archive_reason = None
+            target_user.save(update_fields=['is_archived', 'is_active', 'archived_at', 'archive_reason'])
+            return Response({
+                "id": target_user.id,
+                "is_archived": False,
+                "message": f"Member {target_user.user_id} has been restored from archive."
+            }, status=status.HTTP_200_OK)
+
+        # Clearance Check 1: Unreturned books
+        has_active_loans = target_user.loans.filter(returned_at__isnull=True).exists()
+        if has_active_loans:
+            return Response(
+                {"detail": f"Cannot archive: Member {target_user.user_id} currently holds unreturned borrowed books."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Clearance Check 2: Unpaid pending fines
+        has_pending_fines = target_user.loans.filter(fine__status='pending').exists()
+        if has_pending_fines:
+            return Response(
+                {"detail": f"Cannot archive: Member {target_user.user_id} has unpaid pending fines."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Clear active reservations so books can be allocated to other waiting members
+        target_user.reservations.filter(status__in=['pending', 'ready']).update(status='cancelled')
+
+        reason = request.data.get('reason', 'Graduated / Left Institution')
+        target_user.is_archived = True
+        target_user.is_active = False
+        target_user.archived_at = timezone.now()
+        target_user.archive_reason = reason
+        target_user.save(update_fields=['is_archived', 'is_active', 'archived_at', 'archive_reason'])
+
+        return Response({
+            "id": target_user.id,
+            "is_archived": True,
+            "message": f"Member {target_user.user_id} has been archived successfully."
+        }, status=status.HTTP_200_OK)
+
+
+class BatchArchiveView(APIView):
+    """Bulk archives students in a specific batch with Clearance verification."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role not in ['librarian', 'superadmin'] and not request.user.is_staff:
+            return Response(
+                {"detail": "Permission denied. Only staff or librarians can perform batch archival."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        batch = request.data.get('batch')
+        reason = request.data.get('reason', f"Batch {batch} Graduation")
+        if not batch:
+            return Response({"detail": "Batch parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        students = CustomUser.objects.filter(role='student', batch=batch, is_archived=False)
+        total_students = students.count()
+
+        if total_students == 0:
+            return Response(
+                {"detail": f"No active/unarchived students found in batch '{batch}'."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        from apps.circulation.models import Loan, Reservation
+        from apps.billing.models import Fine
+
+        # Find defaulter IDs directly from actual unreturned loans and pending fines
+        unreturned_borrower_ids = set(
+            Loan.objects.filter(borrower__in=students, returned_at__isnull=True).values_list('borrower_id', flat=True)
+        )
+        unpaid_fine_borrower_ids = set(
+            Fine.objects.filter(loan__borrower__in=students, status='pending').values_list('loan__borrower_id', flat=True)
+        )
+        defaulter_ids = unreturned_borrower_ids.union(unpaid_fine_borrower_ids)
+        defaulter_users = students.filter(id__in=defaulter_ids)
+
+        # Prepare detailed defaulters info for the frontend report
+        defaulters_list = []
+        for d in defaulter_users:
+            unreturned_count = d.loans.filter(returned_at__isnull=True).count()
+            unpaid_fines_sum = d.loans.filter(fine__status='pending').aggregate(total=Sum('fine__amount'))['total'] or Decimal('0.00')
+            defaulters_list.append({
+                "id": d.id,
+                "user_id": d.user_id,
+                "name": d.student_name or f"{d.first_name} {d.last_name}".strip() or d.user_id,
+                "department": d.department or "N/A",
+                "unreturned_books": unreturned_count,
+                "pending_fines": str(unpaid_fines_sum)
+            })
+
+        # Bulk archive cleared students
+        cleared_students_qs = students.exclude(id__in=defaulter_ids)
+        cleared_ids = list(cleared_students_qs.values_list('id', flat=True))
+
+        cleared_count = cleared_students_qs.update(
+            is_archived=True,
+            is_active=False,
+            archived_at=timezone.now(),
+            archive_reason=reason
+        )
+
+        # Cancel pending reservations for all newly archived students
+        Reservation.objects.filter(user_id__in=cleared_ids, status__in=['pending', 'ready']).update(status='cancelled')
+
+        return Response({
+            "batch": batch,
+            "total_processed": total_students,
+            "archived_count": cleared_count,
+            "defaulters_count": len(defaulters_list),
+            "defaulters": defaulters_list,
+            "message": f"Archived {cleared_count} students from batch {batch}. {len(defaulters_list)} students were skipped due to outstanding dues."
         }, status=status.HTTP_200_OK)
 
 # =========================================================================

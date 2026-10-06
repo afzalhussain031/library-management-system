@@ -14,7 +14,11 @@ from .views import (
     StaffCreateView,
     UserProfileView,
     MemberListView,
+    MemberDetailUpdateView,
     MemberToggleStatusView,
+    MemberHardDeleteView,
+    MemberArchiveView,
+    BatchArchiveView,
     DepartmentListCreateView,
 )
 
@@ -24,7 +28,11 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", UserProfileView.as_view(), name="user-profile"),
     path("members/", MemberListView.as_view(), name="member-list"),
+    path("members/<int:pk>/", MemberDetailUpdateView.as_view(), name="member-detail-update"),
     path("members/<int:pk>/toggle-status/", MemberToggleStatusView.as_view(), name="member-toggle-status"),
+    path("members/<int:pk>/delete/", MemberHardDeleteView.as_view(), name="member-hard-delete"),
+    path("members/<int:pk>/archive/", MemberArchiveView.as_view(), name="member-archive"),
+    path("members/batch-archive/", BatchArchiveView.as_view(), name="member-batch-archive"),
     path("me/", CurrentUserView.as_view(), name="current-user"),
     path("me/password/", PasswordChangeView.as_view(), name="password-change"),
     path("me/dashboard/", DashboardView.as_view(), name="dashboard"),

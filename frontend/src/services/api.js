@@ -57,7 +57,11 @@ export const profile = {
 export const membersApi = {
   getAll: () => client.get('/members/'),
   createMember: (data) => client.post('/register/', data),
+  updateMember: (id, data) => client.patch(`/members/${id}/`, data),
   toggleStatus: (id, reason) => client.post(`/members/${id}/toggle-status/`, { reason }),
+  archiveMember: (id, reason) => client.post(`/members/${id}/archive/`, { reason }),
+  deleteMember: (id) => client.delete(`/members/${id}/delete/`),
+  batchArchive: (batch, reason) => client.post('/members/batch-archive/', { batch, reason }),
 }
 
 // ===================== DEPARTMENTS =====================
