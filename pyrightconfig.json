@@ -1,0 +1,17 @@
+{
+  "include": [
+    "backend"
+  ],
+  "extraPaths": [
+    "backend"
+  ],
+  "reportAttributeAccessIssue": "none",
+  "reportIncompatibleMethodOverride": "none",
+  "reportIndexIssue": "none",
+  "reportOptionalSubscript": "none",
+  "reportInvalidTypeArguments": "none",
+  "reportReturnType": "none",
+  "reportAssignmentType": "none",
+  "reportPossiblyUnboundVariable": "none",
+  "reportPrivateImportUsage": "none"
+}

@@ -15,6 +15,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -281,7 +282,7 @@ class DashboardView(APIView):
 
         pending_fines = (
             Fine.objects.filter(loan__borrower=user, status="pending").aggregate(
-                total=models.Sum("amount")
+                total=Sum("amount")
             )["total"]
             or 0
         )
