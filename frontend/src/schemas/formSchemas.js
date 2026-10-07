@@ -44,13 +44,11 @@ export const signupSchema = z.object({
 
   department: z
     .string()
-    .optional()
-    .default(''),
+    .min(1, 'Department is required'),
 
   batch: z
     .string()
-    .optional()
-    .default(''),
+    .min(1, 'Batch Year is required'),
 
   password: z
     .string()
@@ -98,13 +96,11 @@ export const addMemberSchema = z.object({
 
   department: z
     .string()
-    .optional()
-    .default(''),
+    .min(1, 'Department is required'),
 
   batch: z
     .string()
-    .optional()
-    .default(''),
+    .min(1, 'Graduation batch is required'),
 
   password: z
     .string()

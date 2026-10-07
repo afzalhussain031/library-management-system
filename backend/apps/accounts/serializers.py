@@ -34,10 +34,21 @@ class CustomUserRegistrationSerializer(serializers.ModelSerializer):
             "first_name": {"required": False},
             "last_name": {"required": False},
             "student_name": {"required": False},
-            "batch": {"required": False},
+            "batch": {"required": True, "allow_blank": False},
+            "department": {"required": True, "allow_blank": False},
             "email": {"required": True},
             "role": {"required": False},
         }
+
+    def validate_department(self, value):
+        if not value or not str(value).strip():
+            raise serializers.ValidationError("Department is required")
+        return str(value).strip()
+
+    def validate_batch(self, value):
+        if not value or not str(value).strip():
+            raise serializers.ValidationError("Batch Year is required")
+        return str(value).strip()
 
     def validate_user_id(self, value):
         """Validate user_id format and uniqueness"""

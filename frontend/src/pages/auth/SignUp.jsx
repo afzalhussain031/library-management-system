@@ -260,7 +260,7 @@ export default function SignUp() {
                       }`}
                       disabled={isSubmitting}
                     >
-                      <option value="">Department</option>
+                      <option value="">Department *</option>
                       {departmentList.map((dept) => (
                         <option key={dept} value={dept}>{dept}</option>
                       ))}
@@ -282,7 +282,7 @@ export default function SignUp() {
                       }`}
                       disabled={isSubmitting}
                     >
-                      <option value="">Batch Year</option>
+                      <option value="">Batch Year *</option>
                       {BATCHES.map((batch) => (
                         <option key={batch} value={batch}>{batch}</option>
                       ))}
