@@ -1,8 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Activity, DollarSign, Ban, CheckCircle, Phone, Building, GraduationCap, Archive, Trash2 } from 'lucide-react';
+import { MoreVertical, Edit2, Activity, DollarSign, Ban, CheckCircle, Phone, Building, GraduationCap, Archive, Trash2, Check } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 
-const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSuspend, onArchive, onDelete }) => {
+const MemberCard = ({ 
+  member, 
+  onClick, 
+  onEdit, 
+  onViewActivity, 
+  onClearFine, 
+  onSuspend, 
+  onArchive, 
+  onDelete,
+  isSelected = false,
+  onToggleSelect,
+  selectionMode = false,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -31,21 +43,48 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
     <div 
       onClick={onClick}
       className={`flex flex-col relative w-full max-w-[280px] h-full rounded-[18px] bg-white border ${
-        member.isArchived
+        isMenuOpen ? 'z-30' : 'z-0'
+      } ${
+        isSelected
+          ? 'border-[#F6BE0A] ring-2 ring-[#F6BE0A] bg-amber-50/25'
+          : member.isArchived
           ? 'border-amber-200/80 bg-amber-50/10'
           : !member.isActive
             ? 'border-red-200/80 bg-red-50/10'
             : 'border-gray-100/50'
       } backdrop-blur-[25px] p-5 mx-auto cursor-pointer hover:scale-[1.03] hover:shadow-md transition-all duration-300 group`}
       style={{
-        boxShadow: '0px 12px 35px 0px #0000000C',
+        boxShadow: isSelected ? '0px 12px 35px 0px rgba(246, 190, 10, 0.2)' : '0px 12px 35px 0px #0000000C',
       }}
     >
+      {/* Top left Selection Checkbox */}
+      <div 
+        className={`absolute top-3.5 left-3.5 z-10 transition-all duration-200 ${
+          isSelected || selectionMode ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100'
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onToggleSelect) onToggleSelect(member);
+        }}
+      >
+        <button 
+          type="button"
+          className={`w-5 h-5 rounded-md flex items-center justify-center transition-all cursor-pointer border ${
+            isSelected
+              ? 'bg-[#F6BE0A] border-[#F6BE0A] text-slate-900 shadow-sm'
+              : 'bg-white/95 border-gray-300 hover:border-[#F6BE0A] text-transparent shadow-sm'
+          }`}
+          title={isSelected ? 'Deselect member' : 'Select member'}
+        >
+          <Check size={12} className={isSelected ? 'stroke-[3.5]' : 'opacity-0'} />
+        </button>
+      </div>
+
       {/* Top right Actions Menu */}
       <div className="absolute top-4 right-4 z-10" ref={menuRef}>
         <button 
           onClick={handleMenuClick}
-          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+          className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
         >
           <MoreVertical size={16} />
         </button>

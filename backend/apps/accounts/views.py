@@ -449,6 +449,195 @@ class BatchArchiveView(APIView):
             "message": f"Archived {cleared_count} students from batch {batch}. {len(defaulters_list)} students were skipped due to outstanding dues."
         }, status=status.HTTP_200_OK)
 
+
+class MemberBulkActionView(APIView):
+    """
+    Performs bulk administrative operations on multiple selected members:
+    - 'suspend': Deactivates accounts
+    - 'activate': Activates accounts
+    - 'archive': Archives accounts (with clearance verification)
+    - 'restore': Restores accounts from archive
+    - 'delete': Permanently deletes members without circulation history
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role not in ['librarian', 'superadmin'] and not request.user.is_staff:
+            return Response(
+                {"detail": "Permission denied. Only staff or librarians can perform bulk actions."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        member_ids = request.data.get("member_ids", [])
+        action = request.data.get("action")
+        reason = request.data.get("reason", "Bulk administrative action")
+
+        if not member_ids or not isinstance(member_ids, list):
+            return Response({"detail": "member_ids must be a non-empty list of IDs."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not action:
+            return Response({"detail": "action parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_users = CustomUser.objects.filter(id__in=member_ids).exclude(id=request.user.id)
+        if not target_users.exists():
+            return Response({"detail": "No valid members found to process."}, status=status.HTTP_404_NOT_FOUND)
+
+        total_requested = len(member_ids)
+
+        if action == "suspend":
+            count = target_users.update(is_active=False)
+            return Response({
+                "action": "suspend",
+                "message": f"{count} member(s) suspended successfully.",
+                "total_requested": total_requested,
+                "success_count": count,
+                "skipped_count": 0,
+                "skipped_members": []
+            }, status=status.HTTP_200_OK)
+
+        elif action == "activate":
+            count = target_users.update(is_active=True)
+            return Response({
+                "action": "activate",
+                "message": f"{count} member(s) activated successfully.",
+                "total_requested": total_requested,
+                "success_count": count,
+                "skipped_count": 0,
+                "skipped_members": []
+            }, status=status.HTTP_200_OK)
+
+        elif action == "restore":
+            to_restore = target_users.filter(is_archived=True)
+            already_active = target_users.filter(is_archived=False)
+            count = to_restore.update(
+                is_archived=False,
+                is_active=True,
+                archived_at=None,
+                archive_reason=None
+            )
+            skipped_list = []
+            for u in already_active:
+                skipped_list.append({
+                    "id": u.id,
+                    "user_id": u.user_id,
+                    "name": u.student_name or f"{u.first_name} {u.last_name}".strip() or u.user_id,
+                    "department": u.department or "N/A",
+                    "reason": "Already active (not archived)"
+                })
+            return Response({
+                "action": "restore",
+                "message": f"{count} member(s) restored from archive.",
+                "total_requested": total_requested,
+                "success_count": count,
+                "skipped_count": len(skipped_list),
+                "skipped_members": skipped_list
+            }, status=status.HTTP_200_OK)
+
+        elif action == "archive":
+            from apps.circulation.models import Loan, Reservation
+            from apps.billing.models import Fine
+
+            unreturned_borrower_ids = set(
+                Loan.objects.filter(borrower__in=target_users, returned_at__isnull=True).values_list('borrower_id', flat=True)
+            )
+            unpaid_fine_borrower_ids = set(
+                Fine.objects.filter(loan__borrower__in=target_users, status='pending').values_list('loan__borrower_id', flat=True)
+            )
+            defaulter_ids = unreturned_borrower_ids.union(unpaid_fine_borrower_ids)
+            defaulter_users = target_users.filter(id__in=defaulter_ids)
+
+            skipped_list = []
+            for d in defaulter_users:
+                unreturned_count = d.loans.filter(returned_at__isnull=True).count()
+                unpaid_fines_sum = d.loans.filter(fine__status='pending').aggregate(total=Sum('fine__amount'))['total'] or Decimal('0.00')
+                reasons = []
+                if unreturned_count > 0:
+                    reasons.append(f"{unreturned_count} unreturned book(s)")
+                if unpaid_fines_sum > 0:
+                    reasons.append(f"₹{unpaid_fines_sum} pending fine")
+                skipped_list.append({
+                    "id": d.id,
+                    "user_id": d.user_id,
+                    "name": d.student_name or f"{d.first_name} {d.last_name}".strip() or d.user_id,
+                    "department": d.department or "N/A",
+                    "unreturned_books": unreturned_count,
+                    "pending_fines": str(unpaid_fines_sum),
+                    "reason": " & ".join(reasons) or "Outstanding circulation dues"
+                })
+
+            cleared_users = target_users.exclude(id__in=defaulter_ids)
+            cleared_ids = list(cleared_users.values_list('id', flat=True))
+
+            cleared_count = cleared_users.update(
+                is_archived=True,
+                is_active=False,
+                archived_at=timezone.now(),
+                archive_reason=reason
+            )
+
+            Reservation.objects.filter(user_id__in=cleared_ids, status__in=['pending', 'ready']).update(status='cancelled')
+
+            msg = f"{cleared_count} member(s) archived successfully."
+            if skipped_list:
+                msg += f" {len(skipped_list)} member(s) were skipped due to outstanding dues."
+
+            return Response({
+                "action": "archive",
+                "message": msg,
+                "total_requested": total_requested,
+                "success_count": cleared_count,
+                "archived_count": cleared_count,
+                "skipped_count": len(skipped_list),
+                "skipped_members": skipped_list
+            }, status=status.HTTP_200_OK)
+
+        elif action == "delete":
+            from apps.circulation.models import Loan, Reservation
+            users_with_loans = set(Loan.objects.filter(borrower__in=target_users).values_list('borrower_id', flat=True))
+            users_with_reservations = set(Reservation.objects.filter(user__in=target_users).values_list('user_id', flat=True))
+            ineligible_ids = users_with_loans.union(users_with_reservations)
+
+            ineligible_users = target_users.filter(id__in=ineligible_ids)
+            skipped_list = []
+            for u in ineligible_users:
+                has_loans = u.id in users_with_loans
+                has_res = u.id in users_with_reservations
+                reasons = []
+                if has_loans:
+                    reasons.append("Loan circulation history exists")
+                if has_res:
+                    reasons.append("Active reservation exists")
+                reason_str = ", ".join(reasons) + " (Archival recommended)"
+                skipped_list.append({
+                    "id": u.id,
+                    "user_id": u.user_id,
+                    "name": u.student_name or f"{u.first_name} {u.last_name}".strip() or u.user_id,
+                    "department": u.department or "N/A",
+                    "reason": reason_str,
+                    "suggestArchive": True
+                })
+
+            deletable_users = target_users.exclude(id__in=ineligible_ids)
+            delete_count = deletable_users.count()
+            deletable_users.delete()
+
+            msg = f"{delete_count} member(s) deleted permanently."
+            if skipped_list:
+                msg += f" {len(skipped_list)} member(s) could not be deleted because circulation records exist."
+
+            return Response({
+                "action": "delete",
+                "message": msg,
+                "total_requested": total_requested,
+                "success_count": delete_count,
+                "deleted_count": delete_count,
+                "skipped_count": len(skipped_list),
+                "skipped_members": skipped_list
+            }, status=status.HTTP_200_OK)
+
+        else:
+            return Response({"detail": f"Unknown action '{action}'."}, status=status.HTTP_400_BAD_REQUEST)
+
 # =========================================================================
 # 📊 METRICS & DASHBOARD DATA VIEWS
 # =========================================================================

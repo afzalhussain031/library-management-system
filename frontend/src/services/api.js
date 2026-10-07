@@ -62,6 +62,7 @@ export const membersApi = {
   archiveMember: (id, reason) => client.post(`/members/${id}/archive/`, { reason }),
   deleteMember: (id) => client.delete(`/members/${id}/delete/`),
   batchArchive: (batch, reason) => client.post('/members/batch-archive/', { batch, reason }),
+  bulkAction: (data) => client.post('/members/bulk-action/', data),
 }
 
 // ===================== DEPARTMENTS =====================

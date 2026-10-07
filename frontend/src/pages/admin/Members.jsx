@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader, AlertTriangle, Archive, Trash2 } from 'lucide-react';
+import { Search, ChevronDown, Plus, GraduationCap, Calendar, Loader, AlertTriangle, Archive, Trash2, CheckSquare, Square, CheckCircle, RotateCcw, Ban, X } from 'lucide-react';
 import MemberCard from '../../components/admin/members/MemberCard';
 import MemberCardSkeleton from '../../components/admin/members/MemberCardSkeleton';
 import MemberDetailsModal from '../../components/admin/members/MemberDetailsModal';
@@ -8,6 +8,7 @@ import AddMemberModal from '../../components/admin/members/AddMemberModal';
 import EditMemberDrawer from '../../components/admin/members/EditMemberDrawer';
 import ActionConfirmDialog from '../../components/common/ActionConfirmDialog';
 import BatchArchiveModal from '../../components/admin/members/BatchArchiveModal';
+import BulkExecutionSummaryModal from '../../components/admin/members/BulkExecutionSummaryModal';
 import { membersApi } from '../../services/api';
 import { useApi } from '../../hook/useApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
@@ -37,6 +38,12 @@ const Members = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBatchArchiveOpen, setIsBatchArchiveOpen] = useState(false);
   
+  // Multi-selection states
+  const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+  const [bulkExecutionReport, setBulkExecutionReport] = useState(null);
+  const [isBulkExecutionModalOpen, setIsBulkExecutionModalOpen] = useState(false);
+
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [actionConfirm, setActionConfirm] = useState({
@@ -203,6 +210,8 @@ const Members = () => {
         console.error('Failed to delete member:', error);
         toast.error(error.response?.data?.detail || 'Failed to delete member.');
       }
+    } else if (type === 'bulk_delete') {
+      await handleBulkAction('delete');
     }
   };
   
@@ -231,6 +240,52 @@ const Members = () => {
     return matchesSearch && matchesBranch && matchesBatch && matchesTab && matchesStatus && matchesFines;
   });
 
+  // Multi-selection Handlers
+  const handleToggleSelectMember = (member) => {
+    setSelectedMemberIds(prev => 
+      prev.includes(member.id) ? prev.filter(id => id !== member.id) : [...prev, member.id]
+    );
+  };
+
+  const isAllSelected = filteredMembers.length > 0 && selectedMemberIds.length === filteredMembers.length;
+  const isSomeSelected = selectedMemberIds.length > 0 && selectedMemberIds.length < filteredMembers.length;
+
+  const handleSelectAllVisible = () => {
+    if (isAllSelected) {
+      setSelectedMemberIds([]);
+    } else {
+      setSelectedMemberIds(filteredMembers.map(m => m.id));
+    }
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedMemberIds([]);
+  };
+
+  const handleBulkAction = async (action, customReason = '', overrideIds = null) => {
+    const idsToProcess = overrideIds || selectedMemberIds;
+    if (idsToProcess.length === 0) return;
+
+    setIsBulkActionLoading(true);
+    try {
+      const res = await membersApi.bulkAction({
+        member_ids: idsToProcess,
+        action,
+        reason: customReason || `Bulk action: ${action}`
+      });
+      // Set detailed execution report and display the modal instead of a brief toast
+      setBulkExecutionReport(res.data);
+      setIsBulkExecutionModalOpen(true);
+      setSelectedMemberIds([]);
+      refetch();
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+      toast.error(error.response?.data?.detail || 'Failed to perform bulk action.');
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
   return (
     <div className="px-0 py-0 sm:p-0 md:p-0 space-y-6 w-full max-w-[1600px] mx-auto font-sans min-h-screen ">
       
@@ -243,7 +298,7 @@ const Members = () => {
         <div className="flex px-4 md:px-8 pt-4 border-b border-gray-100">
           <button 
             className={`pb-3 px-2 font-bold text-[15px] flex items-center gap-2 relative ${activeTab === 'Students' ? 'text-[#F6BE0A]' : 'text-gray-500'}`}
-            onClick={() => setActiveTab('Students')}
+            onClick={() => { setActiveTab('Students'); setSelectedMemberIds([]); }}
           >
             Students <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Students' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Students' ? filteredMembers.length : totalStudents}</span>
             {activeTab === 'Students' && (
@@ -252,7 +307,7 @@ const Members = () => {
           </button>
           <button 
             className={`pb-3 px-4 font-bold text-[15px] flex items-center gap-2 relative ml-6 ${activeTab === 'Faculties' ? 'text-[#F6BE0A]' : 'text-gray-500'}`}
-            onClick={() => setActiveTab('Faculties')}
+            onClick={() => { setActiveTab('Faculties'); setSelectedMemberIds([]); }}
           >
             Faculties <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'Faculties' ? 'bg-[#F6BE0A] text-white' : 'bg-gray-100 text-gray-500'}`}>{activeTab === 'Faculties' ? filteredMembers.length : totalFaculties}</span>
             {activeTab === 'Faculties' && (
@@ -440,12 +495,43 @@ const Members = () => {
               <span className="ml-2 text-sm font-semibold text-gray-600">Pending Fines Only</span>
             </label>
 
+              {/* Select All Toggle Button */}
+              {filteredMembers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleSelectAllVisible}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                    isAllSelected
+                      ? 'bg-[#F6BE0A] border-[#F6BE0A] text-slate-900 shadow-sm'
+                      : selectedMemberIds.length > 0
+                      ? 'bg-amber-50 border-amber-300 text-amber-800'
+                      : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  title={isAllSelected ? "Deselect all visible members" : "Select all visible members"}
+                >
+                  {isAllSelected ? (
+                    <CheckSquare size={13} className="text-slate-900" />
+                  ) : isSomeSelected ? (
+                    <div className="w-3 h-3 rounded-xs bg-amber-500 flex items-center justify-center text-white text-[9px] font-black leading-none">−</div>
+                  ) : (
+                    <Square size={13} className="text-gray-400" />
+                  )}
+                  <span>
+                    {isAllSelected
+                      ? `All (${filteredMembers.length})`
+                      : selectedMemberIds.length > 0
+                      ? `${selectedMemberIds.length}/${filteredMembers.length}`
+                      : `Select All`}
+                  </span>
+                </button>
+              )}
+
             <button className="flex items-center gap-2 text-sm text-gray-600 font-semibold hover:text-gray-800">
               <Calendar size={16} /> Select date range
             </button>
             <button 
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-1 px-4 py-1.5 bg-[#eef2ff] text-indigo-600 font-bold text-xs rounded-full hover:bg-indigo-100 transition-colors"
+              className="flex items-center gap-1 px-4 py-1.5 bg-[#eef2ff] text-indigo-600 font-bold text-xs rounded-full hover:bg-indigo-100 transition-colors cursor-pointer"
             >
               <Plus size={14} /> ADD MEMBER
             </button>
@@ -477,6 +563,9 @@ const Members = () => {
                 onSuspend={handleSuspendClick}
                 onArchive={handleArchiveClick}
                 onDelete={handleDeleteClick}
+                isSelected={selectedMemberIds.includes(member.id)}
+                onToggleSelect={handleToggleSelectMember}
+                selectionMode={selectedMemberIds.length > 0}
               />
             ))}
           </div>
@@ -549,7 +638,9 @@ const Members = () => {
         onClose={() => setActionConfirm({ isOpen: false, type: null, member: null })}
         onConfirm={handleActionConfirm}
         title={
-          actionConfirm.type === 'clear_fine' 
+          actionConfirm.type === 'bulk_delete'
+            ? `Permanently Delete ${selectedMemberIds.length} Members`
+            : actionConfirm.type === 'clear_fine' 
             ? 'Clear Fine' 
             : actionConfirm.type === 'delete'
             ? 'Permanently Delete Member'
@@ -558,7 +649,9 @@ const Members = () => {
             : (actionConfirm.member?.isActive ? 'Suspend Member' : 'Activate Member')
         }
         description={
-          actionConfirm.type === 'clear_fine' 
+          actionConfirm.type === 'bulk_delete'
+            ? `Are you sure you want to permanently delete these ${selectedMemberIds.length} selected members? Accounts with past or active circulation history cannot be deleted and will be preserved automatically.`
+            : actionConfirm.type === 'clear_fine' 
             ? `Are you sure you want to clear the pending fine of ₹${actionConfirm.member?.fine} for ${actionConfirm.member?.name}?` 
             : actionConfirm.type === 'delete'
             ? `Are you sure you want to permanently delete ${actionConfirm.member?.name} (${actionConfirm.member?.enr})? This account has no transaction history and will be completely removed.`
@@ -572,7 +665,9 @@ const Members = () => {
               )
         }
         confirmText={
-          actionConfirm.type === 'clear_fine' 
+          actionConfirm.type === 'bulk_delete'
+            ? 'Delete Selected'
+            : actionConfirm.type === 'clear_fine' 
             ? 'Clear Fine' 
             : actionConfirm.type === 'delete'
             ? 'Delete Permanently'
@@ -581,6 +676,7 @@ const Members = () => {
             : (actionConfirm.member?.isActive ? 'Suspend Member' : 'Activate Member')
         }
         isDestructive={
+          actionConfirm.type === 'bulk_delete' ||
           actionConfirm.type === 'delete' ||
           (actionConfirm.type === 'suspend' && actionConfirm.member?.isActive) ||
           (actionConfirm.type === 'archive' && !actionConfirm.member?.isArchived)
@@ -597,6 +693,102 @@ const Members = () => {
         batch={activeBatch}
         onComplete={refetch}
       />
+
+      <BulkExecutionSummaryModal
+        isOpen={isBulkExecutionModalOpen}
+        onClose={() => {
+          setIsBulkExecutionModalOpen(false);
+          setBulkExecutionReport(null);
+        }}
+        report={bulkExecutionReport}
+        onArchiveSkipped={(ids) => handleBulkAction('archive', 'Archived after delete safety check', ids)}
+      />
+
+      {/* Floating Bulk Actions Dock */}
+      {selectedMemberIds.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-[slideUp_0.2s_ease-out]">
+          <div className="bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-700/60 shadow-2xl flex flex-wrap items-center gap-3">
+            {/* Counter */}
+            <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
+              <span className="w-6 h-6 rounded-full bg-[#F6BE0A] text-slate-900 text-xs font-black flex items-center justify-center">
+                {selectedMemberIds.length}
+              </span>
+              <span className="text-xs font-bold text-slate-200">Selected</span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isBulkActionLoading}
+                onClick={() => handleBulkAction('suspend')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 border border-red-500/30 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                title="Suspend selected members"
+              >
+                <Ban size={13} />
+                <span>Suspend</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isBulkActionLoading}
+                onClick={() => handleBulkAction('activate')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                title="Activate selected members"
+              >
+                <CheckCircle size={13} />
+                <span>Activate</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isBulkActionLoading}
+                onClick={() => handleBulkAction('archive', 'Bulk Archival by Admin')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-amber-200 border border-amber-500/30 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                title="Archive selected members (with clearance check)"
+              >
+                <Archive size={13} />
+                <span>Archive</span>
+              </button>
+
+              {statusFilter === 'Archived' && (
+                <button
+                  type="button"
+                  disabled={isBulkActionLoading}
+                  onClick={() => handleBulkAction('restore')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-500/30 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                  title="Restore selected members from archive"
+                >
+                  <RotateCcw size={13} />
+                  <span>Restore</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                disabled={isBulkActionLoading}
+                onClick={() => setActionConfirm({ isOpen: true, type: 'bulk_delete', member: null })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-300 hover:text-red-200 border border-red-500/40 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                title="Permanently delete selected members (ineligible members with loan history will be preserved)"
+              >
+                <Trash2 size={13} />
+                <span>Delete</span>
+              </button>
+            </div>
+
+            {/* Clear Selection */}
+            <button
+              type="button"
+              disabled={isBulkActionLoading}
+              onClick={handleDeselectAll}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition ml-1 cursor-pointer"
+              title="Deselect all"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
