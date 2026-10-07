@@ -207,25 +207,17 @@ const MemberCard = ({ member, onClick, onEdit, onViewActivity, onClearFine, onSu
           )}
         </div>
 
-        {/* Quick Delete Action (Bottom-Right on hover) */}
+        {/* Quick Edit Action (Bottom-Right on hover) */}
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            if (onDelete) onDelete(member);
+            if (onEdit) onEdit(member);
           }}
-          title={
-            member.canHardDelete
-              ? 'Permanently Delete Member'
-              : 'Cannot delete: Circulation history exists. Use Archive instead.'
-          }
-          className={`p-2 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm ${
-            member.canHardDelete
-              ? 'text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 border border-gray-100 hover:border-red-200 active:scale-95'
-              : 'text-gray-300 bg-gray-50/50 hover:bg-gray-100 border border-gray-100 cursor-help'
-          }`}
+          title="Edit Member"
+          className="p-2 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm text-gray-400 hover:text-amber-600 bg-gray-50 hover:bg-amber-50 border border-gray-100 hover:border-amber-200 active:scale-95 cursor-pointer"
         >
-          <Trash2 size={15} />
+          <Edit2 size={15} />
         </button>
       </div>
     </div>
