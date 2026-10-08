@@ -142,3 +142,30 @@ class ManagementCommandTests(TestCase):
         self.assertEqual(book1.description, "Fetched command description.")
         self.assertEqual(book2.description, "Existing description.")
 
+
+class BookSerializerTests(TestCase):
+    def test_isbn_hyphen_sanitization(self):
+        from apps.catalog.serializers import BookSerializer
+        data = {
+            "title": "Engineering Mechanics",
+            "author": "R. S. Khurmi",
+            "published_date": "2002-04-05",
+            "isbn": "978-8121926164",
+        }
+        serializer = BookSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["isbn"], "9788121926164")
+
+    def test_invalid_isbn_length(self):
+        from apps.catalog.serializers import BookSerializer
+        data = {
+            "title": "Invalid ISBN Book",
+            "author": "Author",
+            "published_date": "2023-01-01",
+            "isbn": "12345",
+        }
+        serializer = BookSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("isbn", serializer.errors)
+
+

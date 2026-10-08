@@ -58,6 +58,23 @@ class BookSerializer(serializers.ModelSerializer):
         model = Book
         fields = "__all__"
 
+    def to_internal_value(self, data):
+        if hasattr(data, "_mutable"):
+            data = data.copy()
+        elif isinstance(data, dict):
+            data = dict(data)
+
+        if "isbn" in data and isinstance(data["isbn"], str):
+            data["isbn"] = data["isbn"].replace("-", "").replace(" ", "").strip()
+
+        return super().to_internal_value(data)
+
+    def validate_isbn(self, value):
+        cleaned = value.replace("-", "").replace(" ", "").strip()
+        if len(cleaned) not in [10, 13]:
+            raise serializers.ValidationError("ISBN must be either 10 or 13 digits.")
+        return cleaned
+
     # 3. Define how to calculate the fields
     def get_total_copies(self, obj):
         return len(obj.copies.all())

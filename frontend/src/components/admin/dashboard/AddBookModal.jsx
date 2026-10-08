@@ -9,10 +9,46 @@ import { toast } from "react-hot-toast";
 import Button from "../../common/Button";
 import { catalog, inventory } from "../../../services/api";
 
+const extractErrorMessage = (error, defaultMsg) => {
+  const errorData = error?.response?.data;
+  if (!errorData) return error?.message || defaultMsg;
+  if (typeof errorData === "string") return errorData;
+  if (errorData.detail) return errorData.detail;
+
+  if (errorData.isbn?.[0]) return `ISBN: ${errorData.isbn[0]}`;
+  if (errorData.accession_number?.[0]) return `Accession Number: ${errorData.accession_number[0]}`;
+  if (errorData.name?.[0]) return `Name: ${errorData.name[0]}`;
+
+  const keys = Object.keys(errorData);
+  if (keys.length > 0) {
+    const firstKey = keys[0];
+    const firstVal = errorData[firstKey];
+    const formattedKey = firstKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+    if (Array.isArray(firstVal) && firstVal.length > 0) {
+      return `${formattedKey}: ${firstVal[0]}`;
+    }
+    if (typeof firstVal === "string") {
+      return `${formattedKey}: ${firstVal}`;
+    }
+  }
+
+  return defaultMsg;
+};
+
 const newBookSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
   author: z.string().trim().min(1, "Author is required"),
-  isbn: z.string().trim().min(1, "ISBN is required"),
+  isbn: z
+    .string()
+    .trim()
+    .min(1, "ISBN is required")
+    .refine(
+      (val) => {
+        const clean = val.replace(/[-\s]/g, "");
+        return clean.length === 10 || clean.length === 13;
+      },
+      { message: "ISBN must be 10 or 13 digits (hyphens are allowed)" }
+    ),
   published_date: z.string().min(1, "Published date is required"),
   category: z
     .object({ label: z.string(), value: z.union([z.string(), z.number()]), __isNew__: z.boolean().optional() })
@@ -140,20 +176,82 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
 
       // Create Category if it's new
       if (data.category.__isNew__) {
-        const res = await catalog.createCategory({ name: data.category.label });
-        categoryId = res.data.id;
+        const catLabel = data.category.label.trim();
+        // Check if category already exists in loaded options
+        const existingCat = categories.find(
+          (c) => c.label.toLowerCase() === catLabel.toLowerCase()
+        );
+        if (existingCat) {
+          categoryId = existingCat.value;
+        } else {
+          try {
+            const res = await catalog.createCategory({ name: catLabel });
+            categoryId = res.data.id;
+            setCategories((prev) => [...prev, { label: res.data.name, value: res.data.id }]);
+          } catch (catErr) {
+            // If already exists on server, fetch and match
+            try {
+              const refreshRes = await catalog.getCategories();
+              const rawCats = Array.isArray(refreshRes.data)
+                ? refreshRes.data
+                : refreshRes.data?.results || [];
+              const match = rawCats.find(
+                (c) => c.name.toLowerCase() === catLabel.toLowerCase()
+              );
+              if (match) {
+                categoryId = match.id;
+              } else {
+                throw catErr;
+              }
+            } catch {
+              throw catErr;
+            }
+          }
+        }
       }
 
       // Create Publisher if it's new
       if (data.publisher.__isNew__) {
-        const res = await catalog.createPublisher({ name: data.publisher.label });
-        publisherId = res.data.id;
+        const pubLabel = data.publisher.label.trim();
+        // Check if publisher already exists in loaded options
+        const existingPub = publishers.find(
+          (p) => p.label.toLowerCase() === pubLabel.toLowerCase()
+        );
+        if (existingPub) {
+          publisherId = existingPub.value;
+        } else {
+          try {
+            const res = await catalog.createPublisher({ name: pubLabel });
+            publisherId = res.data.id;
+            setPublishers((prev) => [...prev, { label: res.data.name, value: res.data.id }]);
+          } catch (pubErr) {
+            try {
+              const refreshRes = await catalog.getPublishers();
+              const rawPubs = Array.isArray(refreshRes.data)
+                ? refreshRes.data
+                : refreshRes.data?.results || [];
+              const match = rawPubs.find(
+                (p) => p.name.toLowerCase() === pubLabel.toLowerCase()
+              );
+              if (match) {
+                publisherId = match.id;
+              } else {
+                throw pubErr;
+              }
+            } catch {
+              throw pubErr;
+            }
+          }
+        }
       }
+
+      // Clean ISBN: strip hyphens and spaces
+      const cleanIsbn = data.isbn.replace(/[-\s]/g, "").trim();
 
       const bookData = {
         title: data.title.trim(),
         author: data.author.trim(),
-        isbn: data.isbn.trim(),
+        isbn: cleanIsbn,
         published_date: data.published_date,
         category_id: categoryId,
         publisher_id: publisherId,
@@ -186,10 +284,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
     } catch (error) {
       console.error("Failed to save book", error);
       toast.error(
-        error.response?.data?.detail ||
-          error.response?.data?.accession_number?.[0] ||
-          error.response?.data?.isbn?.[0] ||
-          "Failed to process request. Please check your inputs."
+        extractErrorMessage(error, "Failed to process request. Please check your inputs.")
       );
     } finally {
       setIsSubmitting(false);
@@ -232,9 +327,10 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
     } catch (error) {
       console.error("Failed to add copies", error);
       toast.error(
-        error.response?.data?.detail ||
-          error.response?.data?.accession_number?.[0] ||
+        extractErrorMessage(
+          error,
           "Failed to add physical copies. Please check if Accession Numbers are unique."
+        )
       );
     } finally {
       setIsSubmitting(false);
