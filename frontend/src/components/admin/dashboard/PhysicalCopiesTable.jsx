@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Trash2, Plus, Loader2, Check, X as CloseIcon } from "lucide-react";
 import { inventory } from "../../../services/api";
 import { toast } from "react-hot-toast";
@@ -11,6 +11,8 @@ const PhysicalCopiesTable = ({ bookId }) => {
 
   // State for inline Add Row
   const [newCopy, setNewCopy] = useState({ accession_number: "", shelf_location: "" });
+  const [isPulsing, setIsPulsing] = useState(false);
+  const accessionInputRef = useRef(null);
 
   const fetchCopies = async () => {
     setIsLoading(true);
@@ -30,7 +32,12 @@ const PhysicalCopiesTable = ({ bookId }) => {
 
   const handleAddCopy = async () => {
     if (!newCopy.accession_number.trim()) {
-      toast.error("Accession number is required");
+      accessionInputRef.current?.focus();
+      setIsPulsing(true);
+      setTimeout(() => setIsPulsing(false), 1500);
+      toast("Please enter an Accession Number first to add this copy.", {
+        icon: "💡",
+      });
       return;
     }
     
@@ -179,22 +186,40 @@ const PhysicalCopiesTable = ({ bookId }) => {
       {/* Inline Add Row */}
       <div className="bg-white px-4 py-3 border-t border-slate-100 flex items-center gap-3 mt-auto">
         <input 
+          ref={accessionInputRef}
           placeholder="Accession No."
           value={newCopy.accession_number}
-          onChange={(e) => setNewCopy({...newCopy, accession_number: e.target.value})}
-          className="w-[120px] text-[11px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 outline-none text-[#1C2434] placeholder-gray-300 bg-slate-50"
+          onChange={(e) => {
+            if (isPulsing) setIsPulsing(false);
+            setNewCopy({ ...newCopy, accession_number: e.target.value });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleAddCopy();
+          }}
+          className={`w-[120px] text-[11px] font-bold px-3 py-1.5 rounded-lg border outline-none text-[#1C2434] placeholder-gray-300 transition-all duration-300 ${
+            isPulsing
+              ? "border-amber-500 ring-2 ring-amber-400 bg-amber-50/80 animate-pulse shadow-sm shadow-amber-200"
+              : "border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 bg-slate-50"
+          }`}
         />
         <input 
           placeholder="Shelf (Opt)"
           value={newCopy.shelf_location}
-          onChange={(e) => setNewCopy({...newCopy, shelf_location: e.target.value})}
-          className="w-[120px] text-[11px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 outline-none text-[#1C2434] placeholder-gray-300 bg-slate-50"
+          onChange={(e) => setNewCopy({ ...newCopy, shelf_location: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleAddCopy();
+          }}
+          className="w-[120px] text-[11px] font-bold px-3 py-1.5 rounded-lg border border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 outline-none text-[#1C2434] placeholder-gray-300 bg-slate-50 transition-all"
         />
         <div className="flex-1 flex justify-end">
           <button 
+            type="button"
             onClick={handleAddCopy}
-            disabled={isSubmitting || !newCopy.accession_number.trim()}
-            className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            disabled={isSubmitting}
+            className={`flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 active:scale-95 px-3 py-1.5 rounded-lg transition-all shadow-xs ${
+              isSubmitting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+            }`}
+            title="Add Physical Copy"
           >
             {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <><Plus size={14} strokeWidth={3} /> Add</>}
           </button>
