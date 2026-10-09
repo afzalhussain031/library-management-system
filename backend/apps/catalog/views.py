@@ -326,29 +326,37 @@ class BookViewSet(viewsets.ModelViewSet):
                 "description": row_description or "",
             })
 
-        # 2. Batch fetch & create Categories and Publishers in bulk
-        cat_cache = {c.name.lower(): c for c in Category.objects.filter(name__in=categories_to_find)}
-        new_cats = [Category(name=name) for name in categories_to_find if name.lower() not in cat_cache]
-        if new_cats:
-            Category.objects.bulk_create(new_cats, ignore_conflicts=True)
-            cat_cache = {c.name.lower(): c for c in Category.objects.filter(name__in=categories_to_find)}
+        # 2. Preload ALL Categories and Publishers cleanly into memory (fast O(1) in-memory lookup)
+        cat_cache = {c.name.strip().lower(): c for c in Category.objects.all()}
+        pub_cache = {p.name.strip().lower(): p for p in Publisher.objects.all()}
 
-        pub_cache = {p.name.lower(): p for p in Publisher.objects.filter(name__in=publishers_to_find)}
-        new_pubs = [Publisher(name=name) for name in publishers_to_find if name.lower() not in pub_cache]
-        if new_pubs:
-            Publisher.objects.bulk_create(new_pubs, ignore_conflicts=True)
-            pub_cache = {p.name.lower(): p for p in Publisher.objects.filter(name__in=publishers_to_find)}
+        def get_or_create_category(name_str):
+            if not name_str:
+                return None
+            key = name_str.strip().lower()
+            if key in cat_cache:
+                return cat_cache[key]
+            cat, _ = Category.objects.get_or_create(name=name_str.strip())
+            cat_cache[key] = cat
+            return cat
+
+        def get_or_create_publisher(name_str):
+            if not name_str:
+                return None
+            key = name_str.strip().lower()
+            if key in pub_cache:
+                return pub_cache[key]
+            pub, _ = Publisher.objects.get_or_create(name=name_str.strip())
+            pub_cache[key] = pub
+            return pub
 
         # 3. Batch fetch existing books and pre-count existing physical copies
         book_cache = {b.isbn: b for b in Book.objects.filter(isbn__in=isbns_to_lookup).select_related('category', 'publisher')}
         
-        # Prefetch existing accession numbers for these ISBNs in one query
-        copy_prefixes = [f"ACC-{isbn[-6:]}-" for isbn in isbns_to_lookup]
+        # Prefetch existing accession numbers for these ISBNs cleanly without raw Q lists
         existing_acc_set = set(
-            BookCopy.objects.filter(
-                models.Q(*[models.Q(accession_number__startswith=pfx) for pfx in copy_prefixes], _connector=models.Q.OR)
-            ).values_list('accession_number', flat=True)
-        ) if copy_prefixes else set()
+            BookCopy.objects.filter(book__isbn__in=isbns_to_lookup).values_list('accession_number', flat=True)
+        ) if isbns_to_lookup else set()
 
         # Prefetch copy counts grouped by book_id
         from django.db.models import Count
@@ -365,85 +373,96 @@ class BookViewSet(viewsets.ModelViewSet):
         books_to_update = []
         all_copies_to_create = []
 
-        with transaction.atomic():
-            for item in parsed_rows:
-                row_num = item["row_num"]
-                clean_isbn = item["clean_isbn"]
-                title = item["title"]
-                author = item["author"]
-                raw_isbn = item["raw_isbn"]
-                cat = cat_cache.get(item["cat_label"].lower()) if item["cat_label"] else None
-                pub = pub_cache.get(item["publisher_name"].lower()) if item["publisher_name"] else None
+        try:
+            with transaction.atomic():
+                for item in parsed_rows:
+                    row_num = item["row_num"]
+                    clean_isbn = item["clean_isbn"]
+                    title = item["title"]
+                    author = item["author"]
+                    raw_isbn = item["raw_isbn"]
+                    cat = get_or_create_category(item["cat_label"]) if item["cat_label"] else None
+                    pub = get_or_create_publisher(item["publisher_name"]) if item["publisher_name"] else None
 
-                book = book_cache.get(clean_isbn)
-                if book:
-                    # Check for duplicate ISBN reused across distinct book titles
-                    clean_existing_title = re.sub(r'[^a-zA-Z0-9]', '', book.title).lower()
-                    clean_new_title = re.sub(r'[^a-zA-Z0-9]', '', title).lower()
-                    if clean_existing_title and clean_new_title and clean_existing_title not in clean_new_title and clean_new_title not in clean_existing_title:
-                        errors.append({
-                            "row": row_num,
-                            "title": title,
-                            "reason": f"ISBN '{raw_isbn}' is already registered to '{book.title}' by {book.author}. Skipping to prevent merging distinct books."
-                        })
-                        continue
+                    book = book_cache.get(clean_isbn)
+                    if book:
+                        # Check for duplicate ISBN reused across distinct book titles
+                        clean_existing_title = re.sub(r'[^a-zA-Z0-9]', '', book.title).lower()
+                        clean_new_title = re.sub(r'[^a-zA-Z0-9]', '', title).lower()
+                        if clean_existing_title and clean_new_title and clean_existing_title not in clean_new_title and clean_new_title not in clean_existing_title:
+                            errors.append({
+                                "row": row_num,
+                                "title": title,
+                                "reason": f"ISBN '{raw_isbn}' is already registered to '{book.title}' by {book.author}. Skipping to prevent merging distinct books."
+                            })
+                            continue
 
-                    skipped_count += 1
-                    needs_update = False
-                    if not book.category and cat:
-                        book.category = cat
-                        needs_update = True
-                    if not book.publisher and pub:
-                        book.publisher = pub
-                        needs_update = True
-                    if needs_update:
-                        books_to_update.append(book)
-                else:
-                    book = Book(
-                        isbn=clean_isbn,
-                        title=title,
-                        author=author,
-                        category=cat,
-                        publisher=pub,
-                        published_date=item["published_date"],
-                        added_by=request.user if request.user.is_authenticated else None,
-                        description=item["description"],
-                    )
-                    book._skip_desc_fetch = True
-                    book.save(skip_desc_fetch=True)
-                    book_cache[clean_isbn] = book
-                    created_count += 1
+                        skipped_count += 1
+                        needs_update = False
+                        if not book.category and cat:
+                            book.category = cat
+                            needs_update = True
+                        if not book.publisher and pub:
+                            book.publisher = pub
+                            needs_update = True
+                        if needs_update:
+                            books_to_update.append(book)
+                    else:
+                        book = Book(
+                            isbn=clean_isbn,
+                            title=title,
+                            author=author,
+                            category=cat,
+                            publisher=pub,
+                            published_date=item["published_date"],
+                            added_by=request.user if request.user.is_authenticated else None,
+                            description=item["description"],
+                        )
+                        book._skip_desc_fetch = True
+                        book.save(skip_desc_fetch=True)
+                        book_cache[clean_isbn] = book
+                        created_count += 1
 
-                # Physical copies
-                qty = item["qty"]
-                if qty > 0:
-                    current_copy_count = copy_counts.get(book.id, 0)
-                    copies_needed = max(0, qty - current_copy_count)
-                    if copies_needed > 0:
-                        prefix = f"ACC-{clean_isbn[-6:]}-"
-                        seq = 1
-                        created_for_this_book = 0
-                        while created_for_this_book < copies_needed and seq <= current_copy_count + copies_needed + 500:
-                            acc_no = f"{prefix}{seq:03d}"
-                            if acc_no not in existing_acc_set:
-                                all_copies_to_create.append(BookCopy(
-                                    book=book,
-                                    accession_number=acc_no,
-                                    shelf_location="",
-                                    status="available"
-                                ))
-                                existing_acc_set.add(acc_no)
-                                created_for_this_book += 1
-                            seq += 1
-                        copy_counts[book.id] = current_copy_count + created_for_this_book
+                    # Physical copies
+                    qty = item["qty"]
+                    if qty > 0:
+                        current_copy_count = copy_counts.get(book.id, 0)
+                        copies_needed = max(0, qty - current_copy_count)
+                        if copies_needed > 0:
+                            prefix = f"ACC-{clean_isbn[-6:]}-"
+                            seq = 1
+                            created_for_this_book = 0
+                            while created_for_this_book < copies_needed and seq <= current_copy_count + copies_needed + 500:
+                                acc_no = f"{prefix}{seq:03d}"
+                                if acc_no not in existing_acc_set:
+                                    all_copies_to_create.append(BookCopy(
+                                        book=book,
+                                        accession_number=acc_no,
+                                        shelf_location="",
+                                        status="available"
+                                    ))
+                                    existing_acc_set.add(acc_no)
+                                    created_for_this_book += 1
+                                seq += 1
+                            copy_counts[book.id] = current_copy_count + created_for_this_book
 
-            # Perform bulk operations
-            if books_to_update:
-                Book.objects.bulk_update(books_to_update, ['category', 'publisher'])
+                # Perform bulk operations
+                if books_to_update:
+                    # De-duplicate instances before bulk_update to prevent PostgreSQL conflicts
+                    unique_books_to_update = list({b.id: b for b in books_to_update}.values())
+                    Book.objects.bulk_update(unique_books_to_update, ['category', 'publisher'])
 
-            if all_copies_to_create:
-                BookCopy.objects.bulk_create(all_copies_to_create, batch_size=500)
-                copies_created_total = len(all_copies_to_create)
+                if all_copies_to_create:
+                    BookCopy.objects.bulk_create(all_copies_to_create, batch_size=500)
+                    copies_created_total = len(all_copies_to_create)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                "detail": f"Database import error: {str(e)}",
+                "success": False
+            }, status=400)
 
         return Response({
             "success": True,
