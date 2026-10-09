@@ -1,8 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Plus, Trash2, BookPlus, Copy, Library, BookOpen, AlertCircle } from "lucide-react";
+import {
+  X,
+  Plus,
+  Trash2,
+  BookPlus,
+  Copy,
+  Library,
+  BookOpen,
+  AlertCircle,
+  FileSpreadsheet,
+  UploadCloud,
+  Download,
+  CheckCircle2,
+  AlertTriangle,
+  FileText,
+} from "lucide-react";
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { toast } from "react-hot-toast";
@@ -37,7 +52,10 @@ const extractErrorMessage = (error, defaultMsg) => {
 
 const newBookSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
-  author: z.string().trim().min(1, "Author is required"),
+  author: z
+    .object({ label: z.string(), value: z.union([z.string(), z.number()]), __isNew__: z.boolean().optional() })
+    .nullable()
+    .refine((val) => val !== null && val.label.trim().length > 0, { message: "Author is required" }),
   isbn: z
     .string()
     .trim()
@@ -70,6 +88,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
   // Mode selection: "new" (Create New Book) | "existing" (Add Copies to Existing Book)
   const [activeTab, setActiveTab] = useState("new");
   const [booksList, setBooksList] = useState([]);
+  const [authors, setAuthors] = useState([]);
   const [categories, setCategories] = useState([]);
   const [publishers, setPublishers] = useState([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
@@ -80,6 +99,13 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
   const [existingCopies, setExistingCopies] = useState([
     { accession_number: "", shelf_location: "" },
   ]);
+
+  // State for "Bulk Import (CSV)" mode
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const {
     register,
@@ -92,7 +118,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
     resolver: zodResolver(newBookSchema),
     defaultValues: {
       title: "",
-      author: "",
+      author: null,
       isbn: "",
       published_date: "",
       category: null,
@@ -121,6 +147,11 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
       setBooksList(rawBooks);
       setCategories(rawCats.map((c) => ({ label: c.name, value: c.id })));
       setPublishers(rawPubs.map((p) => ({ label: p.name, value: p.id })));
+
+      const uniqueAuthors = Array.from(
+        new Set(rawBooks.map((b) => b.author?.trim()).filter(Boolean))
+      ).sort((a, b) => a.localeCompare(b));
+      setAuthors(uniqueAuthors.map((a) => ({ label: a, value: a })));
     } catch (error) {
       console.error("Failed to fetch options", error);
       toast.error("Failed to load catalog data");
@@ -138,7 +169,9 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
         setActiveTab("new");
         reset({
           title: bookToEdit.title || "",
-          author: bookToEdit.author || "",
+          author: bookToEdit.author
+            ? { label: bookToEdit.author, value: bookToEdit.author }
+            : null,
           isbn: bookToEdit.isbn || "",
           published_date: bookToEdit.published_date || "",
           category: bookToEdit.category
@@ -154,7 +187,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
         setActiveTab("new");
         reset({
           title: "",
-          author: "",
+          author: null,
           isbn: "",
           published_date: "",
           category: null,
@@ -245,17 +278,31 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
         }
       }
 
+      // Author string resolution
+      const authorName = data.author?.label?.trim() || "";
+
       // Clean ISBN: strip hyphens and spaces
       const cleanIsbn = data.isbn.replace(/[-\s]/g, "").trim();
 
       const bookData = {
         title: data.title.trim(),
-        author: data.author.trim(),
+        author: authorName,
         isbn: cleanIsbn,
         published_date: data.published_date,
         category_id: categoryId,
         publisher_id: publisherId,
       };
+
+      if (data.author?.__isNew__) {
+        setAuthors((prev) => {
+          const exists = prev.some((a) => a.label.toLowerCase() === authorName.toLowerCase());
+          return exists
+            ? prev
+            : [...prev, { label: authorName, value: authorName }].sort((a, b) =>
+                a.label.localeCompare(b.label)
+              );
+        });
+      }
 
       if (bookToEdit) {
         // EDIT MODE: Update metadata
@@ -351,6 +398,54 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
     setExistingCopies(updated);
   };
 
+  const handleDownloadTemplate = () => {
+    const csvContent =
+      "ISBN,Name of the book,Author,Publisher,Required Quantity,Sem.,Published Date\n" +
+      "978-8121926164,Engineering Mechanics,R.S. Khurmi,S Chand,30,I/II,2002-04-05\n" +
+      "978-9350143803,Basic Mechanical Engineering,D S Kumar,S K Kataria,30,I/II,2015-01-01\n" +
+      "978-0132350884,Clean Code,Robert C. Martin,Pearson,15,IV,2008-08-01\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "library_books_import_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a CSV file to upload.");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadResult(null);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const res = await catalog.bulkUploadBooks(formData);
+      setUploadResult(res.data);
+      toast.success(
+        `Imported ${res.data.created_books} books and ${res.data.created_copies} physical copies!`
+      );
+      if (res.data.created_books > 0 || res.data.created_copies > 0) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error("Bulk upload failed", error);
+      toast.error(
+        extractErrorMessage(error, "Failed to upload and import CSV file.")
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const customStyles = {
@@ -397,14 +492,18 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
                 ? "Edit Book Metadata"
                 : activeTab === "new"
                 ? "Create New Book"
-                : "Add Copies to Existing Book"}
+                : activeTab === "existing"
+                ? "Add Copies to Existing Book"
+                : "Bulk Import Books (CSV)"}
             </h2>
             <p className="text-[12px] font-medium text-slate-500 mt-0.5 tracking-wide">
               {bookToEdit
                 ? "Update catalog information and metadata for this book."
                 : activeTab === "new"
                 ? "Enter details to register a brand new title in your catalog."
-                : "Select an existing book and register new physical copies to inventory."}
+                : activeTab === "existing"
+                ? "Select an existing book and register new physical copies to inventory."
+                : "Upload a CSV spreadsheet to import multiple books and physical copies at once."}
             </p>
           </div>
           <button
@@ -418,11 +517,11 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
 
         {/* Clear Mode Switcher (Hidden when editing a specific book) */}
         {!bookToEdit && (
-          <div className="flex bg-slate-100/80 p-1 rounded-xl mb-4 w-fit border border-slate-200/60 shrink-0">
+          <div className="flex bg-slate-100/80 p-1 rounded-xl mb-4 w-fit border border-slate-200/60 shrink-0 flex-wrap gap-1">
             <button
               type="button"
               onClick={() => setActiveTab("new")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "new"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
@@ -437,7 +536,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
             <button
               type="button"
               onClick={() => setActiveTab("existing")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === "existing"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
@@ -448,6 +547,21 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
                 className={activeTab === "existing" ? "text-amber-500" : "text-slate-400"}
               />
               Add Copies to Existing
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("bulk")}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "bulk"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <FileSpreadsheet
+                size={14}
+                className={activeTab === "bulk" ? "text-emerald-500" : "text-slate-400"}
+              />
+              Bulk Import (CSV)
             </button>
           </div>
         )}
@@ -495,14 +609,18 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
                     <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
                       Author <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      {...register("author")}
-                      placeholder="e.g. Robert C. Martin"
-                      className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition ${
-                        errors.author
-                          ? "border-red-500 bg-red-50"
-                          : "border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                      }`}
+                    <Controller
+                      name="author"
+                      control={control}
+                      render={({ field }) => (
+                        <CreatableSelect
+                          {...field}
+                          options={authors}
+                          isLoading={isLoadingOptions}
+                          placeholder="Select or type author name..."
+                          styles={customStyles}
+                        />
+                      )}
                     />
                     {errors.author && (
                       <p className="text-xs text-red-600 mt-1">{errors.author.message}</p>
@@ -834,6 +952,210 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
               </div>
             </div>
           )}
+
+          {/* ================= MODE 3: BULK IMPORT (CSV) ================= */}
+          {activeTab === "bulk" && (
+            <div className="flex flex-col gap-4">
+              {/* Info & Template Banner */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl shrink-0">
+                    <FileSpreadsheet size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-[13px] font-bold text-slate-800">
+                      Import from Spreadsheet
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Upload your Excel/CSV file with Title, Author, ISBN, Publisher, Quantity, and Semester. (Tip: Format the ISBN column as Text in Excel so 13-digit numbers aren't converted to scientific notation).
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-lg transition-all shrink-0 cursor-pointer shadow-2xs"
+                >
+                  <Download size={13} className="text-emerald-600" /> Download Sample CSV
+                </button>
+              </div>
+
+              {/* Upload Dropzone */}
+              {!uploadResult && (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      if (!file.name.toLowerCase().endsWith(".csv")) {
+                        toast.error("Please upload a .csv file.");
+                        return;
+                      }
+                      setSelectedFile(file);
+                    }
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                    isDragging
+                      ? "border-emerald-500 bg-emerald-50/50 scale-[0.99]"
+                      : selectedFile
+                      ? "border-emerald-400 bg-emerald-50/20"
+                      : "border-slate-200 hover:border-emerald-400 hover:bg-slate-50/50"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (!file.name.toLowerCase().endsWith(".csv")) {
+                          toast.error("Please upload a .csv file.");
+                          return;
+                        }
+                        setSelectedFile(file);
+                      }
+                    }}
+                  />
+
+                  {selectedFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="p-3 bg-emerald-100 text-emerald-700 rounded-full">
+                        <FileText size={28} />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-bold text-slate-800">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {(selectedFile.size / 1024).toFixed(1)} KB • Ready to import
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        className="mt-2 text-xs font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer"
+                      >
+                        Remove / Choose different file
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="p-3 bg-slate-100 text-slate-500 rounded-full">
+                        <UploadCloud size={28} />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-bold text-slate-800">
+                          Drag & drop your CSV file here, or{" "}
+                          <span className="text-emerald-600 underline">browse</span>
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Supports UTF-8 CSV exported directly from Excel or Google Sheets.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Upload Result Summary */}
+              {uploadResult && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4 animate-[fadeIn_0.2s_ease-out]">
+                  <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                      <CheckCircle2 size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-bold text-slate-800">
+                        Import Completed Successfully
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Processed {uploadResult.total_rows} rows from your CSV file.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Pills */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-emerald-50/60 border border-emerald-100 p-3 rounded-xl">
+                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
+                        New Books Added
+                      </span>
+                      <span className="text-2xl font-extrabold text-emerald-800 mt-1 block">
+                        {uploadResult.created_books}
+                      </span>
+                    </div>
+
+                    <div className="bg-blue-50/60 border border-blue-100 p-3 rounded-xl">
+                      <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">
+                        Physical Copies Registered
+                      </span>
+                      <span className="text-2xl font-extrabold text-blue-800 mt-1 block">
+                        {uploadResult.created_copies}
+                      </span>
+                    </div>
+
+                    <div className="bg-amber-50/60 border border-amber-100 p-3 rounded-xl">
+                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                        Existing / Updated
+                      </span>
+                      <span className="text-2xl font-extrabold text-amber-800 mt-1 block">
+                        {uploadResult.existing_books}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Errors / Warnings List if any */}
+                  {uploadResult.errors && uploadResult.errors.length > 0 && (
+                    <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5 space-y-2">
+                      <div className="flex items-center gap-2 text-amber-800 text-xs font-bold">
+                        <AlertTriangle size={15} className="text-amber-600" />
+                        {uploadResult.errors.length} rows were skipped due to formatting issues:
+                      </div>
+                      <div className="max-h-[140px] overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                        {uploadResult.errors.map((err, i) => (
+                          <div
+                            key={i}
+                            className="text-[11px] text-slate-600 bg-white/80 p-2 rounded-lg border border-amber-100/80 flex items-start justify-between gap-2"
+                          >
+                            <span>
+                              <strong>Row {err.row}:</strong> {err.title} —{" "}
+                              <span className="text-amber-700">{err.reason}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex justify-start">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadResult(null);
+                        setSelectedFile(null);
+                      }}
+                      className="text-xs font-bold text-slate-500 hover:text-slate-800 hover:underline cursor-pointer"
+                    >
+                      ← Import another CSV file
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -856,7 +1178,7 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
             >
               {bookToEdit ? "Save Changes" : "Save Book Data"}
             </Button>
-          ) : (
+          ) : activeTab === "existing" ? (
             <Button
               type="button"
               onClick={onExistingCopiesSubmit}
@@ -865,6 +1187,28 @@ const AddBookModal = ({ isOpen, onClose, onSuccess, bookToEdit = null }) => {
               className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer shadow-sm"
             >
               Add Physical Copies
+            </Button>
+          ) : uploadResult ? (
+            <Button
+              type="button"
+              onClick={() => {
+                onSuccess();
+                onClose();
+              }}
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all cursor-pointer shadow-sm"
+            >
+              Done & View Catalog
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleBulkUpload}
+              isLoading={isUploading}
+              disabled={!selectedFile || isUploading}
+              loadingText="Importing Records..."
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+            >
+              <UploadCloud size={16} /> Upload & Import Books
             </Button>
           )}
         </div>

@@ -76,7 +76,8 @@ class Book(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
-        if not self.description and self.isbn:
+        skip_desc_fetch = kwargs.pop("skip_desc_fetch", False) or getattr(self, "_skip_desc_fetch", False)
+        if not skip_desc_fetch and not self.description and self.isbn:
             from .utils import fetch_and_truncate_description
             fetched_desc = fetch_and_truncate_description(self.isbn)
             if fetched_desc:

@@ -13,6 +13,8 @@ import {
   X as CloseIcon,
   Filter,
   Search,
+  Folder,
+  Download,
 } from "lucide-react";
 import { catalog } from "../../services/api";
 import { useApi } from "../../hook/useApi";
@@ -20,17 +22,25 @@ import ErrorMessage from "../../components/common/ErrorMessage";
 import { toast } from "react-hot-toast";
 import { SkeletonCard, SkeletonText } from "../../components/common/Skeleton";
 import AddBookModal from "../../components/admin/dashboard/AddBookModal";
+import ManageTaxonomiesModal from "../../components/admin/dashboard/ManageTaxonomiesModal";
 import PhysicalCopiesTable from "../../components/admin/dashboard/PhysicalCopiesTable";
 import BookThumbnail from "../../components/common/BookThumbnail";
 import EntityLink from "../../components/common/EntityLink";
+import ActionConfirmDialog from "../../components/common/ActionConfirmDialog";
 import { useEntityModal } from "../../context/EntityModalContext";
 
 const Books = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isTaxonomyModalOpen, setIsTaxonomyModalOpen] = useState(false);
   const [bookToEdit, setBookToEdit] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   
+  // Selection and Bulk Actions State
+  const [selectedBookIds, setSelectedBookIds] = useState([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
   // NEW: Filter States
   const [activeTopFilter, setActiveTopFilter] = useState("All books");
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
@@ -87,11 +97,82 @@ const Books = () => {
 
 
 
+  // Selection logic
+  const isAllSelected = filteredBooks.length > 0 && selectedBookIds.length === filteredBooks.length;
+  const isSomeSelected = selectedBookIds.length > 0 && selectedBookIds.length < filteredBooks.length;
+
+  const toggleSelectBook = (id) => {
+    setSelectedBookIds((prev) =>
+      prev.includes(id) ? prev.filter((bookId) => bookId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedBookIds([]);
+    } else {
+      setSelectedBookIds(filteredBooks.map((b) => b.id));
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedBookIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const res = await catalog.bulkDeleteBooks(selectedBookIds);
+      const deleted = res.data.deleted_count || 0;
+      const protectedCount = res.data.protected_count || 0;
+      if (protectedCount > 0) {
+        toast.success(`Deleted ${deleted} books. ${protectedCount} book(s) with active loans were protected.`);
+      } else {
+        toast.success(`Successfully deleted ${deleted} books!`);
+      }
+      setSelectedBookIds([]);
+      setIsBulkDeleteModalOpen(false);
+      fetchBooks();
+    } catch (err) {
+      const msg = err?.response?.data?.detail || "Failed to delete selected books.";
+      toast.error(msg);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleBulkExportCSV = () => {
+    const selectedList = books.filter((b) => selectedBookIds.includes(b.id));
+    if (selectedList.length === 0) return;
+
+    const headers = ["ID", "Title", "Author", "ISBN", "Publisher", "Category", "Total Copies", "Available Copies"];
+    const rows = selectedList.map((b) => [
+      b.id,
+      `"${(b.title || "").replace(/"/g, '""')}"`,
+      `"${(b.author || "").replace(/"/g, '""')}"`,
+      `"${b.isbn || ""}"`,
+      `"${(b.publisher?.name || "").replace(/"/g, '""')}"`,
+      `"${(b.category?.name || "").replace(/"/g, '""')}"`,
+      b.total_copies || 0,
+      b.available_copies || 0,
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `selected_books_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${selectedList.length} books to CSV.`);
+  };
+
   const handleDeleteConfirm = async (id) => {
     try {
       await catalog.deleteBook(id);
       toast.success("Book deleted successfully!");
       setPendingDeleteId(null);
+      setSelectedBookIds((prev) => prev.filter((bookId) => bookId !== id));
       fetchBooks(); // Refresh table
     } catch (error) {
       toast.error("Failed to delete book.");
@@ -204,6 +285,13 @@ const Books = () => {
           </div>
           <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
           <button 
+            onClick={() => setIsTaxonomyModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-white text-gray-700 font-bold text-[13px] rounded-full hover:bg-gray-50 border border-gray-200 shadow-sm transition-colors"
+            title="Manage Categories, Publishers, and Authors"
+          >
+            <Folder size={14} className="text-amber-500" /> Categories & Publishers
+          </button>
+          <button 
             onClick={() => {
               setBookToEdit(null); // Ensure it's in Add Mode
               setIsAddModalOpen(true);
@@ -228,13 +316,22 @@ const Books = () => {
             {/* Books List Header */}
             <div className="flex items-center px-6 py-2 text-[12px] font-bold text-gray-400 mb-2">
               <div className="w-[50px] shrink-0">
-                <input type="checkbox" className="rounded border-gray-300" />
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isSomeSelected;
+                  }}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-gray-300 text-[#4386F5] focus:ring-[#4386F5] cursor-pointer transition"
+                  title={isAllSelected ? "Deselect all visible books" : "Select all visible books"}
+                />
               </div>
               <div className="w-[80px] shrink-0">Thumbnail</div>
               <div className="w-[240px] shrink-0">Title & Author</div>
               <div className="w-[160px] shrink-0">Publisher</div>
-              <div className="w-[120px] shrink-0">Book ID</div>
-              <div className="w-[160px] shrink-0">ISBN</div>
+              <div className="w-[140px] shrink-0">Category</div>
+              <div className="w-[150px] shrink-0">ISBN</div>
               <div className="w-[120px] shrink-0">Status</div>
               <div className="w-[90px] shrink-0 text-center">Requests</div>
               <div className="flex-1 min-w-[160px] text-right pr-4">Actions</div>
@@ -259,10 +356,10 @@ const Books = () => {
                      <div className="w-[160px] shrink-0 pr-2">
                        <SkeletonText className="h-4 w-2/3" />
                      </div>
-                     <div className="w-[120px] shrink-0">
-                       <SkeletonText className="h-4 w-1/2" />
+                     <div className="w-[140px] shrink-0 pr-2">
+                       <SkeletonText className="h-4 w-3/4" />
                      </div>
-                     <div className="w-[160px] shrink-0">
+                     <div className="w-[150px] shrink-0">
                        <SkeletonText className="h-4 w-2/3" />
                      </div>
                      <div className="w-[120px] shrink-0">
@@ -281,7 +378,11 @@ const Books = () => {
                 filteredBooks.map((book, idx) => (
                   <div
                   key={book.id}
-                    className="bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border border-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative hover:z-30"
+                    className={`bg-white/60 backdrop-blur-xl rounded-[20px] shadow-sm border transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 relative hover:z-30 ${
+                      selectedBookIds.includes(book.id)
+                        ? "border-[#4386F5]/50 bg-blue-50/40 ring-1 ring-[#4386F5]/30"
+                        : "border-white"
+                    }`}
                 >
                   {/* Main Row */}
                   <div
@@ -289,7 +390,12 @@ const Books = () => {
                     onClick={() => toggleRow(book.id)}
                   >
                     <div className="w-[50px] shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" className="rounded border-gray-300 text-[#4386F5]" />
+                      <input
+                        type="checkbox"
+                        checked={selectedBookIds.includes(book.id)}
+                        onChange={() => toggleSelectBook(book.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-[#4386F5] focus:ring-[#4386F5] cursor-pointer transition"
+                      />
                     </div>
                     <div className="w-[80px] shrink-0">
                       <BookThumbnail 
@@ -317,10 +423,16 @@ const Books = () => {
                         "N/A"
                       )}
                     </div>
-                    <div className="w-[120px] shrink-0 text-[13px] text-gray-600 font-medium">
-                      #{book.id}
+                    <div className="w-[140px] shrink-0 pr-2">
+                      {book.category ? (
+                        <span className="inline-block max-w-[130px] truncate text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200/60" title={book.category.name}>
+                          {book.category.name}
+                        </span>
+                      ) : (
+                        <span className="text-[13px] text-gray-400 font-normal">Uncategorized</span>
+                      )}
                     </div>
-                    <div className="w-[160px] shrink-0 text-[13px] text-gray-600 font-medium">
+                    <div className="w-[150px] shrink-0 text-[13px] text-gray-600 font-medium">
                       {book.isbn}
                     </div>
                     <div className="w-[120px] shrink-0">
@@ -440,9 +552,24 @@ const Books = () => {
               </div>
            ) : (
              filteredBooks.map((book) => (
-                <div key={book.id} className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white flex flex-col gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80">
-                  <div className="flex gap-4">
-                      <BookThumbnail 
+                <div
+                  key={book.id}
+                  className={`bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border flex flex-col gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:bg-white/80 ${
+                    selectedBookIds.includes(book.id)
+                      ? "border-[#4386F5]/50 bg-blue-50/40 ring-1 ring-[#4386F5]/30"
+                      : "border-white"
+                  }`}
+                >
+                  <div className="flex gap-3 items-start">
+                    <div className="pt-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedBookIds.includes(book.id)}
+                        onChange={() => toggleSelectBook(book.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-[#4386F5] focus:ring-[#4386F5] cursor-pointer transition"
+                      />
+                    </div>
+                    <BookThumbnail 
                         title={book.title} 
                         coverImage={book.cover_image} 
                         isbn={book.isbn} 
@@ -456,21 +583,26 @@ const Books = () => {
                           {book.title}
                         </EntityLink>
                       </p>
-                      <p className="text-[12px] text-gray-500 mb-2 truncate">by {book.author}</p>
-                      
-                      {book.total_copies === 0 ? (
-                        <span className="px-2 py-1 rounded text-[10px] font-bold inline-block bg-gray-100 text-gray-500">
-                          No Copies
-                        </span>
-                      ) : book.available_copies > 0 ? (
-                        <span className="px-2 py-1 rounded text-[10px] font-bold inline-block bg-[#C9F7F5] text-[#1BC5BD]">
-                          {book.available_copies} / {book.total_copies} Available
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 rounded text-[10px] font-bold inline-block bg-[#FFE2E5] text-[#F64E60]">
-                          0 / {book.total_copies} Available
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {book.category && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/60 truncate max-w-[120px]">
+                            {book.category.name}
+                          </span>
+                        )}
+                        {book.total_copies === 0 ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold inline-block bg-gray-100 text-gray-500">
+                            No Copies
+                          </span>
+                        ) : book.available_copies > 0 ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold inline-block bg-[#C9F7F5] text-[#1BC5BD]">
+                            {book.available_copies} / {book.total_copies} Available
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold inline-block bg-[#FFE2E5] text-[#F64E60]">
+                            0 / {book.total_copies} Available
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
@@ -528,6 +660,73 @@ const Books = () => {
         onClose={() => setIsAddModalOpen(false)} 
         onSuccess={fetchBooks} 
         bookToEdit={bookToEdit}
+      />
+
+      {/* Manage Taxonomies Modal */}
+      <ManageTaxonomiesModal
+        isOpen={isTaxonomyModalOpen}
+        onClose={() => setIsTaxonomyModalOpen(false)}
+        onUpdate={fetchBooks}
+        books={books}
+        onFilterAuthor={(authorName) => setSearchQuery(authorName)}
+      />
+
+      {/* Floating Bulk Actions Dock */}
+      {selectedBookIds.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-[slideUp_0.2s_ease-out]">
+          <div className="bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-700/60 shadow-2xl flex flex-wrap items-center gap-3">
+            {/* Counter */}
+            <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
+              <span className="w-6 h-6 rounded-full bg-[#F6BE0A] text-slate-900 text-xs font-black flex items-center justify-center">
+                {selectedBookIds.length}
+              </span>
+              <span className="text-xs font-bold text-slate-200">Selected</span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={() => setIsBulkDeleteModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 border border-red-500/30 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer"
+                title="Delete selected books"
+              >
+                <Trash2 size={13} />
+                <span>Delete Selected</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBulkExportCSV}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                title="Export selected books to CSV"
+              >
+                <Download size={13} />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedBookIds([])}
+                className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 transition cursor-pointer"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirm Dialog */}
+      <ActionConfirmDialog
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        title={`Delete ${selectedBookIds.length} Selected Books`}
+        description={`Are you sure you want to permanently delete these ${selectedBookIds.length} selected books? Any books with copies currently on active loan will be protected from deletion.`}
+        confirmText={isBulkDeleting ? "Deleting..." : "Delete Books"}
+        isDestructive={true}
       />
     </div>
   );

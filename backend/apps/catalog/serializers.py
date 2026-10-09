@@ -7,6 +7,8 @@ from django.utils import timezone
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    books_count = serializers.IntegerField(read_only=True, default=0)
+
     class Meta:
         model = Category
         fields = "__all__"
@@ -19,6 +21,8 @@ class LanguageSerializer(serializers.ModelSerializer):
 
 
 class PublisherSerializer(serializers.ModelSerializer):
+    books_count = serializers.IntegerField(read_only=True, default=0)
+
     class Meta:
         model = Publisher
         fields = "__all__"

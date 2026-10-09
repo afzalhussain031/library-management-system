@@ -106,23 +106,43 @@ export const catalog = {
   addBook: (data) =>
     client.post('/books/', data),
 
+  bulkUploadBooks: (formData) =>
+    client.post('/books/bulk-upload/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
   updateBook: (id, data) => 
     client.put(`/books/${id}/`, data),
 
   deleteBook: (id) => 
     client.delete(`/books/${id}/`),
+
+  bulkDeleteBooks: (book_ids) =>
+    client.post('/books/bulk-delete/', { book_ids }),
     
   getCategories: () =>
     client.get('/categories/'),
     
   createCategory: (data) =>
     client.post('/categories/', data),
+
+  updateCategory: (id, data) =>
+    client.patch(`/categories/${id}/`, data),
+
+  deleteCategory: (id) =>
+    client.delete(`/categories/${id}/`),
     
   getPublishers: () =>
     client.get('/publishers/'),
     
   createPublisher: (data) =>
     client.post('/publishers/', data),
+
+  updatePublisher: (id, data) =>
+    client.patch(`/publishers/${id}/`, data),
+
+  deletePublisher: (id) =>
+    client.delete(`/publishers/${id}/`),
   
   getWishlist: () =>
     client.get('/wishlist/'),
