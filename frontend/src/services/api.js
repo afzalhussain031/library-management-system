@@ -109,6 +109,7 @@ export const catalog = {
   bulkUploadBooks: (formData) =>
     client.post('/books/bulk-upload/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000, // 2 minutes timeout for large CSV bulk uploads
     }),
 
   updateBook: (id, data) => 

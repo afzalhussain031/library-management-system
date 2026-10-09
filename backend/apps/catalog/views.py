@@ -235,6 +235,13 @@ class BookViewSet(viewsets.ModelViewSet):
         copies_created_total = 0
         errors = []
 
+        # --- High-Performance Batch Pre-fetching ---
+        # 1. Parse and validate all rows in memory first
+        parsed_rows = []
+        isbns_to_lookup = set()
+        categories_to_find = set()
+        publishers_to_find = set()
+
         for row_num, row in enumerate(data_rows, start=header_row_idx + 2):
             if not any(cell.strip() for cell in row):
                 continue  # Skip completely blank lines
@@ -255,14 +262,13 @@ class BookViewSet(viewsets.ModelViewSet):
             row_description = get_val('description')
 
             if not title and not raw_isbn:
-                continue  # Divider row
+                continue
 
             if not title:
                 errors.append({"row": row_num, "title": "Missing Title", "reason": "Book title cannot be empty."})
                 continue
 
             clean_isbn = re.sub(r'[-\s]', '', raw_isbn)
-            # Handle potential scientific notation from spreadsheet exports (e.g. 9.78813E+12)
             if ('e' in clean_isbn.lower() or '.' in clean_isbn) and re.match(r'^\d+(\.\d+)?[eE]\+?\d+$', clean_isbn):
                 try:
                     clean_isbn = str(int(float(clean_isbn)))
@@ -273,118 +279,171 @@ class BookViewSet(viewsets.ModelViewSet):
                 errors.append({"row": row_num, "title": title, "reason": f"Invalid ISBN '{raw_isbn}' (must be 10 or 13 digits)."})
                 continue
 
-            try:
-                with transaction.atomic():
-                    # Category
-                    category = None
-                    if category_name:
-                        cat_label = category_name
-                        if re.match(r'^(I|V|X|\d)+', category_name, re.IGNORECASE) and "sem" not in category_name.lower():
-                            cat_label = f"Semester {category_name}"
-                        category, _ = Category.objects.get_or_create(name=cat_label)
+            # Normalized category label
+            cat_label = None
+            if category_name:
+                cat_label = category_name
+                if re.match(r'^(I|V|X|\d)+', category_name, re.IGNORECASE) and "sem" not in category_name.lower():
+                    cat_label = f"Semester {category_name}"
+                categories_to_find.add(cat_label)
 
-                    # Publisher
-                    publisher = None
-                    if publisher_name:
-                        publisher, _ = Publisher.objects.get_or_create(name=publisher_name)
+            if publisher_name:
+                publishers_to_find.add(publisher_name)
 
-                    # Published Date
-                    published_date = None
-                    if pub_date_raw:
-                        match = re.match(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', pub_date_raw)
-                        if match:
-                            try:
-                                published_date = date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
-                            except ValueError:
-                                pass
-                        if not published_date:
-                            year_match = re.search(r'\b(19\d\d|20\d\d)\b', pub_date_raw)
-                            if year_match:
-                                published_date = date(int(year_match.group(1)), 1, 1)
+            published_date = None
+            if pub_date_raw:
+                match = re.match(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', pub_date_raw)
+                if match:
+                    try:
+                        published_date = date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+                    except ValueError:
+                        pass
+                if not published_date:
+                    year_match = re.search(r'\b(19\d\d|20\d\d)\b', pub_date_raw)
+                    if year_match:
+                        published_date = date(int(year_match.group(1)), 1, 1)
+            if not published_date:
+                published_date = date(2020, 1, 1)
 
-                    if not published_date:
-                        published_date = date(2020, 1, 1)
-
-                    # Create or get Book without triggering external network calls
-                    book = Book.objects.filter(isbn=clean_isbn).first()
-                    if book:
-                        # Check for duplicate ISBN reused across distinct book titles
-                        clean_existing_title = re.sub(r'[^a-zA-Z0-9]', '', book.title).lower()
-                        clean_new_title = re.sub(r'[^a-zA-Z0-9]', '', title).lower()
-                        if clean_existing_title and clean_new_title and clean_existing_title not in clean_new_title and clean_new_title not in clean_existing_title:
-                            errors.append({
-                                "row": row_num,
-                                "title": title,
-                                "reason": f"ISBN '{raw_isbn}' is already registered to '{book.title}' by {book.author}. Skipping to prevent merging distinct books."
-                            })
-                            continue
-
-                    if not book:
-                        book = Book(
-                            isbn=clean_isbn,
-                            title=title,
-                            author=author or "Unknown",
-                            category=category,
-                            publisher=publisher,
-                            published_date=published_date,
-                            added_by=request.user if request.user.is_authenticated else None,
-                            description=row_description or "",
-                        )
-                        book._skip_desc_fetch = True
-                        book.save(skip_desc_fetch=True)
-                        created_count += 1
-                    else:
-                        skipped_count += 1
-                        needs_save = False
-                        if not book.category and category:
-                            book.category = category
-                            needs_save = True
-                        if not book.publisher and publisher:
-                            book.publisher = publisher
-                            needs_save = True
-                        if needs_save:
-                            book._skip_desc_fetch = True
-                            book.save(skip_desc_fetch=True)
-
-                    # Physical copies (idempotent: targets total copies rather than accumulating on re-upload)
+            qty = 0
+            if qty_raw:
+                try:
+                    qty = int(float(qty_raw))
+                except (ValueError, TypeError):
                     qty = 0
-                    if qty_raw:
-                        try:
-                            qty = int(float(qty_raw))
-                        except (ValueError, TypeError):
-                            qty = 0
 
-                    if qty > 0:
-                        current_copy_count = book.copies.count()
-                        copies_needed = max(0, qty - current_copy_count)
+            isbns_to_lookup.add(clean_isbn)
+            parsed_rows.append({
+                "row_num": row_num,
+                "title": title,
+                "clean_isbn": clean_isbn,
+                "raw_isbn": raw_isbn,
+                "author": author or "Unknown",
+                "cat_label": cat_label,
+                "publisher_name": publisher_name,
+                "published_date": published_date,
+                "qty": qty,
+                "description": row_description or "",
+            })
 
-                        if copies_needed > 0:
-                            prefix = f"ACC-{clean_isbn[-6:]}-"
-                            existing_accs = set(
-                                BookCopy.objects.filter(accession_number__startswith=prefix)
-                                .values_list('accession_number', flat=True)
-                            )
-                            copies_to_create = []
-                            seq = 1
-                            created_for_book = 0
-                            while created_for_book < copies_needed and seq <= current_copy_count + copies_needed + 500:
-                                acc_no = f"{prefix}{seq:03d}"
-                                if acc_no not in existing_accs:
-                                    copies_to_create.append(BookCopy(
-                                        book=book,
-                                        accession_number=acc_no,
-                                        shelf_location="",
-                                        status="available"
-                                    ))
-                                    existing_accs.add(acc_no)
-                                    created_for_book += 1
-                                seq += 1
+        # 2. Batch fetch & create Categories and Publishers in bulk
+        cat_cache = {c.name.lower(): c for c in Category.objects.filter(name__in=categories_to_find)}
+        new_cats = [Category(name=name) for name in categories_to_find if name.lower() not in cat_cache]
+        if new_cats:
+            Category.objects.bulk_create(new_cats, ignore_conflicts=True)
+            cat_cache = {c.name.lower(): c for c in Category.objects.filter(name__in=categories_to_find)}
 
-                            if copies_to_create:
-                                BookCopy.objects.bulk_create(copies_to_create)
-                                copies_created_total += len(copies_to_create)
-            except Exception as row_err:
-                errors.append({"row": row_num, "title": title, "reason": str(row_err)})
+        pub_cache = {p.name.lower(): p for p in Publisher.objects.filter(name__in=publishers_to_find)}
+        new_pubs = [Publisher(name=name) for name in publishers_to_find if name.lower() not in pub_cache]
+        if new_pubs:
+            Publisher.objects.bulk_create(new_pubs, ignore_conflicts=True)
+            pub_cache = {p.name.lower(): p for p in Publisher.objects.filter(name__in=publishers_to_find)}
+
+        # 3. Batch fetch existing books and pre-count existing physical copies
+        book_cache = {b.isbn: b for b in Book.objects.filter(isbn__in=isbns_to_lookup).select_related('category', 'publisher')}
+        
+        # Prefetch existing accession numbers for these ISBNs in one query
+        copy_prefixes = [f"ACC-{isbn[-6:]}-" for isbn in isbns_to_lookup]
+        existing_acc_set = set(
+            BookCopy.objects.filter(
+                models.Q(*[models.Q(accession_number__startswith=pfx) for pfx in copy_prefixes], _connector=models.Q.OR)
+            ).values_list('accession_number', flat=True)
+        ) if copy_prefixes else set()
+
+        # Prefetch copy counts grouped by book_id
+        from django.db.models import Count
+        copy_counts = dict(
+            BookCopy.objects.filter(book__isbn__in=isbns_to_lookup)
+            .values('book_id')
+            .annotate(cnt=Count('id'))
+            .values_list('book_id', 'cnt')
+        )
+
+        created_count = 0
+        skipped_count = 0
+        copies_created_total = 0
+        books_to_update = []
+        all_copies_to_create = []
+
+        with transaction.atomic():
+            for item in parsed_rows:
+                row_num = item["row_num"]
+                clean_isbn = item["clean_isbn"]
+                title = item["title"]
+                author = item["author"]
+                raw_isbn = item["raw_isbn"]
+                cat = cat_cache.get(item["cat_label"].lower()) if item["cat_label"] else None
+                pub = pub_cache.get(item["publisher_name"].lower()) if item["publisher_name"] else None
+
+                book = book_cache.get(clean_isbn)
+                if book:
+                    # Check for duplicate ISBN reused across distinct book titles
+                    clean_existing_title = re.sub(r'[^a-zA-Z0-9]', '', book.title).lower()
+                    clean_new_title = re.sub(r'[^a-zA-Z0-9]', '', title).lower()
+                    if clean_existing_title and clean_new_title and clean_existing_title not in clean_new_title and clean_new_title not in clean_existing_title:
+                        errors.append({
+                            "row": row_num,
+                            "title": title,
+                            "reason": f"ISBN '{raw_isbn}' is already registered to '{book.title}' by {book.author}. Skipping to prevent merging distinct books."
+                        })
+                        continue
+
+                    skipped_count += 1
+                    needs_update = False
+                    if not book.category and cat:
+                        book.category = cat
+                        needs_update = True
+                    if not book.publisher and pub:
+                        book.publisher = pub
+                        needs_update = True
+                    if needs_update:
+                        books_to_update.append(book)
+                else:
+                    book = Book(
+                        isbn=clean_isbn,
+                        title=title,
+                        author=author,
+                        category=cat,
+                        publisher=pub,
+                        published_date=item["published_date"],
+                        added_by=request.user if request.user.is_authenticated else None,
+                        description=item["description"],
+                    )
+                    book._skip_desc_fetch = True
+                    book.save(skip_desc_fetch=True)
+                    book_cache[clean_isbn] = book
+                    created_count += 1
+
+                # Physical copies
+                qty = item["qty"]
+                if qty > 0:
+                    current_copy_count = copy_counts.get(book.id, 0)
+                    copies_needed = max(0, qty - current_copy_count)
+                    if copies_needed > 0:
+                        prefix = f"ACC-{clean_isbn[-6:]}-"
+                        seq = 1
+                        created_for_this_book = 0
+                        while created_for_this_book < copies_needed and seq <= current_copy_count + copies_needed + 500:
+                            acc_no = f"{prefix}{seq:03d}"
+                            if acc_no not in existing_acc_set:
+                                all_copies_to_create.append(BookCopy(
+                                    book=book,
+                                    accession_number=acc_no,
+                                    shelf_location="",
+                                    status="available"
+                                ))
+                                existing_acc_set.add(acc_no)
+                                created_for_this_book += 1
+                            seq += 1
+                        copy_counts[book.id] = current_copy_count + created_for_this_book
+
+            # Perform bulk operations
+            if books_to_update:
+                Book.objects.bulk_update(books_to_update, ['category', 'publisher'])
+
+            if all_copies_to_create:
+                BookCopy.objects.bulk_create(all_copies_to_create, batch_size=500)
+                copies_created_total = len(all_copies_to_create)
 
         return Response({
             "success": True,
