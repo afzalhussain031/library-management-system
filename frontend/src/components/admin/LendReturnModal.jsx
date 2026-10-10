@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { lendReturnSchema } from '../../schemas/formSchemas';
-import { X, Book, Clock } from 'lucide-react';
+import { X, Book, Clock, User, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import Select from 'react-select';
@@ -260,41 +260,127 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     </div>
   );
 
+  // Format short display date
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   // ====== HELPER: Render Copy Cards (Issue Tab) ======
   const renderCopyCards = () => {
     if (!selectedBookId) return null;
-    if (loadingCopies) return <p className="text-sm text-gray-500 my-4 text-center">Loading copies...</p>;
-    if (copies.length === 0) return <p className="text-sm text-red-500 my-4 text-center font-medium bg-red-50 p-3 rounded-lg">No physical copies found for this book.</p>;
-    
+    if (loadingCopies) {
+      return (
+        <div className="my-5 p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center gap-2 text-sm text-slate-500">
+          <span className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          Loading physical copies...
+        </div>
+      );
+    }
+    if (copies.length === 0) {
+      return (
+        <div className="my-5 p-4 rounded-xl bg-rose-50/80 border border-rose-200/60 text-center">
+          <p className="text-sm text-rose-700 font-semibold">No physical copies registered for this book.</p>
+          <p className="text-xs text-rose-500 mt-0.5">Please add physical copies to the inventory first.</p>
+        </div>
+      );
+    }
+
+    const availableCount = copies.filter(c => c.status?.toLowerCase() === 'available').length;
+    // Sort available copies first, then by accession number
+    const sortedCopies = [...copies].sort((a, b) => {
+      const aAvail = a.status?.toLowerCase() === 'available';
+      const bAvail = b.status?.toLowerCase() === 'available';
+      if (aAvail && !bAvail) return -1;
+      if (!aAvail && bAvail) return 1;
+      return String(a.accession_number || '').localeCompare(String(b.accession_number || ''));
+    });
+
     return (
       <div className="mt-4 mb-6">
-        <label className="text-[12px] font-bold text-slate-600 mb-2 block tracking-wide">Select Physical Copy</label>
-        <div className="grid grid-cols-2 gap-3">
-          {copies.map(copy => {
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-[12px] font-bold text-slate-700 tracking-wide">
+            Select Physical Copy
+          </label>
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+            availableCount > 0 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
+              : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+          }`}>
+            {availableCount} of {copies.length} available
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[250px] overflow-y-auto pr-1">
+          {sortedCopies.map(copy => {
             const isAvailable = copy.status?.toLowerCase() === 'available';
+            const isLoaned = copy.status?.toLowerCase() === 'loaned';
             const isSelected = selectedCopyId === copy.id.toString();
+            const loan = copy.current_loan;
+
             return (
               <div 
                 key={copy.id}
                 onClick={() => {
                   if (isAvailable) setValue('copyId', copy.id.toString(), { shouldValidate: true });
                 }}
-                className={`p-3 border rounded-xl flex flex-col gap-1 transition-all ${
-                  !isAvailable ? 'opacity-60 bg-gray-50 border-gray-200 cursor-not-allowed' 
-                  : isSelected ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-400 cursor-pointer shadow-sm'
-                  : 'border-gray-200 hover:border-amber-300 cursor-pointer bg-white'
+                className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
+                  !isAvailable 
+                    ? 'bg-slate-50/80 border-slate-200/70 cursor-not-allowed opacity-90' 
+                    : isSelected 
+                      ? 'border-amber-400 bg-amber-50/70 ring-2 ring-amber-400 shadow-sm cursor-pointer'
+                      : 'border-slate-200 hover:border-amber-300 hover:shadow-xs bg-white cursor-pointer'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-700">ID: #{copy.id}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {copy.status}
-                  </span>
-                </div>
-                <div className="text-[11px] text-gray-500 flex items-center gap-1 mt-1">
-                  <Book size={12} /> {copy.barcode || 'No barcode'}
+                <div>
+                  {/* Header: Accession Number & Status Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[12px] font-bold text-slate-800 tracking-tight font-mono">
+                      Acc No: {copy.accession_number || `#${copy.id}`}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${
+                      isAvailable 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : isLoaned 
+                          ? 'bg-rose-100 text-rose-800' 
+                          : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {copy.status}
+                    </span>
+                  </div>
+
+                  {/* Body: Loan details if Loaned, or Location/Condition if Available */}
+                  {isLoaned ? (
+                    <div className="mt-2 pt-2 border-t border-slate-200/60 text-[11px] text-slate-600 space-y-1">
+                      <div className="flex items-center gap-1.5 font-medium text-slate-800">
+                        <User size={12} className="text-rose-500 shrink-0" />
+                        <span className="truncate" title={loan?.borrower_name || 'Loaned out'}>
+                          {loan ? `${loan.borrower_name} (${loan.borrower_user_id})` : 'Loaned out'}
+                        </span>
+                      </div>
+                      {loan?.due_at && (
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <Clock size={12} className={loan.is_overdue ? "text-rose-500 shrink-0" : "text-slate-400 shrink-0"} />
+                          <span className={loan.is_overdue ? "text-rose-600 font-semibold" : ""}>
+                            Due {formatShortDate(loan.due_at)} {loan.is_overdue ? '(Overdue)' : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
+                      <span className="flex items-center gap-1 truncate">
+                        <Book size={12} className="text-slate-400 shrink-0" />
+                        {copy.shelf_location ? `Shelf: ${copy.shelf_location}` : (copy.condition || 'Good Condition')}
+                      </span>
+                      {isSelected && (
+                        <span className="text-[11px] font-bold text-amber-600 flex items-center gap-0.5 shrink-0">
+                          <CheckCircle2 size={12} /> Selected
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -328,7 +414,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
               >
                 <div className="flex flex-col">
                   <span className="text-sm font-bold text-gray-800 line-clamp-1">{loan.book_title || 'Unknown Book'}</span>
-                  <span className="text-xs text-gray-500 mt-0.5">Loan ID: #{loan.id} | Copy ID: #{loan.book_id}</span>
+                  <span className="text-xs text-gray-500 mt-0.5">Loan ID: #{loan.id} | Acc No: {loan.copy_accession_number || `#${loan.copy}`}</span>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${

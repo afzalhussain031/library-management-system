@@ -128,7 +128,7 @@ class ReservationSerializer(serializers.ModelSerializer):
     
     # 1. Add the custom field
     user_name = serializers.SerializerMethodField()
-    allocated_copy_barcode = serializers.CharField(source="allocated_copy.barcode", read_only=True)
+    allocated_copy_barcode = serializers.CharField(source="allocated_copy.accession_number", read_only=True)
     
     queue_position = serializers.SerializerMethodField()
     estimated_wait_days = serializers.SerializerMethodField()

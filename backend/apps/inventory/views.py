@@ -7,7 +7,7 @@ from .serializers import BookCopySerializer
 
 
 class BookCopyViewSet(viewsets.ModelViewSet):
-    queryset = BookCopy.objects.select_related("book").all()
+    queryset = BookCopy.objects.select_related("book").prefetch_related("loans__borrower").all()
     serializer_class = BookCopySerializer
     permission_classes = [IsStaffOrReadOnly]
 

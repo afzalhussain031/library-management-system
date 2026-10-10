@@ -13,7 +13,7 @@ class FineSerializer(serializers.ModelSerializer):
     loan_due_at = serializers.DateTimeField(source="loan.due_at", read_only=True)
     loan_returned_at = serializers.DateTimeField(source="loan.returned_at", read_only=True)
     loan_issued_at = serializers.DateTimeField(source="loan.issued_at", read_only=True)
-    loan_copy_barcode = serializers.CharField(source="loan.copy.barcode", read_only=True)
+    loan_copy_barcode = serializers.CharField(source="loan.copy.accession_number", read_only=True)
     is_paid = serializers.SerializerMethodField()
 
     class Meta:

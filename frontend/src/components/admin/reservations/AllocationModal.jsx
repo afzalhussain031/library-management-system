@@ -102,13 +102,16 @@ const AllocationModal = ({ isOpen, onClose, reservation, onConfirm }) => {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-700">Copy #{copy.copy_number}</span>
+                          <span className="text-xs font-bold text-slate-700 font-mono">
+                            Acc No: {copy.accession_number || `#${copy.id}`}
+                          </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                             Available
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
-                          <Book size={12} /> {copy.barcode || 'No barcode'}
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-1 truncate">
+                          <Book size={12} className="shrink-0 text-slate-400" /> 
+                          {copy.shelf_location ? `Shelf: ${copy.shelf_location}` : (copy.condition || 'Good Condition')}
                         </div>
                       </div>
                     );
