@@ -8,11 +8,12 @@ import {
   RefreshCw,
   AlertCircle,
   X,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from "lucide-react";
 import UserAvatar from "../../components/common/UserAvatar";
 import { useApi } from "../../hook/useApi";
-import { dashboard } from "../../services/api";
+import { dashboard, circulation } from "../../services/api";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import { SkeletonAvatar, SkeletonText } from "../../components/common/Skeleton";
 import toast from "react-hot-toast";
@@ -36,6 +37,13 @@ const Circulation = () => {
     fineAmount: 0,
     loading: false,
     paidNow: false
+  });
+  const [dueDateModal, setDueDateModal] = useState({
+    isOpen: false,
+    loan: null,
+    newDate: "",
+    reason: "",
+    loading: false
   });
 
   const { data: rawLoans, isLoading: loading, error, refetch: fetchLoans } = useApi(dashboard.getBorrowedBooks, []);
@@ -103,6 +111,39 @@ const Circulation = () => {
     } catch (err) {
       toast.error(err.response?.data?.detail || `Error ${actionType}ing book.`, { id: toastId });
       setConfirmModal({ ...confirmModal, isOpen: false });
+    }
+  };
+
+  // 3.5. Handle Manual Due Date Adjustment
+  const handleOpenDueDateModal = (loan) => {
+    setDueDateModal({
+      isOpen: true,
+      loan,
+      newDate: loan.due_at ? loan.due_at.split('T')[0] : '',
+      reason: '',
+      loading: false
+    });
+  };
+
+  const executeDueDateAdjustment = async () => {
+    if (!dueDateModal.newDate) {
+      toast.error("Please pick a valid due date.");
+      return;
+    }
+
+    setDueDateModal(prev => ({ ...prev, loading: true }));
+    const toastId = toast.loading("Updating due date...");
+    try {
+      await circulation.adjustDueDate(dueDateModal.loan.id, {
+        due_at: dueDateModal.newDate,
+        reason: dueDateModal.reason
+      });
+      toast.success("Due date updated successfully!", { id: toastId });
+      setDueDateModal(prev => ({ ...prev, isOpen: false, loading: false }));
+      fetchLoans();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || err.response?.data?.due_at?.[0] || "Failed to update due date.", { id: toastId });
+      setDueDateModal(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -210,7 +251,7 @@ const Circulation = () => {
               <div className="w-[200px] shrink-0">Book Copy</div>
               <div className="w-[320px] shrink-0 px-4 text-center">Timeline</div>
               <div className="w-[120px] shrink-0">Status</div>
-              <div className="flex-1 min-w-[160px] text-right pr-4">Actions</div>
+              <div className="flex-1 min-w-[250px] text-right pr-4">Actions</div>
             </div>
             {/* List */}
             <div className="space-y-3">
@@ -234,7 +275,7 @@ const Circulation = () => {
                     <div className="w-[120px] shrink-0">
                       <SkeletonText className="h-6 w-16 rounded" />
                     </div>
-                    <div className="flex-1 min-w-[160px] flex justify-end gap-3 pr-2">
+                    <div className="flex-1 min-w-[250px] flex justify-end gap-3 pr-2">
                       <SkeletonText className="h-6 w-20 rounded" />
                     </div>
                   </div>
@@ -270,7 +311,9 @@ const Circulation = () => {
                           {loan.book_title}
                         </EntityLink>
                       </p>
-                      <p className="text-[12px] text-gray-500 truncate">ID: #{loan.book_id}</p>
+                      <p className="text-[12px] text-gray-500 truncate font-mono">
+                        Acc: {loan.copy_accession_number || `#${loan.copy || loan.book_id}`}
+                      </p>
                     </div>
                     <div className="w-[320px] shrink-0 px-4">
                       <LoanTimeline 
@@ -291,7 +334,7 @@ const Circulation = () => {
                       )}
                     </div>
                     {/* Actions */}
-                    <div className="flex-1 min-w-[160px] flex items-center justify-end gap-3 text-gray-400 pr-2">
+                    <div className="flex-1 min-w-[250px] flex items-center justify-end gap-3 text-gray-400 pr-2">
                       {!loan.returned_at && (
                         <>
                           <button 
@@ -299,18 +342,25 @@ const Circulation = () => {
                             className="hover:text-green-500 transition-colors flex items-center gap-1 text-[12px]"
                             title="Mark as Returned"
                           >
-                            <CheckCircle size={18} /> Return
+                            <CheckCircle size={16} /> Return
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleRenew(loan.id); }}
-                            className="hover:text-blue-500 transition-colors flex items-center gap-1 text-[12px] ml-2"
+                            className="hover:text-blue-500 transition-colors flex items-center gap-1 text-[12px]"
                             title="Renew (Add 14 days)"
                           >
-                            <RefreshCw size={18} /> Renew
+                            <RefreshCw size={15} /> Renew
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleOpenDueDateModal(loan); }}
+                            className="hover:text-amber-500 transition-colors flex items-center gap-1 text-[12px]"
+                            title="Edit Due Date Manually"
+                          >
+                            <Calendar size={15} /> Edit Date
                           </button>
                         </>
                       )}
-                      <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 ml-2" />
+                      <ChevronRight size={18} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 ml-1" />
                     </div>
                   </div>
                 ))
@@ -422,6 +472,122 @@ const Circulation = () => {
                   {confirmModal.loading ? 'Processing...' : `Confirm ${confirmModal.actionType === 'return' ? 'Return' : 'Renew'}`}
                 </button>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Manual Due Date Edit Modal */}
+      {dueDateModal.isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[120] transition-opacity animate-[fadeIn_0.15s_ease-out]" 
+            onClick={() => !dueDateModal.loading && setDueDateModal({ ...dueDateModal, isOpen: false })} 
+          />
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 pointer-events-none">
+            <div className="w-full max-w-[460px] bg-white rounded-[26px] p-6 shadow-2xl border border-slate-100 flex flex-col pointer-events-auto transform transition-all duration-150 animate-[scaleUp_0.2s_ease-out] overflow-hidden max-h-[92vh]">
+              
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4 mt-1 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                    <Calendar size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-[18px] font-extrabold text-slate-800 tracking-tight">
+                      Adjust Due Date
+                    </h2>
+                    <p className="text-[12px] font-medium text-slate-500 truncate max-w-[280px]">
+                      {dueDateModal.loan?.book_title}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => !dueDateModal.loading && setDueDateModal({ ...dueDateModal, isOpen: false })}
+                  className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition cursor-pointer -mt-1 -mr-2"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Context Pill */}
+              <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 mb-4 text-xs space-y-1.5">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Borrower:</span>
+                  <strong className="text-slate-800 font-semibold">{dueDateModal.loan?.user_name}</strong>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Physical Copy:</span>
+                  <strong className="text-slate-800 font-mono">
+                    Acc No: {dueDateModal.loan?.copy_accession_number || `#${dueDateModal.loan?.copy || dueDateModal.loan?.book_id}`}
+                  </strong>
+                </div>
+                <div className="flex justify-between items-center text-slate-600 pt-1 border-t border-slate-200/60">
+                  <span>Current Due:</span>
+                  <span className="font-semibold text-amber-700">
+                    {dueDateModal.loan?.due_at ? new Date(dueDateModal.loan.due_at).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Form Controls */}
+              <div className="space-y-4 mb-2">
+                <div>
+                  <label className="text-[12px] font-bold text-slate-700 block mb-1.5 tracking-wide">
+                    New Due Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input 
+                    type="date"
+                    value={dueDateModal.newDate}
+                    min={dueDateModal.loan?.issued_at ? dueDateModal.loan.issued_at.split('T')[0] : new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setDueDateModal(prev => ({ ...prev, newDate: e.target.value }))}
+                    disabled={dueDateModal.loading}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-amber-400 focus:ring-1 focus:ring-amber-400 disabled:bg-slate-50"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Fines and overdue statuses will automatically recalibrate to this date.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[12px] font-bold text-slate-700 block mb-1.5 tracking-wide">
+                    Reason / Note (Optional)
+                  </label>
+                  <textarea 
+                    rows={2}
+                    value={dueDateModal.reason}
+                    onChange={(e) => setDueDateModal(prev => ({ ...prev, reason: e.target.value }))}
+                    placeholder="e.g. Semester extension, Medical leave, Approved by Librarian"
+                    disabled={dueDateModal.loading}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 outline-none transition focus:border-amber-400 focus:ring-1 focus:ring-amber-400 resize-none disabled:bg-slate-50 placeholder:text-slate-300"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    This note will be recorded in the loan's audit trail.
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-slate-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDueDateModal({ ...dueDateModal, isOpen: false })}
+                  disabled={dueDateModal.loading}
+                  className="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={executeDueDateAdjustment}
+                  disabled={dueDateModal.loading || !dueDateModal.newDate}
+                  className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {dueDateModal.loading ? 'Updating...' : 'Save New Date'}
+                </button>
+              </div>
+
             </div>
           </div>
         </>

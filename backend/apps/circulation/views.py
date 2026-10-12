@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -188,6 +188,60 @@ class LoanViewSet(viewsets.ModelViewSet):
         loan.due_at = loan.due_at + timedelta(days=14)
         loan.save(update_fields=["renewed_count", "due_at"])
         return Response({"detail": "Loan renewed successfully.", "due_at": loan.due_at})
+
+    @action(detail=True, methods=["post"])
+    def adjust_due_date(self, request, pk=None):
+        if not (request.user.is_staff or getattr(request.user, 'role', '') in ['staff', 'librarian', 'superadmin']):
+            return Response({"detail": "Only library staff can adjust due dates."}, status=status.HTTP_403_FORBIDDEN)
+
+        loan = self.get_object()
+        if loan.returned_at:
+            raise ValidationError({"detail": "Cannot adjust due date for an already returned book."})
+
+        new_due_at = request.data.get("due_at")
+        reason = (request.data.get("reason") or "").strip()
+
+        if not new_due_at:
+            raise ValidationError({"due_at": "New due date is required."})
+
+        try:
+            date_str = str(new_due_at).strip().replace("Z", "")
+            if len(date_str) == 10:
+                d = datetime.strptime(date_str, "%Y-%m-%d").date()
+                parsed_date = timezone.make_aware(datetime.combine(d, time(23, 59, 59)))
+            else:
+                parsed_date = timezone.datetime.fromisoformat(date_str)
+                if timezone.is_naive(parsed_date):
+                    parsed_date = timezone.make_aware(parsed_date)
+        except (ValueError, TypeError):
+            raise ValidationError({"due_at": "Invalid date format. Expected YYYY-MM-DD."})
+
+        if parsed_date.date() < loan.issued_at.date():
+            raise ValidationError({"due_at": "Due date cannot be earlier than the issue date."})
+
+        old_due_formatted = loan.due_at.strftime('%d-%b-%Y')
+        new_due_formatted = parsed_date.strftime('%d-%b-%Y')
+
+        admin_name = request.user.get_full_name() or request.user.user_id
+        timestamp = timezone.now().strftime('%Y-%m-%d %H:%M')
+        audit_note = f"[{timestamp}] Due date changed from {old_due_formatted} to {new_due_formatted} by {admin_name}."
+        if reason:
+            audit_note += f" Reason: {reason}"
+
+        loan.due_at = parsed_date
+        loan.notes = f"{loan.notes}\n{audit_note}".strip() if loan.notes else audit_note
+        loan.save(update_fields=["due_at", "notes"])
+
+        create_student_notification(
+            user=loan.borrower,
+            notif_type="book_issued",
+            title="Due Date Extended",
+            message=f"The due date for '{loan.copy.book.title}' has been adjusted to {new_due_formatted}.",
+            related_entity_id=loan.id
+        )
+
+        serializer = self.get_serializer(loan)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ReservationViewSet(viewsets.ModelViewSet):

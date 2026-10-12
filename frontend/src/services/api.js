@@ -210,5 +210,6 @@ export const circulation = {
   returnBook: (loanId, paidNow = false) => client.post(`/loans/${loanId}/return_loan/`, { paid_now: paidNow }),
   calculateFine: (loanId) => client.get(`/loans/${loanId}/calculate_fine/`),
   getUserLoans: (userId) => client.get(`/loans/?user_id=${userId}`),
-  renewLoan: (loanId) => client.post(`/loans/${loanId}/renew/`)
+  renewLoan: (loanId) => client.post(`/loans/${loanId}/renew/`),
+  adjustDueDate: (loanId, data) => client.post(`/loans/${loanId}/adjust_due_date/`, data)
 }
