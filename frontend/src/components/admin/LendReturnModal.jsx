@@ -7,12 +7,20 @@ import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import Select from 'react-select';
 import { membersApi, catalog, inventory, circulation } from '../../services/api';
+import { clearApiCache } from '../../hook/useApi';
+
+// In-memory cache for autocomplete options to make modal open and search instant (0ms)
+let cachedUsersOptions = null;
+let cachedBooksOptions = null;
+let lastOptionsFetchTime = 0;
+const OPTIONS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const copiesCache = new Map();
 
 export default function LendReturnModal({ open, onClose, onSuccess }) {
   const [activeTab, setActiveTab] = useState('lend');
-  const [users, setUsers] = useState([]);
-  const [books, setBooks] = useState([]);
-  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [users, setUsers] = useState(cachedUsersOptions || []);
+  const [books, setBooks] = useState(cachedBooksOptions || []);
+  const [loadingOptions, setLoadingOptions] = useState(!cachedUsersOptions || !cachedBooksOptions);
   
   // States for the Visual Cards
   const [copies, setCopies] = useState([]);
@@ -50,11 +58,29 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
   const selectedCopyId = watch('copyId');
   const selectedLoanId = watch('loanId');
 
-  // Fetch users and books for autocomplete (runs once on open)
+  // Fetch users and books for autocomplete (instant with cache)
   useEffect(() => {
     if (open) {
-      const fetchOptions = async () => {
+      const now = Date.now();
+      const hasValidCache = cachedUsersOptions && cachedBooksOptions && (now - lastOptionsFetchTime < OPTIONS_CACHE_TTL);
+
+      if (hasValidCache) {
+        setUsers(cachedUsersOptions);
+        setBooks(cachedBooksOptions);
+        setLoadingOptions(false);
+        return;
+      }
+
+      // If we have stale cache, display it immediately so search is instant, then revalidate in background
+      if (cachedUsersOptions && cachedBooksOptions) {
+        setUsers(cachedUsersOptions);
+        setBooks(cachedBooksOptions);
+        setLoadingOptions(false);
+      } else {
         setLoadingOptions(true);
+      }
+
+      const fetchOptions = async () => {
         try {
           const [usersRes, booksRes] = await Promise.all([
             membersApi.getAll(),
@@ -63,12 +89,19 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
           const usersData = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data?.results || []);
           const booksData = Array.isArray(booksRes.data) ? booksRes.data : (booksRes.data?.results || []);
 
-          setUsers(usersData.map(u => ({ 
+          const mappedUsers = usersData.map(u => ({ 
             value: u.id?.toString(), 
             label: `${u.user_id} - ${u.student_name || u.name || 'Unknown'}${u.is_active === false ? ' (Suspended)' : ''}`,
             isActive: u.is_active !== false
-          })));
-          setBooks(booksData.map(b => ({ value: b.id?.toString(), label: `${b.isbn || 'No-ISBN'} - ${b.title || 'Unknown'}` })));
+          }));
+          const mappedBooks = booksData.map(b => ({ value: b.id?.toString(), label: `${b.isbn || 'No-ISBN'} - ${b.title || 'Unknown'}` }));
+
+          cachedUsersOptions = mappedUsers;
+          cachedBooksOptions = mappedBooks;
+          lastOptionsFetchTime = Date.now();
+
+          setUsers(mappedUsers);
+          setBooks(mappedBooks);
         } catch (error) {
           console.error("Failed to load autocomplete options", error);
         } finally {
@@ -88,14 +121,21 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     setActiveLoans([]);
   }, [activeTab, setValue]);
 
-  // Fetch Copies when a Book is selected (for Issue Tab)
+  // Fetch Copies when a Book is selected (Instant with cache)
   useEffect(() => {
     if (activeTab === 'lend' && selectedBookId) {
-      const fetchCopies = async () => {
+      if (copiesCache.has(selectedBookId)) {
+        setCopies(copiesCache.get(selectedBookId));
+        setLoadingCopies(false);
+      } else {
         setLoadingCopies(true);
+      }
+
+      const fetchCopies = async () => {
         try {
           const res = await inventory.getCopiesByBook(selectedBookId);
           const copiesData = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+          copiesCache.set(selectedBookId, copiesData);
           setCopies(copiesData);
         } catch (error) {
           console.error("Failed to load copies", error);
@@ -187,6 +227,11 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
         toast.success("Book returned successfully!");
       }
       
+      // Invalidate relevant cache so dashboard & circulation reflect the changes
+      copiesCache.clear();
+      lastOptionsFetchTime = 0;
+      clearApiCache();
+
       if (onSuccess) onSuccess();
       reset();
       onClose();
