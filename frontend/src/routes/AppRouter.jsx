@@ -48,8 +48,12 @@ const AppRouter = () => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <h3>Loading application...</h3>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 px-4 text-center">
+        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h3 className="text-base font-semibold text-slate-800 mb-1">Connecting to Library Services...</h3>
+        <p className="text-xs text-slate-500 max-w-sm">
+          Initial connection may take a moment while the server wakes up from sleep mode.
+        </p>
       </div>
     );
   }

@@ -9,11 +9,23 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null)
 
   async function checkAuth() {
+    const token = localStorage.getItem('access_token')
+
+    // If no token exists, user is definitely logged out.
+    // Stop loading immediately without calling the sleeping backend.
+    if (!token) {
+      setCurrentUser(null)
+      setLoading(false)
+      return
+    }
+
     try {
       const user = await auth.getCurrentUser()
       setCurrentUser(user)
     } catch (err) {
-      console.log('Not logged in')
+      console.log('Not logged in or session expired')
+      localStorage.removeItem('access_token')
+      setCurrentUser(null)
     } finally {
       setLoading(false)
     }
