@@ -53,17 +53,25 @@ class DashboardStatsView(APIView):
         ).count()
 
         # 2. FETCH THE TOP 5 RECORDS
-        # Get the 5 most recent reservations
-        recent_reservations = Reservation.objects.filter(status=Reservation.PENDING).order_by('-reserved_at')[:5]        
+        # Get the 5 most recent reservations with eager-loaded relations
+        recent_reservations = Reservation.objects.filter(
+            status=Reservation.PENDING
+        ).select_related(
+            'book__publisher', 'book__category', 'user', 'allocated_copy'
+        ).order_by('-reserved_at')[:5]        
         
-        # Get the 5 most recent loans
-        recent_loans = Loan.objects.order_by('-issued_at')[:5]
+        # Get the 5 most recent loans with eager-loaded relations
+        recent_loans = Loan.objects.select_related(
+            'borrower', 'copy__book__publisher', 'copy__book__category'
+        ).order_by('-issued_at')[:5]
         
-        # Get the 5 most critical overdue loans (oldest due_at first)
+        # Get the 5 most critical overdue loans with eager-loaded relations
         overdue_loans = Loan.objects.filter(
             returned_at__isnull=True, 
             due_at__lt=now,
             copy__status=BookCopy.LOANED  # Added: Ensures the physical book is actually missing
+        ).select_related(
+            'borrower', 'copy__book__publisher', 'copy__book__category'
         ).order_by('due_at')[:5]
 
         return Response({

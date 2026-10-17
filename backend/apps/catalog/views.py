@@ -104,6 +104,14 @@ class BookViewSet(viewsets.ModelViewSet):
                 queryset = queryset.order_by('author')
             elif sort_param.lower() in ['popularity', '-popularity']:
                 queryset = queryset.annotate(loan_count=Count('copies__loans')).order_by('-loan_count')
+        # Search
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(author__icontains=search) |
+                Q(isbn__icontains=search)
+            )
                 
         return queryset.select_related(
             'category', 'publisher', 'language', 'added_by'
@@ -497,7 +505,11 @@ class WishlistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Wishlist.objects.filter(user=self.request.user).select_related("book")
+        return Wishlist.objects.filter(user=self.request.user).select_related(
+            "book__category", "book__publisher", "book__language", "book__added_by"
+        ).prefetch_related(
+            "book__copies", "book__copies__loans", "book__reservations"
+        )
 
     def perform_create(self, serializer):
         if not self.request.user.is_active:

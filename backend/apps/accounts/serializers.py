@@ -198,6 +198,8 @@ class MemberListSerializer(CustomUserProfileSerializer):
         ]
 
     def get_can_hard_delete(self, obj):
+        if hasattr(obj, 'total_borrowed') and hasattr(obj, 'reservations_count'):
+            return obj.total_borrowed == 0 and obj.reservations_count == 0
         return not obj.loans.exists() and not obj.reservations.exists()
 
 

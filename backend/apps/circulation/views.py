@@ -18,7 +18,11 @@ from .serializers import LoanSerializer, ReservationSerializer
 
 
 class LoanViewSet(viewsets.ModelViewSet):
-    queryset = Loan.objects.select_related("copy", "borrower").all()
+    queryset = Loan.objects.select_related(
+        "copy__book__publisher",
+        "copy__book__category",
+        "borrower"
+    ).all()
     serializer_class = LoanSerializer
     permission_classes = [IsStaffOrReadOnly]
 
@@ -245,7 +249,12 @@ class LoanViewSet(viewsets.ModelViewSet):
 
 
 class ReservationViewSet(viewsets.ModelViewSet):
-    queryset = Reservation.objects.select_related("book", "user").all()
+    queryset = Reservation.objects.select_related(
+        "book__publisher",
+        "book__category",
+        "user",
+        "allocated_copy"
+    ).all()
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
 

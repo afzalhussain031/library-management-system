@@ -11,7 +11,7 @@ from .serializers import FineSerializer
 
 
 class FineViewSet(viewsets.ModelViewSet):
-    queryset = Fine.objects.select_related("loan").all()
+    queryset = Fine.objects.select_related("loan__copy__book", "loan__borrower").all()
     serializer_class = FineSerializer
     permission_classes = [IsStaffOrReadOnly]
 

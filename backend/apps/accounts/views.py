@@ -222,6 +222,7 @@ class MemberListView(generics.ListAPIView):
         return super().get_queryset().select_related('membership').annotate(
             currently_borrowed=Count('loans', filter=Q(loans__returned_at__isnull=True)),
             total_borrowed=Count('loans'),
+            reservations_count=Count('reservations'),
             pending_fines=Coalesce(Sum('loans__fine__amount', filter=Q(loans__fine__status='pending')), Decimal('0.00'))
         )
 
