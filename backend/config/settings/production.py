@@ -10,11 +10,11 @@ ALLOWED_HOSTS = [host for host in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",
 # 2. Add WhiteNoise Middleware (Right after SecurityMiddleware)
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
-# 3. Connect Supabase Database
+# 3. Connect Supabase Database (Using Supavisor Pooler)
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL'),
-        conn_max_age=600,
+        conn_max_age=0,
         conn_health_checks=True,
     )
 }
