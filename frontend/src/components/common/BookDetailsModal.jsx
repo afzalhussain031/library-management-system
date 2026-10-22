@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import axios from 'axios';
+import client from '../../services/httpClient';
 import { toast } from 'react-hot-toast';
 
 const BookDetailsModal = ({ bookId, onClose }) => {
@@ -8,17 +8,12 @@ const BookDetailsModal = ({ bookId, onClose }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("BookDetailsModal mounted with bookId:", bookId, "type:", typeof bookId);
     if (!bookId) return;
 
     const fetchBookDetails = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`http://localhost:8000/api/books/${bookId}/`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`
-          }
-        });
+        const response = await client.get(`/books/${bookId}/`);
         setBook(response.data);
       } catch (error) {
         toast.error("Failed to fetch book details");

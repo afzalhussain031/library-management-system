@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import axios from 'axios';
+import client from '../../../services/httpClient';
 import { toast } from 'react-hot-toast';
 
 const PublisherDetailsModal = ({ publisherId, onClose }) => {
@@ -8,17 +8,12 @@ const PublisherDetailsModal = ({ publisherId, onClose }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("PublisherDetailsModal mounted with publisherId:", publisherId, "type:", typeof publisherId);
     if (!publisherId) return;
 
     const fetchPublisherDetails = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`http://localhost:8000/api/publishers/${publisherId}/`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`
-          }
-        });
+        const response = await client.get(`/publishers/${publisherId}/`);
         setPublisher(response.data);
       } catch (error) {
         toast.error("Failed to fetch publisher details");
