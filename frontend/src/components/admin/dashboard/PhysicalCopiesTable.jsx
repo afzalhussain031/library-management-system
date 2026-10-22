@@ -92,16 +92,85 @@ const PhysicalCopiesTable = ({ bookId }) => {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const renderCurrentHolder = (copy) => {
+    if (copy.status === "loaned") {
+      if (!copy.current_loan) {
+        return <span className="text-gray-400 text-[11px] italic">Loan record not found</span>;
+      }
+      const { borrower_name, borrower_user_id, due_at, is_overdue } = copy.current_loan;
+      return (
+        <div className="flex flex-col text-[11px] leading-tight">
+          <div className="font-bold text-[#1C2434] truncate max-w-[170px]" title={borrower_name || borrower_user_id}>
+            {borrower_name || "Unknown Member"}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 text-[10px]">
+            <span className="text-gray-400 font-medium">{borrower_user_id}</span>
+            {due_at && (
+              <>
+                <span className="text-gray-300">•</span>
+                {is_overdue ? (
+                  <span className="text-rose-600 font-extrabold bg-rose-50 px-1 py-0.5 rounded border border-rose-100" title={`Due: ${formatDate(due_at)}`}>
+                    Overdue ({formatDate(due_at)})
+                  </span>
+                ) : (
+                  <span className="text-indigo-600 font-medium" title={`Due: ${formatDate(due_at)}`}>
+                    Due {formatDate(due_at)}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (copy.status === "reserved") {
+      if (!copy.current_reservation) {
+        return <span className="text-gray-400 text-[11px] italic">Reserved</span>;
+      }
+      const { user_name, member_user_id } = copy.current_reservation;
+      return (
+        <div className="flex flex-col text-[11px] leading-tight">
+          <div className="font-bold text-[#1C2434] truncate max-w-[170px]" title={user_name || member_user_id}>
+            {user_name || "Unknown Member"}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 text-[10px]">
+            <span className="text-gray-400 font-medium">{member_user_id}</span>
+            <span className="text-gray-300">•</span>
+            <span className="text-amber-600 font-semibold bg-amber-50 px-1 py-0.5 rounded border border-amber-100">
+              On Hold
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return <span className="text-gray-300 text-[12px] font-bold">—</span>;
+  };
+
   if (isLoading) {
     return (
-      <div className="flex-1 min-w-[500px] h-[150px] flex items-center justify-center bg-slate-50/50 rounded-2xl border border-slate-100">
+      <div className="flex-1 min-w-[580px] h-[150px] flex items-center justify-center bg-slate-50/50 rounded-2xl border border-slate-100">
         <Loader2 className="animate-spin text-gray-400" size={24} />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 min-w-[500px] bg-slate-50/40 rounded-2xl border border-slate-100/60 overflow-hidden shadow-inner flex flex-col justify-between">
+    <div className="flex-1 min-w-[580px] bg-slate-50/40 rounded-2xl border border-slate-100/60 overflow-hidden shadow-inner flex flex-col justify-between">
       <div>
         {/* Mini Header */}
         <div className="bg-white/50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
@@ -112,10 +181,11 @@ const PhysicalCopiesTable = ({ bookId }) => {
         {/* Mini Table */}
         <div className="w-full">
           <div className="flex items-center px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-slate-100/50">
-            <div className="w-[120px]">Accession No.</div>
-            <div className="w-[120px]">Shelf</div>
-            <div className="w-[140px]">Status</div>
-            <div className="flex-1 text-right">Actions</div>
+            <div className="w-[110px] shrink-0">Accession No.</div>
+            <div className="w-[90px] shrink-0">Shelf</div>
+            <div className="w-[110px] shrink-0">Status</div>
+            <div className="flex-1 min-w-[190px]">Current Holder</div>
+            <div className="w-[50px] shrink-0 text-right">Actions</div>
           </div>
 
           <div className="divide-y divide-slate-100/50 max-h-[250px] overflow-y-auto custom-scrollbar">
@@ -126,10 +196,14 @@ const PhysicalCopiesTable = ({ bookId }) => {
             ) : (
               copies.map((copy) => (
                 <div key={copy.id} className="flex items-center px-4 py-2.5 hover:bg-white/50 transition-colors">
-                  <div className="w-[120px] font-bold text-[12px] text-[#1C2434]">{copy.accession_number}</div>
-                  <div className="w-[120px] font-medium text-[12px] text-gray-500">{copy.shelf_location || "-"}</div>
+                  <div className="w-[110px] shrink-0 font-bold text-[12px] text-[#1C2434] truncate" title={copy.accession_number}>
+                    {copy.accession_number}
+                  </div>
+                  <div className="w-[90px] shrink-0 font-medium text-[12px] text-gray-500 truncate" title={copy.shelf_location || ""}>
+                    {copy.shelf_location || "—"}
+                  </div>
                   
-                  <div className="w-[140px]">
+                  <div className="w-[110px] shrink-0">
                     {/* Inline Status Dropdown */}
                     <select 
                       value={copy.status}
@@ -148,7 +222,11 @@ const PhysicalCopiesTable = ({ bookId }) => {
                     </select>
                   </div>
 
-                  <div className="flex-1 flex justify-end">
+                  <div className="flex-1 min-w-[190px] pr-2">
+                    {renderCurrentHolder(copy)}
+                  </div>
+
+                  <div className="w-[50px] shrink-0 flex justify-end">
                     {/* Defensive Delete UI */}
                     {pendingDeleteId === copy.id ? (
                       <div className="flex items-center gap-1.5 animate-in zoom-in-95 duration-200 bg-white shadow-sm rounded-full px-1.5 py-1 border border-red-50 relative z-10">
