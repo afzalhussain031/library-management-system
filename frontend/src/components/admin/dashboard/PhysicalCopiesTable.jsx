@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { Trash2, Plus, Loader2, Check, X as CloseIcon } from "lucide-react";
 import { inventory } from "../../../services/api";
 import { toast } from "react-hot-toast";
+import { useEntityModal } from "../../../context/EntityModalContext";
 
 const PhysicalCopiesTable = ({ bookId }) => {
+  const { showMember } = useEntityModal();
   const [copies, setCopies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,12 +112,26 @@ const PhysicalCopiesTable = ({ bookId }) => {
       if (!copy.current_loan) {
         return <span className="text-gray-400 text-[11px] italic">Loan record not found</span>;
       }
-      const { borrower_name, borrower_user_id, due_at, is_overdue } = copy.current_loan;
+      const { borrower_id, borrower_name, borrower_user_id, due_at, is_overdue } = copy.current_loan;
       return (
         <div className="flex flex-col text-[11px] leading-tight">
-          <div className="font-bold text-[#1C2434] truncate max-w-[170px]" title={borrower_name || borrower_user_id}>
-            {borrower_name || "Unknown Member"}
-          </div>
+          {borrower_id ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                showMember(borrower_id);
+              }}
+              className="font-bold text-[#1C2434] hover:text-[#1BC5BD] hover:underline text-left truncate max-w-[170px] cursor-pointer transition-colors"
+              title={`View member profile for ${borrower_name || borrower_user_id}`}
+            >
+              {borrower_name || "Unknown Member"}
+            </button>
+          ) : (
+            <div className="font-bold text-[#1C2434] truncate max-w-[170px]" title={borrower_name || borrower_user_id}>
+              {borrower_name || "Unknown Member"}
+            </div>
+          )}
           <div className="flex items-center gap-1.5 mt-0.5 text-[10px]">
             <span className="text-gray-400 font-medium">{borrower_user_id}</span>
             {due_at && (
@@ -141,12 +157,26 @@ const PhysicalCopiesTable = ({ bookId }) => {
       if (!copy.current_reservation) {
         return <span className="text-gray-400 text-[11px] italic">Reserved</span>;
       }
-      const { user_name, member_user_id } = copy.current_reservation;
+      const { user_id, user_name, member_user_id } = copy.current_reservation;
       return (
         <div className="flex flex-col text-[11px] leading-tight">
-          <div className="font-bold text-[#1C2434] truncate max-w-[170px]" title={user_name || member_user_id}>
-            {user_name || "Unknown Member"}
-          </div>
+          {user_id ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                showMember(user_id);
+              }}
+              className="font-bold text-[#1C2434] hover:text-[#1BC5BD] hover:underline text-left truncate max-w-[170px] cursor-pointer transition-colors"
+              title={`View member profile for ${user_name || member_user_id}`}
+            >
+              {user_name || "Unknown Member"}
+            </button>
+          ) : (
+            <div className="font-bold text-[#1C2434] truncate max-w-[170px]" title={user_name || member_user_id}>
+              {user_name || "Unknown Member"}
+            </div>
+          )}
           <div className="flex items-center gap-1.5 mt-0.5 text-[10px]">
             <span className="text-gray-400 font-medium">{member_user_id}</span>
             <span className="text-gray-300">•</span>
