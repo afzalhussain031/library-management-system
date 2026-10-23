@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { lendReturnSchema } from '../../schemas/formSchemas';
 import { 
   X, Book, Clock, User, CheckCircle2, Plus, Trash2, 
-  Barcode, CheckSquare, Square, AlertCircle, ShoppingCart, 
+  Hash, CheckSquare, Square, AlertCircle, ShoppingCart, 
   Layers, Calendar, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -278,7 +278,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
       const copiesFound = Array.isArray(res.data) ? res.data : (res.data?.results || []);
       
       if (copiesFound.length === 0) {
-        toast.error(`No book copy found with barcode/accession "${rawCode}".`);
+        toast.error(`No book copy found with accession number "${rawCode}".`);
         return;
       }
 
@@ -296,8 +296,8 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
       handleAddCopy(copy, copy.book_title || copy.book?.title);
       setBarcodeInput('');
     } catch (err) {
-      console.error("Barcode scan failed", err);
-      toast.error("Failed to verify barcode copy.");
+      console.error("Accession lookup failed", err);
+      toast.error("Failed to verify copy accession number.");
     } finally {
       setIsScanning(false);
     }
@@ -514,14 +514,14 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     );
   };
 
-  // ====== RENDER: Barcode Quick Scanner (Issue Tab) ======
-  const renderBarcodeScanner = () => (
+  // ====== RENDER: Direct Accession Number Entry (Issue Tab) ======
+  const renderAccessionInput = () => (
     <div className="mb-4 p-3 rounded-xl bg-amber-50/50 border border-amber-200/60">
       <div className="flex items-center justify-between mb-1.5">
         <label className="text-[12px] font-bold text-amber-950 flex items-center gap-1.5">
-          <Barcode size={15} className="text-amber-600" /> Rapid Barcode / Accession Scanner
+          <Hash size={15} className="text-amber-600" /> Quick Accession Number Entry
         </label>
-        <span className="text-[10px] text-amber-700 font-medium">Scan or type & press Enter</span>
+        <span className="text-[10px] text-amber-700 font-medium">Type Accession No. & press Enter</span>
       </div>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -535,7 +535,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
                 handleScanBarcode();
               }
             }}
-            placeholder="Scan book barcode or type Accession No..."
+            placeholder="Enter Accession Number (e.g. 44123)..."
             className="w-full border border-amber-200 bg-white rounded-lg px-3 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
             disabled={isScanning}
           />
@@ -695,7 +695,7 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
           <div className="p-5 border-2 border-dashed border-slate-200 rounded-xl text-center bg-slate-50/50">
             <Book size={22} className="mx-auto text-slate-300 mb-1" />
             <p className="text-xs text-slate-500 font-semibold">Issue Queue is currently empty</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Scan a barcode above or pick from the catalogue to add multiple books.</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Enter an Accession Number above or pick from the catalogue to add books.</p>
           </div>
         ) : (
           <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
@@ -986,8 +986,8 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
               
               {activeTab === 'lend' ? (
                 <>
-                  {/* Rapid Barcode Scanner */}
-                  {renderBarcodeScanner()}
+                  {/* Direct Accession Number Entry */}
+                  {renderAccessionInput()}
 
                   {/* Catalogue Book Selection */}
                   {renderAutocomplete('bookId', 'Search Book Title from Catalogue', books, 'Search book title or ISBN...')}
