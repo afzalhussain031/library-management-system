@@ -22,7 +22,10 @@ class BookCopyViewSet(viewsets.ModelViewSet):
         if book_id is not None:
             queryset = queryset.filter(book_id=book_id)
 
-            
+        accession = self.request.query_params.get('accession_number', None)
+        if accession is not None:
+            queryset = queryset.filter(accession_number__iexact=accession.strip())
+
         if self.request.user.is_authenticated and self.request.user.is_staff:
             return queryset
         return queryset.filter(status=BookCopy.AVAILABLE)

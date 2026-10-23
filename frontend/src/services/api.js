@@ -172,6 +172,9 @@ export const inventory = {
   getCopiesByBook: (bookId) =>
     client.get(`/copies/?book=${bookId}`),
 
+  getCopyByAccession: (accession) =>
+    client.get(`/copies/?accession_number=${encodeURIComponent(accession)}`),
+
   addBookCopy: (data) =>
     client.post('/copies/', data),
 
@@ -205,9 +208,11 @@ export const circulation = {
   fulfillReservation: (id) => client.post(`/reservations/${id}/fulfill/`),
   extendPickup: (id) => client.post(`/reservations/${id}/extend_pickup/`),
   
-  // New endpoints for manual Lend/Return
+  // Endpoints for manual Lend/Return
   issueBook: (data) => client.post('/loans/', data),
+  bulkIssue: (data) => client.post('/loans/bulk_issue/', data),
   returnBook: (loanId, paidNow = false) => client.post(`/loans/${loanId}/return_loan/`, { paid_now: paidNow }),
+  bulkReturn: (data) => client.post('/loans/bulk_return/', data),
   calculateFine: (loanId) => client.get(`/loans/${loanId}/calculate_fine/`),
   getUserLoans: (userId) => client.get(`/loans/?user_id=${userId}`),
   renewLoan: (loanId) => client.post(`/loans/${loanId}/renew/`),

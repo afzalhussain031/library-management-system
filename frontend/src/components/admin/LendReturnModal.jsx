@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { lendReturnSchema } from '../../schemas/formSchemas';
-import { X, Book, Clock, User, CheckCircle2 } from 'lucide-react';
+import { 
+  X, Book, Clock, User, CheckCircle2, Plus, Trash2, 
+  Barcode, CheckSquare, Square, AlertCircle, ShoppingCart, 
+  Layers, Calendar, Sparkles
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import Select from 'react-select';
@@ -22,19 +26,27 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
   const [books, setBooks] = useState(cachedBooksOptions || []);
   const [loadingOptions, setLoadingOptions] = useState(!cachedUsersOptions || !cachedBooksOptions);
   
-  // States for the Visual Cards
+  // Catalogue selection & copies
   const [copies, setCopies] = useState([]);
   const [loadingCopies, setLoadingCopies] = useState(false);
   
+  // Multi-Book Issue Queue (Cart)
+  const [issueQueue, setIssueQueue] = useState([]);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [defaultDueDate, setDefaultDueDate] = useState(
+    new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
+  
+  // Multi-Book Return State
   const [activeLoans, setActiveLoans] = useState([]);
   const [loadingLoans, setLoadingLoans] = useState(false);
-  const [fineDetails, setFineDetails] = useState({ isOverdue: false, amount: 0, loading: false });
+  const [selectedLoanIds, setSelectedLoanIds] = useState(new Set());
   const [paidNow, setPaidNow] = useState(false);
 
   // ====== REACT HOOK FORM SETUP ======
   const {
     control,
-    register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
@@ -55,8 +67,11 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
 
   const selectedUserId = watch('enrollmentId');
   const selectedBookId = watch('bookId');
-  const selectedCopyId = watch('copyId');
-  const selectedLoanId = watch('loanId');
+
+  // Selected User Object & Borrowing Quota
+  const selectedUser = users.find(u => u.value === selectedUserId);
+  const maxQuota = selectedUser?.role === 'staff' || selectedUser?.role === 'librarian' ? 10 : 5;
+  const remainingSlots = Math.max(0, maxQuota - activeLoans.length);
 
   // Fetch users and books for autocomplete (instant with cache)
   useEffect(() => {
@@ -71,7 +86,6 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
         return;
       }
 
-      // If we have stale cache, display it immediately so search is instant, then revalidate in background
       if (cachedUsersOptions && cachedBooksOptions) {
         setUsers(cachedUsersOptions);
         setBooks(cachedBooksOptions);
@@ -92,9 +106,16 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
           const mappedUsers = usersData.map(u => ({ 
             value: u.id?.toString(), 
             label: `${u.user_id} - ${u.student_name || u.name || 'Unknown'}${u.is_active === false ? ' (Suspended)' : ''}`,
-            isActive: u.is_active !== false
+            isActive: u.is_active !== false,
+            role: u.role || 'student',
+            name: u.student_name || u.name || 'Unknown',
+            userId: u.user_id
           }));
-          const mappedBooks = booksData.map(b => ({ value: b.id?.toString(), label: `${b.isbn || 'No-ISBN'} - ${b.title || 'Unknown'}` }));
+          const mappedBooks = booksData.map(b => ({ 
+            value: b.id?.toString(), 
+            label: `${b.isbn || 'No-ISBN'} - ${b.title || 'Unknown'}`,
+            title: b.title || 'Unknown Book'
+          }));
 
           cachedUsersOptions = mappedUsers;
           cachedBooksOptions = mappedBooks;
@@ -112,16 +133,46 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     }
   }, [open]);
   
-  // Reset when tab changes
+  // Reset when tab changes or modal closes
   useEffect(() => {
     setValue('copyId', '');
     setValue('loanId', '');
     setValue('bookId', '');
     setCopies([]);
-    setActiveLoans([]);
+    setSelectedLoanIds(new Set());
+    setPaidNow(false);
   }, [activeTab, setValue]);
 
-  // Fetch Copies when a Book is selected (Instant with cache)
+  // Fetch active loans whenever user is selected (used for quota and returns)
+  useEffect(() => {
+    if (selectedUserId) {
+      const fetchLoans = async () => {
+        setLoadingLoans(true);
+        try {
+          const res = await circulation.getUserLoans(selectedUserId);
+          const loansData = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+          const unreturned = loansData.filter(loan => loan.returned_at === null);
+          setActiveLoans(unreturned);
+          
+          // In return tab, auto-select all loans initially for quick one-click bulk return
+          if (activeTab === 'return') {
+            setSelectedLoanIds(new Set(unreturned.map(l => l.id.toString())));
+          }
+        } catch (error) {
+          console.error("Failed to load user loans", error);
+          toast.error("Failed to load member's loan status.");
+        } finally {
+          setLoadingLoans(false);
+        }
+      };
+      fetchLoans();
+    } else {
+      setActiveLoans([]);
+      setSelectedLoanIds(new Set());
+    }
+  }, [selectedUserId, activeTab]);
+
+  // Fetch Copies when a Book is selected
   useEffect(() => {
     if (activeTab === 'lend' && selectedBookId) {
       if (copiesCache.has(selectedBookId)) {
@@ -150,104 +201,246 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     }
   }, [selectedBookId, activeTab]);
 
-  // Fetch Active Loans when a User is selected (for Return Tab)
-  useEffect(() => {
-    if (activeTab === 'return' && selectedUserId) {
-      const fetchLoans = async () => {
-        setLoadingLoans(true);
-        try {
-          // Assuming getUserLoans exists and returns loans for the user
-          const res = await circulation.getUserLoans(selectedUserId);
-          const loansData = Array.isArray(res.data) ? res.data : (res.data?.results || []);
-          // Filter only active loans (returned_at === null)
-          setActiveLoans(loansData.filter(loan => loan.returned_at === null));
-        } catch (error) {
-          console.error("Failed to load active loans", error);
-          toast.error("Failed to load user's active loans.");
-        } finally {
-          setLoadingLoans(false);
-        }
-      };
-      fetchLoans();
-    } else {
-      setActiveLoans([]);
+  // ====== MULTI-BOOK QUEUE HANDLERS (ISSUE TAB) ======
+  const handleAddCopy = (copy, bookTitle) => {
+    if (!selectedUserId) {
+      toast.error("Please select a student / member first.");
+      return;
     }
-  }, [selectedUserId, activeTab]);
 
-  // Fetch Fine Details if overdue
-  useEffect(() => {
-    if (activeTab === 'return' && selectedLoanId) {
-      const loan = activeLoans.find(l => l.id.toString() === selectedLoanId);
-      if (loan) {
-        const isOverdue = new Date(loan.due_at) < new Date();
-        if (isOverdue) {
-          setFineDetails({ isOverdue: true, amount: 0, loading: true });
-          circulation.calculateFine(loan.id)
-            .then(res => setFineDetails({ isOverdue: true, amount: res.data.fine_amount, loading: false }))
-            .catch(() => setFineDetails({ isOverdue: true, amount: 0, loading: false }));
-        } else {
-          setFineDetails({ isOverdue: false, amount: 0, loading: false });
-          setPaidNow(false);
-        }
+    if (selectedUser && !selectedUser.isActive) {
+      toast.error("Cannot issue: Member account is currently suspended.");
+      return;
+    }
+
+    if (issueQueue.some(item => item.copyId === copy.id.toString())) {
+      toast.error("This copy is already in the issue queue.");
+      return;
+    }
+
+    const resolvedTitle = 
+      bookTitle || 
+      copy.book_title || 
+      copy.book?.title || 
+      books.find(b => b.value === String(copy.book))?.title || 
+      'Unknown Title';
+
+    const locationText = copy.shelf_location 
+      ? `Shelf: ${copy.shelf_location}` 
+      : (copy.condition ? `Condition: ${copy.condition}` : '');
+
+    const newItem = {
+      copyId: copy.id.toString(),
+      bookTitle: resolvedTitle,
+      accessionNumber: copy.accession_number || `#${copy.id}`,
+      shelfLocation: locationText,
+      condition: copy.condition || 'Good',
+      dueDate: defaultDueDate
+    };
+
+    setIssueQueue(prev => [...prev, newItem]);
+    toast.success(`Added "${newItem.bookTitle}" to queue.`);
+  };
+
+  const handleRemoveFromQueue = (copyId) => {
+    setIssueQueue(prev => prev.filter(item => item.copyId !== copyId));
+  };
+
+  const handleUpdateItemDueDate = (copyId, newDueDate) => {
+    setIssueQueue(prev => prev.map(item => 
+      item.copyId === copyId ? { ...item, dueDate: newDueDate } : item
+    ));
+  };
+
+  const handleApplyDefaultDueDateToAll = (newDate) => {
+    setDefaultDueDate(newDate);
+    setIssueQueue(prev => prev.map(item => ({ ...item, dueDate: newDate })));
+  };
+
+  // Barcode / Accession Scanner Handler
+  const handleScanBarcode = async () => {
+    const rawCode = barcodeInput.trim();
+    if (!rawCode) return;
+
+    if (!selectedUserId) {
+      toast.error("Please select a student / member first before adding books to queue.");
+      return;
+    }
+
+    if (activeLoans.length + issueQueue.length >= maxQuota) {
+      toast.error(`Borrowing quota reached (${maxQuota} books max).`);
+      return;
+    }
+
+    setIsScanning(true);
+    try {
+      const res = await inventory.getCopyByAccession(rawCode);
+      const copiesFound = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      
+      if (copiesFound.length === 0) {
+        toast.error(`No book copy found with barcode/accession "${rawCode}".`);
+        return;
       }
-    } else {
-      setFineDetails({ isOverdue: false, amount: 0, loading: false });
-      setPaidNow(false);
-    }
-  }, [selectedLoanId, activeTab, activeLoans]);
 
-  if (!open) return null;
+      const copy = copiesFound[0];
+      if (copy.status?.toLowerCase() !== 'available') {
+        toast.error(`Copy "${copy.accession_number}" is currently ${copy.status}.`);
+        return;
+      }
+
+      if (issueQueue.some(item => item.copyId === copy.id.toString())) {
+        toast.error("This copy is already in the issue queue.");
+        return;
+      }
+
+      handleAddCopy(copy, copy.book_title || copy.book?.title);
+      setBarcodeInput('');
+    } catch (err) {
+      console.error("Barcode scan failed", err);
+      toast.error("Failed to verify barcode copy.");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  // ====== MULTI-BOOK RETURN HANDLERS (RETURN TAB) ======
+  const getLoanFine = (loan) => {
+    if (loan.current_fine_estimate !== undefined && loan.current_fine_estimate !== null) {
+      return Number(loan.current_fine_estimate);
+    }
+    const dueDate = new Date(loan.due_at);
+    const now = new Date();
+    if (now > dueDate) {
+      const diffDays = Math.max(1, Math.ceil((now - dueDate) / (1000 * 60 * 60 * 24)));
+      return diffDays * 10;
+    }
+    return 0;
+  };
+
+  const handleToggleLoan = (loanIdStr) => {
+    setSelectedLoanIds(prev => {
+      const next = new Set(prev);
+      if (next.has(loanIdStr)) {
+        next.delete(loanIdStr);
+      } else {
+        next.add(loanIdStr);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleSelectAllLoans = () => {
+    if (selectedLoanIds.size === activeLoans.length) {
+      setSelectedLoanIds(new Set());
+    } else {
+      setSelectedLoanIds(new Set(activeLoans.map(l => l.id.toString())));
+    }
+  };
+
+  const totalSelectedFine = activeLoans
+    .filter(l => selectedLoanIds.has(l.id.toString()))
+    .reduce((sum, loan) => sum + getLoanFine(loan), 0);
 
   // ====== FORM SUBMISSION ======
-  const onSubmit = async (data) => {
+  const onSubmit = async () => {
     try {
       if (activeTab === 'lend') {
-        const targetUser = users.find(u => u.value === data.enrollmentId);
-        if (targetUser && !targetUser.isActive) {
-          toast.error("Cannot issue book: This member's account is currently suspended.");
+        if (!selectedUserId) {
+          toast.error("Please select a student / member.");
           return;
         }
-        if (!data.copyId) {
-          toast.error("Please select an available book copy to issue.");
+
+        if (selectedUser && !selectedUser.isActive) {
+          toast.error("Cannot issue books: This member's account is suspended.");
           return;
         }
-        await circulation.issueBook({
-          borrower: data.enrollmentId,
-          copy: data.copyId,
-          issued_at: data.issueDate,
-          due_at: data.dueDate
-        });
-        toast.success("Book issued successfully!");
+
+        if (issueQueue.length === 0) {
+          toast.error("Please add at least one book to the issue queue.");
+          return;
+        }
+
+        if (activeLoans.length + issueQueue.length > maxQuota) {
+          toast.error(`Borrowing limit exceeded. Member can borrow at most ${maxQuota} books.`);
+          return;
+        }
+
+        const payload = {
+          borrower: selectedUserId,
+          items: issueQueue.map(item => ({
+            copy_id: parseInt(item.copyId, 10),
+            due_at: item.dueDate
+          }))
+        };
+
+        const res = await circulation.bulkIssue(payload);
+        toast.success(res.data?.detail || `Successfully issued ${issueQueue.length} book(s)!`);
       } else {
-        if (!data.loanId) {
-          toast.error("Please select an active loan to return.");
+        // Return tab
+        if (!selectedUserId) {
+          toast.error("Please select a member.");
           return;
         }
-        await circulation.returnBook(data.loanId, paidNow);
-        toast.success("Book returned successfully!");
+
+        if (selectedLoanIds.size === 0) {
+          toast.error("Please select at least one active loan to return.");
+          return;
+        }
+
+        const payload = {
+          loan_ids: Array.from(selectedLoanIds).map(id => parseInt(id, 10)),
+          paid_now: paidNow,
+          payment_method: 'cash'
+        };
+
+        const res = await circulation.bulkReturn(payload);
+        toast.success(res.data?.detail || `Successfully returned ${selectedLoanIds.size} book(s)!`);
       }
       
-      // Invalidate relevant cache so dashboard & circulation reflect the changes
+      // Invalidate relevant cache so dashboard & circulation reflect changes
       copiesCache.clear();
       lastOptionsFetchTime = 0;
       clearApiCache();
 
       if (onSuccess) onSuccess();
       reset();
+      setIssueQueue([]);
+      setSelectedLoanIds(new Set());
       onClose();
     } catch (err) {
-      console.error('Error:', err);
-      const msg = err.response?.data?.borrower?.[0] || err.response?.data?.borrower || err.response?.data?.detail || "An error occurred.";
-      toast.error(msg);
+      console.error('Circulation error:', err);
+      const msg = err.response?.data?.detail || 
+                  err.response?.data?.borrower?.[0] || 
+                  err.response?.data?.items || 
+                  "An error occurred while processing transaction.";
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
     }
   };
 
-  // ====== HELPER: Render Autocomplete Field ======
+  if (!open) return null;
+
+  // Format short display date
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // ====== RENDER: Autocomplete Dropdown ======
   const renderAutocomplete = (fieldName, label, options, placeholder) => (
-    <div className="mb-4">
-      <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
-        {label}
-      </label>
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-[12px] font-bold text-slate-700 tracking-wide">
+          {label}
+        </label>
+        {fieldName === 'enrollmentId' && selectedUser && (
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+            selectedUser.isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+          }`}>
+            {selectedUser.isActive ? 'Active Member' : 'Account Suspended'}
+          </span>
+        )}
+      </div>
       <Controller
         name={fieldName}
         control={control}
@@ -265,10 +458,11 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
             styles={{
               control: (base, state) => ({
                 ...base,
-                borderColor: errors[fieldName] ? '#ef4444' : state.isFocused ? '#fbbf24' : '#e2e8f0',
-                boxShadow: state.isFocused ? '0 0 0 1px #fbbf24' : 'none',
-                borderRadius: '0.5rem',
-                padding: '2px'
+                borderColor: errors[fieldName] ? '#ef4444' : state.isFocused ? '#f59e0b' : '#e2e8f0',
+                boxShadow: state.isFocused ? '0 0 0 1px #f59e0b' : 'none',
+                borderRadius: '0.6rem',
+                padding: '2px',
+                minHeight: '40px'
               }),
               menuPortal: base => ({ ...base, zIndex: 9999 })
             }}
@@ -282,151 +476,173 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     </div>
   );
 
-  // ====== HELPER: Render native input field ======
-  const renderField = (fieldName, label) => (
-    <div className="mb-4">
-      <label className="text-[12px] font-bold text-slate-600 mb-1.5 block tracking-wide">
-        {label}
-      </label>
-      <input
-        type={fieldName.includes('Date') ? 'date' : 'text'}
-        {...register(fieldName)}
-        placeholder={`Enter ${label}`}
-        className={`w-full border rounded-lg px-3.5 py-2.5 text-[13px] text-slate-800 placeholder-slate-300 outline-none transition ${
-          errors[fieldName]
-            ? 'border-red-500 bg-red-50'
-            : 'border-slate-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
-        }`}
-        disabled={isSubmitting}
-      />
-      {errors[fieldName] && (
-        <p className="text-xs text-red-600 mt-1">{errors[fieldName].message}</p>
-      )}
+  // ====== RENDER: Member Quota Summary Card ======
+  const renderMemberQuotaCard = () => {
+    if (!selectedUserId || !selectedUser) return null;
+
+    const isExceeded = activeLoans.length + issueQueue.length >= maxQuota;
+
+    return (
+      <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+            <User size={15} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-slate-800">{selectedUser.name}</span>
+              <span className="text-[11px] text-slate-500 font-mono">({selectedUser.userId})</span>
+            </div>
+            <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+              <span>Active Loans: <b className="text-slate-700">{activeLoans.length}</b></span>
+              <span>•</span>
+              <span>Role: <b className="capitalize text-slate-700">{selectedUser.role}</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+            isExceeded 
+              ? 'bg-rose-50 text-rose-700 border-rose-200' 
+              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          }`}>
+            {Math.max(0, remainingSlots - issueQueue.length)} of {maxQuota} slots free
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // ====== RENDER: Barcode Quick Scanner (Issue Tab) ======
+  const renderBarcodeScanner = () => (
+    <div className="mb-4 p-3 rounded-xl bg-amber-50/50 border border-amber-200/60">
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-[12px] font-bold text-amber-950 flex items-center gap-1.5">
+          <Barcode size={15} className="text-amber-600" /> Rapid Barcode / Accession Scanner
+        </label>
+        <span className="text-[10px] text-amber-700 font-medium">Scan or type & press Enter</span>
+      </div>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input 
+            type="text"
+            value={barcodeInput}
+            onChange={(e) => setBarcodeInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleScanBarcode();
+              }
+            }}
+            placeholder="Scan book barcode or type Accession No..."
+            className="w-full border border-amber-200 bg-white rounded-lg px-3 py-2 text-[13px] text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            disabled={isScanning}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleScanBarcode}
+          disabled={isScanning || !barcodeInput.trim()}
+          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50 shrink-0 cursor-pointer"
+        >
+          {isScanning ? (
+            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Plus size={14} />
+          )}
+          Add to Queue
+        </button>
+      </div>
     </div>
   );
 
-  // Format short display date
-  const formatShortDate = (dateStr) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-  };
-
-  // ====== HELPER: Render Copy Cards (Issue Tab) ======
+  // ====== RENDER: Available Copies Grid (Catalogue Lookup) ======
   const renderCopyCards = () => {
     if (!selectedBookId) return null;
     if (loadingCopies) {
       return (
-        <div className="my-5 p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center gap-2 text-sm text-slate-500">
-          <span className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <div className="my-3 p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
+          <span className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           Loading physical copies...
         </div>
       );
     }
     if (copies.length === 0) {
       return (
-        <div className="my-5 p-4 rounded-xl bg-rose-50/80 border border-rose-200/60 text-center">
-          <p className="text-sm text-rose-700 font-semibold">No physical copies registered for this book.</p>
-          <p className="text-xs text-rose-500 mt-0.5">Please add physical copies to the inventory first.</p>
+        <div className="my-3 p-3 rounded-xl bg-rose-50/80 border border-rose-200/60 text-center">
+          <p className="text-xs text-rose-700 font-semibold">No physical copies registered for this book.</p>
         </div>
       );
     }
 
     const availableCount = copies.filter(c => c.status?.toLowerCase() === 'available').length;
-    // Sort available copies first, then by accession number
-    const sortedCopies = [...copies].sort((a, b) => {
-      const aAvail = a.status?.toLowerCase() === 'available';
-      const bAvail = b.status?.toLowerCase() === 'available';
-      if (aAvail && !bAvail) return -1;
-      if (!aAvail && bAvail) return 1;
-      return String(a.accession_number || '').localeCompare(String(b.accession_number || ''));
-    });
+    const selectedBookObj = books.find(b => b.value === selectedBookId);
 
     return (
-      <div className="mt-4 mb-6">
+      <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <label className="text-[12px] font-bold text-slate-700 tracking-wide">
-            Select Physical Copy
+            Available Copies in Library
           </label>
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-            availableCount > 0 
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
-              : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            availableCount > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
           }`}>
             {availableCount} of {copies.length} available
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[250px] overflow-y-auto pr-1">
-          {sortedCopies.map(copy => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+          {copies.map(copy => {
             const isAvailable = copy.status?.toLowerCase() === 'available';
-            const isLoaned = copy.status?.toLowerCase() === 'loaned';
-            const isSelected = selectedCopyId === copy.id.toString();
-            const loan = copy.current_loan;
+            const inQueue = issueQueue.some(item => item.copyId === copy.id.toString());
 
             return (
               <div 
                 key={copy.id}
-                onClick={() => {
-                  if (isAvailable) setValue('copyId', copy.id.toString(), { shouldValidate: true });
-                }}
-                className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
+                className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
                   !isAvailable 
-                    ? 'bg-slate-50/80 border-slate-200/70 cursor-not-allowed opacity-90' 
-                    : isSelected 
-                      ? 'border-amber-400 bg-amber-50/70 ring-2 ring-amber-400 shadow-sm cursor-pointer'
-                      : 'border-slate-200 hover:border-amber-300 hover:shadow-xs bg-white cursor-pointer'
+                    ? 'bg-slate-50 border-slate-200 opacity-70 cursor-not-allowed'
+                    : inQueue
+                      ? 'bg-amber-50 border-amber-400 ring-1 ring-amber-400'
+                      : 'bg-white border-slate-200 hover:border-amber-300'
                 }`}
               >
-                <div>
-                  {/* Header: Accession Number & Status Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-bold text-slate-800 tracking-tight font-mono">
-                      Acc No: {copy.accession_number || `#${copy.id}`}
+                <div className="min-w-0 pr-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] font-bold text-slate-800 font-mono truncate">
+                      {copy.accession_number || `#${copy.id}`}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize shrink-0 ${
-                      isAvailable 
-                        ? 'bg-emerald-100 text-emerald-800' 
-                        : isLoaned 
-                          ? 'bg-rose-100 text-rose-800' 
-                          : 'bg-amber-100 text-amber-800'
+                    <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded capitalize ${
+                      isAvailable ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
                     }`}>
                       {copy.status}
                     </span>
                   </div>
-
-                  {/* Body: Loan details if Loaned, or Location/Condition if Available */}
-                  {isLoaned ? (
-                    <div className="mt-2 pt-2 border-t border-slate-200/60 text-[11px] text-slate-600 space-y-1">
-                      <div className="flex items-center gap-1.5 font-medium text-slate-800">
-                        <User size={12} className="text-rose-500 shrink-0" />
-                        <span className="truncate" title={loan?.borrower_name || 'Loaned out'}>
-                          {loan ? `${loan.borrower_name} (${loan.borrower_user_id})` : 'Loaned out'}
-                        </span>
-                      </div>
-                      {loan?.due_at && (
-                        <div className="flex items-center gap-1.5 text-slate-500">
-                          <Clock size={12} className={loan.is_overdue ? "text-rose-500 shrink-0" : "text-slate-400 shrink-0"} />
-                          <span className={loan.is_overdue ? "text-rose-600 font-semibold" : ""}>
-                            Due {formatShortDate(loan.due_at)} {loan.is_overdue ? '(Overdue)' : ''}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-                      <span className="flex items-center gap-1 truncate">
-                        <Book size={12} className="text-slate-400 shrink-0" />
-                        {copy.shelf_location ? `Shelf: ${copy.shelf_location}` : (copy.condition || 'Good Condition')}
-                      </span>
-                      {isSelected && (
-                        <span className="text-[11px] font-bold text-amber-600 flex items-center gap-0.5 shrink-0">
-                          <CheckCircle2 size={12} /> Selected
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <span className="text-[10px] text-slate-500 block truncate mt-0.5">
+                    {copy.shelf_location ? `Shelf: ${copy.shelf_location}` : (copy.condition || 'Good')}
+                  </span>
                 </div>
+
+                {isAvailable && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (inQueue) {
+                        handleRemoveFromQueue(copy.id.toString());
+                      } else {
+                        handleAddCopy(copy, selectedBookObj?.title);
+                      }
+                    }}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all shrink-0 cursor-pointer ${
+                      inQueue 
+                        ? 'bg-amber-200 text-amber-900 hover:bg-rose-100 hover:text-rose-800'
+                        : 'bg-amber-400 hover:bg-amber-300 text-slate-900'
+                    }`}
+                  >
+                    {inQueue ? 'Remove' : '+ Add'}
+                  </button>
+                )}
               </div>
             );
           })}
@@ -435,184 +651,401 @@ export default function LendReturnModal({ open, onClose, onSuccess }) {
     );
   };
 
-  // ====== HELPER: Render Active Loans (Return Tab) ======
-  const renderActiveLoans = () => {
-    if (!selectedUserId) return null;
-    if (loadingLoans) return <p className="text-sm text-gray-500 my-4 text-center">Loading active loans...</p>;
-    if (activeLoans.length === 0) return <p className="text-sm text-green-600 my-4 text-center font-medium bg-green-50 p-3 rounded-lg">This user has no active loans.</p>;
-    
+  // ====== RENDER: Multi-Book Issue Queue (Cart) ======
+  const renderIssueQueue = () => {
     return (
-      <div className="mt-4 mb-6">
-        <label className="text-[12px] font-bold text-slate-600 mb-2 block tracking-wide">Select Active Loan to Return</label>
-        <div className="flex flex-col gap-3">
-          {activeLoans.map(loan => {
-            const isSelected = selectedLoanId === loan.id.toString();
-            const isOverdue = new Date(loan.due_at) < new Date();
-            return (
-              <div 
-                key={loan.id}
-                onClick={() => setValue('loanId', loan.id.toString(), { shouldValidate: true })}
-                className={`p-3 border rounded-xl flex items-center justify-between transition-all cursor-pointer ${
-                  isSelected ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-400 shadow-sm'
-                  : 'border-gray-200 hover:border-amber-300 bg-white'
-                }`}
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-800 line-clamp-1">{loan.book_title || 'Unknown Book'}</span>
-                  <span className="text-xs text-gray-500 mt-0.5">Loan ID: #{loan.id} | Acc No: {loan.copy_accession_number || `#${loan.copy}`}</span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${
-                    isOverdue ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {isOverdue ? 'Overdue' : 'Active'}
-                  </span>
-                  <span className="text-[11px] text-gray-500 flex items-center gap-1">
-                    <Clock size={12} className={isOverdue ? "text-red-500" : ""} /> {new Date(loan.due_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+      <div className="mt-2 mb-4 border-t border-slate-200 pt-3">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-2">
+            <ShoppingCart size={15} className="text-amber-600" />
+            <span className="text-[13px] font-bold text-slate-800">
+              Issue Queue ({issueQueue.length})
+            </span>
+          </div>
 
-  // ====== HELPER: Render Fine Options ======
-  const renderFineOptions = () => {
-    if (activeTab !== 'return' || !selectedLoanId || !fineDetails.isOverdue) return null;
-    
-    return (
-      <div className="bg-[#FFE2E5]/50 border border-[#F64E60]/20 p-5 rounded-xl mb-4">
-        {fineDetails.loading ? (
-          <p className="text-sm text-[#F64E60]">Calculating fine...</p>
+          {issueQueue.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIssueQueue([])}
+              className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+            >
+              Clear Queue
+            </button>
+          )}
+        </div>
+
+        {/* Global Due Date Controller */}
+        <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 text-slate-600 text-[11px] font-semibold">
+            <Calendar size={13} className="text-slate-400" />
+            <span>Default Due Date:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input 
+              type="date"
+              value={defaultDueDate}
+              onChange={(e) => handleApplyDefaultDueDateToAll(e.target.value)}
+              className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-amber-400 font-mono text-slate-800"
+            />
+            <span className="text-[10px] text-slate-400 font-medium">(Applies to all)</span>
+          </div>
+        </div>
+
+        {issueQueue.length === 0 ? (
+          <div className="p-5 border-2 border-dashed border-slate-200 rounded-xl text-center bg-slate-50/50">
+            <Book size={22} className="mx-auto text-slate-300 mb-1" />
+            <p className="text-xs text-slate-500 font-semibold">Issue Queue is currently empty</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Scan a barcode above or pick from the catalogue to add multiple books.</p>
+          </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="font-extrabold text-[#F64E60] text-base">This book is overdue!</p>
-            </div>
-            <p className="text-[#F64E60]/90 font-medium text-[13px] mb-3">A fine of <span className="font-extrabold text-[#F64E60] text-[15px]">Rs. {fineDetails.amount}</span> has been generated.</p>
-            
-            <div className="flex flex-col gap-2.5">
-              <p className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-0.5">Select Payment Option</p>
-              
-              <label className={`flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition-all ${paidNow ? 'bg-white border-[#1BC5BD]' : 'bg-white/60 border-slate-200 hover:border-slate-300'}`}>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="radio" 
-                    name="modalPaymentOption"
-                    checked={paidNow === true}
-                    onChange={() => setPaidNow(true)}
-                    className="w-4 h-4 text-[#1BC5BD] focus:ring-[#1BC5BD]"
-                  />
-                  <span className={`text-[14px] font-bold ${paidNow ? 'text-[#1BC5BD]' : 'text-slate-600'}`}>Pay Fine Now</span>
+          <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+            {issueQueue.map((item, idx) => (
+              <div 
+                key={item.copyId}
+                className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs hover:border-amber-200 transition-all"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="text-[13px] font-bold text-slate-800 truncate" title={item.bookTitle}>
+                      {item.bookTitle}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 pl-7">
+                    <span className="font-mono text-slate-700 font-semibold">Acc No: {item.accessionNumber}</span>
+                    {item.shelfLocation && (
+                      <>
+                        <span>•</span>
+                        <span className="truncate">{item.shelfLocation}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </label>
 
-              <label className={`flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition-all ${!paidNow ? 'bg-white border-[#F64E60]' : 'bg-white/60 border-slate-200 hover:border-slate-300'}`}>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="radio" 
-                    name="modalPaymentOption"
-                    checked={paidNow === false}
-                    onChange={() => setPaidNow(false)}
-                    className="w-4 h-4 text-[#F64E60] focus:ring-[#F64E60]"
-                  />
-                  <span className={`text-[14px] font-bold ${!paidNow ? 'text-[#F64E60]' : 'text-slate-600'}`}>Add to Account Dues</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-col items-end">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Due</label>
+                    <input 
+                      type="date"
+                      value={item.dueDate}
+                      onChange={(e) => handleUpdateItemDueDate(item.copyId, e.target.value)}
+                      className="text-[11px] font-mono px-2 py-0.5 border border-slate-200 rounded bg-slate-50 focus:bg-white text-slate-800 outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFromQueue(item.copyId)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                    title="Remove from queue"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-              </label>
-            </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
     );
   };
 
+  // ====== RENDER: Multi-Book Return Checklist ======
+  const renderActiveLoansChecklist = () => {
+    if (!selectedUserId) return null;
+    if (loadingLoans) {
+      return (
+        <div className="my-6 p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center gap-2 text-sm text-slate-500">
+          <span className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          Loading active loans...
+        </div>
+      );
+    }
+    if (activeLoans.length === 0) {
+      return (
+        <div className="my-6 p-5 rounded-xl bg-emerald-50 border border-emerald-200/60 text-center">
+          <CheckCircle2 size={24} className="mx-auto text-emerald-600 mb-1" />
+          <p className="text-sm text-emerald-800 font-bold">No active loans found</p>
+          <p className="text-xs text-emerald-600 mt-0.5">This member has returned all borrowed books.</p>
+        </div>
+      );
+    }
+
+    const allSelected = selectedLoanIds.size === activeLoans.length;
+
+    return (
+      <div className="mt-3 mb-4">
+        {/* Header Action Bar */}
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleToggleSelectAllLoans}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-amber-600 transition-colors cursor-pointer"
+            >
+              {allSelected ? (
+                <CheckSquare size={16} className="text-amber-600" />
+              ) : (
+                <Square size={16} className="text-slate-400" />
+              )}
+              <span>Select All ({activeLoans.length})</span>
+            </button>
+          </div>
+
+          <span className="text-[11px] font-bold text-slate-500">
+            {selectedLoanIds.size} of {activeLoans.length} selected
+          </span>
+        </div>
+
+        {/* Loans Cards */}
+        <div className="space-y-2.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+          {activeLoans.map(loan => {
+            const isSelected = selectedLoanIds.has(loan.id.toString());
+            const fine = getLoanFine(loan);
+            const isOverdue = fine > 0;
+
+            return (
+              <div 
+                key={loan.id}
+                onClick={() => handleToggleLoan(loan.id.toString())}
+                className={`p-3 border rounded-xl flex items-center justify-between transition-all cursor-pointer ${
+                  isSelected 
+                    ? 'border-amber-400 bg-amber-50/60 ring-1 ring-amber-400 shadow-2xs'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="shrink-0 text-slate-400">
+                    {isSelected ? (
+                      <CheckSquare size={18} className="text-amber-600" />
+                    ) : (
+                      <Square size={18} />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold text-slate-800 truncate" title={loan.book_title}>
+                      {loan.book_title || 'Unknown Book'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      Loan #{loan.id} • Acc No: {loan.copy_accession_number || `#${loan.copy}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end shrink-0 pl-2">
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-1 ${
+                    isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {isOverdue ? `Overdue (₹${fine})` : 'On Time'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                    <Clock size={11} className={isOverdue ? "text-rose-500" : "text-slate-400"} />
+                    Due {formatShortDate(loan.due_at)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ====== RENDER: Batch Fine & Payment Settlement ======
+  const renderFineSettlementPanel = () => {
+    if (activeTab !== 'return' || selectedLoanIds.size === 0 || totalSelectedFine <= 0) return null;
+
+    return (
+      <div className="bg-rose-50/80 border border-rose-200/80 p-4 rounded-xl mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-rose-600" />
+            <span className="text-[13px] font-extrabold text-rose-800">
+              Overdue Fines Incurred
+            </span>
+          </div>
+          <span className="text-[15px] font-black text-rose-700">
+            Total: ₹{totalSelectedFine}
+          </span>
+        </div>
+        <p className="text-[11px] text-rose-600 mb-3">
+          Fines calculated for {selectedLoanIds.size} selected book(s) at ₹10 per overdue day.
+        </p>
+
+        <div className="grid grid-cols-2 gap-2">
+          <label className={`flex items-center gap-2.5 p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
+            paidNow ? 'bg-white border-emerald-500' : 'bg-white/60 border-slate-200'
+          }`}>
+            <input 
+              type="radio"
+              name="finePaymentOption"
+              checked={paidNow === true}
+              onChange={() => setPaidNow(true)}
+              className="text-emerald-600 focus:ring-emerald-500"
+            />
+            <span className={`text-[12px] font-bold ${paidNow ? 'text-emerald-700' : 'text-slate-600'}`}>
+              Collect Now (Cash)
+            </span>
+          </label>
+
+          <label className={`flex items-center gap-2.5 p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
+            !paidNow ? 'bg-white border-rose-400' : 'bg-white/60 border-slate-200'
+          }`}>
+            <input 
+              type="radio"
+              name="finePaymentOption"
+              checked={paidNow === false}
+              onChange={() => setPaidNow(false)}
+              className="text-rose-600 focus:ring-rose-500"
+            />
+            <span className={`text-[12px] font-bold ${!paidNow ? 'text-rose-700' : 'text-slate-600'}`}>
+              Add to Dues
+            </span>
+          </label>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] transition-opacity animate-[fadeIn_0.15s_ease-out]" onClick={onClose} />
+      <div 
+        className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100] transition-opacity animate-[fadeIn_0.15s_ease-out]" 
+        onClick={onClose} 
+      />
       
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
-        <div className="w-full max-w-[460px] bg-white rounded-[26px] p-6 shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto max-h-[92vh] overflow-hidden transform scale-100 transition-all duration-150 animate-[scaleUp_0.2s_ease-out]">
+        <div className="w-full max-w-[620px] bg-white rounded-[26px] p-6 shadow-2xl border border-amber-100/10 flex flex-col pointer-events-auto max-h-[92vh] overflow-hidden transform scale-100 transition-all duration-150 animate-[scaleUp_0.2s_ease-out]">
           
-          <div className="flex items-start justify-between mb-5 mt-1 shrink-0">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4 mt-1 shrink-0">
             <div>
-              <h2 className="text-[18px] font-extrabold text-slate-800 tracking-tight">Circulation Desk</h2>
-              <p className="text-[12px] font-medium text-slate-500 mt-1 tracking-wide">Lend or return books directly from the desk.</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[19px] font-extrabold text-slate-800 tracking-tight">Circulation Desk</h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full flex items-center gap-1">
+                  <Sparkles size={11} /> Batch Support
+                </span>
+              </div>
+              <p className="text-[12px] font-medium text-slate-500 mt-0.5 tracking-wide">
+                Issue or return multiple books simultaneously for a member.
+              </p>
             </div>
-            <button type="button" onClick={onClose} className="flex-shrink-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-2">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="flex-shrink-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all duration-150 cursor-pointer -mt-1 -mr-2"
+            >
               <X size={18} />
             </button>
           </div>
 
-          <div className="pb-4 shrink-0">
+          {/* Tab Switcher */}
+          <div className="pb-3 shrink-0">
             <div className="flex p-1 bg-slate-100/80 rounded-xl gap-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('lend')}
-                className={`flex-1 rounded-lg py-2 text-[13px] font-bold tracking-wide transition-all ${
-                  activeTab === 'lend' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                className={`flex-1 rounded-lg py-2 text-[13px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'lend' 
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
                 }`}
               >
-                Issue Book
+                <Layers size={14} className={activeTab === 'lend' ? "text-amber-500" : ""} />
+                Issue Multiple Books {issueQueue.length > 0 && `(${issueQueue.length})`}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('return')}
-                className={`flex-1 rounded-lg py-2 text-[13px] font-bold tracking-wide transition-all ${
-                  activeTab === 'return' ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                className={`flex-1 rounded-lg py-2 text-[13px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'return' 
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
                 }`}
               >
-                Return Book
+                <CheckCircle2 size={14} className={activeTab === 'return' ? "text-amber-500" : ""} />
+                Return Multiple Books {selectedLoanIds.size > 0 && `(${selectedLoanIds.size})`}
               </button>
             </div>
           </div>
 
+          {/* Modal Scrollable Body */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <form id="circulation-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+              {/* Member Selection */}
               {renderAutocomplete(
                 'enrollmentId', 
                 'Student / Member', 
                 activeTab === 'lend' ? users.filter(u => u.isActive) : users, 
                 activeTab === 'lend' ? 'Search Active Member by Name or Roll No...' : 'Search by Name or Roll No...'
               )}
+
+              {/* Member Quota Summary Card */}
+              {renderMemberQuotaCard()}
               
               {activeTab === 'lend' ? (
                 <>
-                  {renderAutocomplete('bookId', 'Book', books, 'Search by Title...')}
+                  {/* Rapid Barcode Scanner */}
+                  {renderBarcodeScanner()}
+
+                  {/* Catalogue Book Selection */}
+                  {renderAutocomplete('bookId', 'Search Book Title from Catalogue', books, 'Search book title or ISBN...')}
+                  
+                  {/* Available Copies Chips */}
                   {renderCopyCards()}
-                  <div className="grid grid-cols-2 gap-3 mt-2 border-t border-gray-100 pt-4">
-                    {renderField('issueDate', 'Issue Date')}
-                    {renderField('dueDate', 'Due Date')}
-                  </div>
+
+                  {/* Multi-Book Issue Queue (Cart) */}
+                  {renderIssueQueue()}
                 </>
               ) : (
                 <>
-                  {renderActiveLoans()}
-                  {renderFineOptions()}
+                  {/* Active Loans Checklist */}
+                  {renderActiveLoansChecklist()}
+
+                  {/* Fine Settlement Panel */}
+                  {renderFineSettlementPanel()}
                 </>
               )}
             </form>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-5 mt-4 border-t border-slate-100 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
-            >
-              Cancel
-            </button>
-            <Button
-              form="circulation-form"
-              type="submit"
-              isLoading={isSubmitting}
-              loadingText={activeTab === 'lend' ? 'Issuing...' : 'Returning...'}
-              className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50"
-            >
-              {activeTab === 'lend' ? 'Confirm Issue' : 'Confirm Return'}
-            </Button>
+          {/* Footer Submit Buttons */}
+          <div className="flex items-center justify-between pt-4 mt-3 border-t border-slate-100 shrink-0">
+            <div className="text-xs text-slate-500">
+              {activeTab === 'lend' ? (
+                <span>Queue: <b className="text-slate-800">{issueQueue.length}</b> book(s)</span>
+              ) : (
+                <span>Selected: <b className="text-slate-800">{selectedLoanIds.size}</b> of {activeLoans.length}</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <Button
+                form="circulation-form"
+                type="submit"
+                isLoading={isSubmitting}
+                loadingText={activeTab === 'lend' ? 'Issuing...' : 'Returning...'}
+                disabled={
+                  activeTab === 'lend' 
+                    ? issueQueue.length === 0 || issueQueue.length > remainingSlots
+                    : selectedLoanIds.size === 0
+                }
+                className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-[13px] px-6 py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+              >
+                {activeTab === 'lend' 
+                  ? `Issue ${issueQueue.length} Book${issueQueue.length === 1 ? '' : 's'}`
+                  : `Return ${selectedLoanIds.size} Book${selectedLoanIds.size === 1 ? '' : 's'}`
+                }
+              </Button>
+            </div>
           </div>
           
         </div>

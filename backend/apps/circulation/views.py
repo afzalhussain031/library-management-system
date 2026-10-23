@@ -1,12 +1,14 @@
 from datetime import datetime, time, timedelta
 
 from django.utils import timezone
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
 
 from common.permissions.base import IsStaffOrReadOnly
 from apps.billing.models import Fine
@@ -246,6 +248,171 @@ class LoanViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(loan)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], permission_classes=[IsStaffOrReadOnly])
+    @transaction.atomic
+    def bulk_issue(self, request):
+        borrower_id = request.data.get("borrower")
+        items = request.data.get("items", [])
+
+        if not borrower_id:
+            raise ValidationError({"borrower": "Borrower ID is required."})
+        if not items or not isinstance(items, list):
+            raise ValidationError({"items": "At least one book copy must be selected to issue."})
+
+        User = get_user_model()
+        borrower = get_object_or_404(User, id=borrower_id)
+        if not borrower.is_active:
+            raise ValidationError({"borrower": "This member's account is currently suspended and cannot borrow books."})
+
+        # Member quota validation
+        active_loans_count = Loan.objects.filter(borrower=borrower, returned_at__isnull=True).count()
+        role_limit = 10 if getattr(borrower, "role", "") in ["staff", "librarian", "superadmin"] else 5
+        if active_loans_count + len(items) > role_limit:
+            raise ValidationError({
+                "detail": f"Borrowing limit exceeded. Member already has {active_loans_count} active loan(s). Limit is {role_limit} books."
+            })
+
+        copy_ids = [item.get("copy_id") for item in items if item.get("copy_id")]
+        if len(copy_ids) != len(items):
+            raise ValidationError({"items": "Each item must specify a valid copy_id."})
+
+        if len(copy_ids) != len(set(copy_ids)):
+            raise ValidationError({"items": "Duplicate book copies found in the issue list."})
+
+        copies = BookCopy.objects.select_for_update().filter(id__in=copy_ids).select_related("book")
+        if copies.count() != len(copy_ids):
+            raise ValidationError({"detail": "One or more selected book copies do not exist."})
+
+        for copy in copies:
+            if copy.status != BookCopy.AVAILABLE:
+                raise ValidationError({"detail": f"Copy '{copy.accession_number}' of '{copy.book.title}' is currently not available ({copy.status})."})
+
+        now = timezone.now()
+        new_loans = []
+        copies_dict = {c.id: c for c in copies}
+
+        for item in items:
+            copy = copies_dict[item["copy_id"]]
+            raw_due_date = item.get("due_at")
+            if raw_due_date:
+                try:
+                    date_str = str(raw_due_date).strip().replace("Z", "")
+                    if len(date_str) == 10:
+                        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+                        parsed_due = timezone.make_aware(datetime.combine(d, time(23, 59, 59)))
+                    else:
+                        parsed_due = timezone.datetime.fromisoformat(date_str)
+                        if timezone.is_naive(parsed_due):
+                            parsed_due = timezone.make_aware(parsed_due)
+                except Exception:
+                    parsed_due = now + timedelta(days=14)
+            else:
+                parsed_due = now + timedelta(days=14)
+
+            new_loans.append(Loan(
+                copy=copy,
+                borrower=borrower,
+                due_at=parsed_due,
+                notes=item.get("notes", "")
+            ))
+
+        created_loans = Loan.objects.bulk_create(new_loans)
+        BookCopy.objects.filter(id__in=copy_ids).update(status=BookCopy.LOANED)
+
+        book_titles = [f"'{c.book.title}'" for c in copies]
+        if len(book_titles) == 1:
+            title_text = book_titles[0]
+        elif len(book_titles) == 2:
+            title_text = f"{book_titles[0]} and {book_titles[1]}"
+        else:
+            title_text = f"{', '.join(book_titles[:-1])}, and {book_titles[-1]}"
+
+        create_student_notification(
+            user=borrower,
+            notif_type="book_issued",
+            title="Books Issued",
+            message=f"You have successfully borrowed {len(copies)} book(s): {title_text}.",
+            related_entity_id=created_loans[0].id if created_loans else None
+        )
+
+        return Response({
+            "detail": f"Successfully issued {len(copies)} book(s).",
+            "issued_count": len(copies)
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], permission_classes=[IsStaffOrReadOnly])
+    @transaction.atomic
+    def bulk_return(self, request):
+        loan_ids = request.data.get("loan_ids", [])
+        paid_now = request.data.get("paid_now", False)
+        payment_method = request.data.get("payment_method", "cash")
+
+        if not loan_ids or not isinstance(loan_ids, list):
+            raise ValidationError({"loan_ids": "At least one loan must be selected for return."})
+
+        loans = Loan.objects.select_for_update().filter(
+            id__in=loan_ids,
+            returned_at__isnull=True
+        ).select_related("copy__book", "borrower")
+
+        if not loans.exists():
+            return Response({"detail": "No active loans found matching selection (they may have already been returned)."}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+        fines_to_create = []
+        copy_ids = []
+        returned_count = 0
+        borrower = loans[0].borrower
+        total_fine_amount = 0
+
+        is_paid = paid_now in [True, 'true', 'True', 1]
+        fine_status = Fine.PAID if is_paid else Fine.PENDING
+
+        for loan in loans:
+            loan.returned_at = now
+            loan.save(update_fields=["returned_at"])
+            copy_ids.append(loan.copy_id)
+            returned_count += 1
+
+            if loan.returned_at.date() > loan.due_at.date() and not hasattr(loan, "fine"):
+                overdue_days = max((loan.returned_at.date() - loan.due_at.date()).days, 1)
+                fine_amount = overdue_days * 10
+                total_fine_amount += fine_amount
+                fines_to_create.append(Fine(
+                    loan=loan,
+                    amount=fine_amount,
+                    reason="Overdue return",
+                    status=fine_status,
+                    payment_method=payment_method if is_paid else None
+                ))
+
+        BookCopy.objects.filter(id__in=copy_ids).update(status=BookCopy.AVAILABLE)
+
+        if fines_to_create:
+            Fine.objects.bulk_create(fines_to_create)
+
+        msg = f"You have successfully returned {returned_count} book(s)."
+        if total_fine_amount > 0:
+            if is_paid:
+                msg += f" Overdue fines of ₹{total_fine_amount} were paid."
+            else:
+                msg += f" Overdue fines of ₹{total_fine_amount} were added to your account dues."
+
+        create_student_notification(
+            user=borrower,
+            notif_type="book_returned",
+            title="Books Returned",
+            message=msg,
+            related_entity_id=loans[0].id
+        )
+
+        return Response({
+            "detail": f"Successfully returned {returned_count} book(s).",
+            "returned_count": returned_count,
+            "total_fines": total_fine_amount,
+            "fine_status": fine_status if total_fine_amount > 0 else None
+        }, status=status.HTTP_200_OK)
 
 
 class ReservationViewSet(viewsets.ModelViewSet):

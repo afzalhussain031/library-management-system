@@ -5,6 +5,8 @@ from .models import BookCopy
 
 
 class BookCopySerializer(serializers.ModelSerializer):
+    book_title = serializers.CharField(source="book.title", read_only=True)
+    book_isbn = serializers.CharField(source="book.isbn", read_only=True)
     current_loan = serializers.SerializerMethodField()
     current_reservation = serializers.SerializerMethodField()
 
@@ -13,6 +15,8 @@ class BookCopySerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "book",
+            "book_title",
+            "book_isbn",
             "accession_number",
             "status",
             "condition",
