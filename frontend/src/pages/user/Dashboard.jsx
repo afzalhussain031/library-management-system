@@ -6,7 +6,7 @@ import FineCard from "../../components/user/dashboard/FineCard";
 import { dashboard } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
-import { Pause,Wallet,Mail, Heart } from "lucide-react";
+import { Pause,Wallet,Mail, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 
@@ -26,7 +26,7 @@ export default function Dashboard() {
         <StatCard title="Borrowed" value={libInfo.currently_borrowed || 0} color="bg-blue-100" icon={<Pause strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/my-loans')} />
         <StatCard title="Due Soon" value={libInfo.due_soon || 0} color="bg-yellow-100" icon={<Wallet strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/my-loans')} />
         <StatCard title="Total Fine" value={`₹${libInfo.pending_fines || 0}`} color="bg-pink-100" icon={<Mail strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/my-fines')} />
-        <StatCard title="Wishlist" value={libInfo.wishlist || 0} color="bg-green-100" icon={<Heart strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/books')} />
+        <StatCard title="Saved Books" value={libInfo.wishlist || 0} color="bg-green-100" icon={<Bookmark strokeWidth={1.5} />} isLoading={loading} onClick={() => navigate('/books')} />
       </div>
 
       {/* Middle Section */}

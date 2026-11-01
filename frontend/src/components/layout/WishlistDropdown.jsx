@@ -80,7 +80,7 @@ export default function WishlistDropdown() {
           <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <Bookmark size={18} className="text-blue-500" /> 
-              My Wishlist
+              Saved Books
             </h3>
             {unreadCount > 0 && (
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
@@ -94,7 +94,7 @@ export default function WishlistDropdown() {
             {wishlistItems.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center">
                 <BookmarkPlus size={32} className="text-gray-300 mb-3" />
-                <p className="text-gray-800 font-medium text-sm">Your wishlist is empty</p>
+                <p className="text-gray-800 font-medium text-sm">You have no saved books yet</p>
                 <p className="text-gray-500 text-xs mt-1">Browse the catalog to add books</p>
               </div>
             ) : (

@@ -5,11 +5,13 @@ import { catalog, dashboard, circulation } from "../../services/api";
 import { useApi } from "../../hook/useApi";
 import ErrorMessage from "../../components/common/ErrorMessage";
 import BookList from "../../components/user/catalog/BookList";
+import { useWishlist } from "../../context/WishlistContext";
 
 export default function Books() {
   const [searchParams] = useSearchParams();
   const searchBookId = searchParams.get('search_book');
 
+  const { wishlistItems } = useWishlist();
   const [activeTopFilter, setActiveTopFilter] = useState("All Books");
   const [activeBottomFilter, setActiveBottomFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,7 +83,10 @@ export default function Books() {
       
       // Top Filter simulation (in a real app, this might hit an API endpoint or check a flag)
       if (activeTopFilter === "Recommended" && book.id % 3 !== 0) return false;
-      if (activeTopFilter === "New Arrivals" && book.id % 4 !== 0) return false;
+      if (activeTopFilter === "Saved Books") {
+        const savedBookIds = new Set(wishlistItems.map(item => item.book?.id));
+        if (!savedBookIds.has(book.id)) return false;
+      }
       
       // Search
       if (searchQuery) {
@@ -99,7 +104,7 @@ export default function Books() {
       
       return true;
     });
-  }, [rawBooks, activeBottomFilter, activeTopFilter, searchQuery, activeCategoryFilter, activeAuthorFilter, activeYearFilter, activeLanguageFilter, searchBookId]);
+  }, [rawBooks, activeBottomFilter, activeTopFilter, searchQuery, activeCategoryFilter, activeAuthorFilter, activeYearFilter, activeLanguageFilter, searchBookId, wishlistItems]);
 
 
   // Helper function for styling top buttons
@@ -138,8 +143,8 @@ export default function Books() {
             <button onClick={() => setActiveTopFilter("Recommended")} className={getTopButtonStyle("Recommended")}>
               Recommended <span className={`${activeTopFilter === "Recommended" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{recommendedCount}</span>
             </button>
-            <button onClick={() => setActiveTopFilter("New Arrivals")} className={getTopButtonStyle("New Arrivals")}>
-              New Arrivals <span className={`${activeTopFilter === "New Arrivals" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{newArrivalsCount}</span>
+            <button onClick={() => setActiveTopFilter("Saved Books")} className={getTopButtonStyle("Saved Books")}>
+              Saved Books <span className={`${activeTopFilter === "Saved Books" ? "bg-white text-[#E0B220]" : "bg-gray-100 text-gray-500"} px-2 py-0.5 rounded-full text-xs transition-colors`}>{wishlistItems.length}</span>
             </button>
           </div>
 

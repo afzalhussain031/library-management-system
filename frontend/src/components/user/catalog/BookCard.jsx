@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Heart, ChevronDown, ChevronUp, BookOpen, Loader2 } from "lucide-react";
+import { Bookmark, ChevronDown, ChevronUp, BookOpen, Loader2 } from "lucide-react";
 import { circulation } from "../../../services/api";
 import { toast } from "react-hot-toast";
 import { useWishlist } from "../../../context/WishlistContext";
@@ -103,27 +103,14 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
       );
     }
 
-    if (book.available_copies > 0) {
-      return (
-        <button 
-           className="px-4 py-1.5 bg-[#EAF2FF] text-[#4386F5] font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-           onClick={handleReserve}
-           disabled={isUpdating}
-        >
-           {isUpdating && <Loader2 size={12} className="animate-spin" />}
-           {isUpdating ? "Reserving..." : "Reserve"}
-        </button>
-      );
-    }
-
     return (
       <button 
-         className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 font-bold text-[12px] rounded-full hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+         className="px-4 py-1.5 bg-[#EAF2FF] text-[#4386F5] font-bold text-[12px] rounded-full hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
          onClick={handleReserve}
          disabled={isUpdating}
       >
          {isUpdating && <Loader2 size={12} className="animate-spin" />}
-         {isUpdating ? "Joining..." : "Join Waitlist"}
+         {isUpdating ? "Reserving..." : "Reserve"}
       </button>
     );
   };
@@ -193,12 +180,12 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
                className={`cursor-pointer flex items-center justify-center transition-transform hover:scale-110 ${isUpdating ? "opacity-50" : ""}`}
                onClick={handleLikeClick}
                disabled={isUpdating}
-               title={liked ? "Remove from Wishlist" : "Add to Wishlist"}
+               title={liked ? "Remove from Saved Books" : "Save Book"}
             >
                {isUpdating ? (
                  <Loader2 size={20} className="animate-spin text-gray-400" />
                ) : (
-                 <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
+                 <Bookmark color={liked ? "#E0B220" : "#A1A5B7"} fill={liked ? "#E0B220" : "none"} size={20} />
                )}
             </button>
           )}
@@ -255,7 +242,7 @@ const BookCard = ({ book, idx, onReservationUpdate, isHighlighted = false }) => 
                   {isUpdating ? (
                     <Loader2 size={20} className="animate-spin text-gray-400" />
                   ) : (
-                    <Heart color={liked ? "#F64E60" : "#A1A5B7"} fill={liked ? "#F64E60" : "none"} size={20} />
+                    <Bookmark color={liked ? "#E0B220" : "#A1A5B7"} fill={liked ? "#E0B220" : "none"} size={20} />
                   )}
                </button>
              )}
