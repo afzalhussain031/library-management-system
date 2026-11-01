@@ -129,7 +129,8 @@ const AdminDashboard = () => {
       toast.success("Request approved!", { id: toastId });
     } catch (err) {
       console.error("Error approving request:", err);
-      toast.error("Failed to approve request.", { id: toastId });
+      const errorMessage = err.response?.data?.detail || "Failed to approve request.";
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setActionLoadingId(null);
     }
@@ -144,7 +145,8 @@ const AdminDashboard = () => {
       toast.success("Request denied.", { id: toastId });
     } catch (err) {
       console.error("Error denying request:", err);
-      toast.error("Failed to deny request.", { id: toastId });
+      const errorMessage = err.response?.data?.detail || "Failed to deny request.";
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setActionLoadingId(null);
     }

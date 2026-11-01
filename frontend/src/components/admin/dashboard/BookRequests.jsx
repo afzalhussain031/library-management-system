@@ -43,7 +43,7 @@ const BookRequests = ({ data, isLoading, actionLoadingId, onApprove, onDeny }) =
               <div 
                 key={item.id} 
                 onClick={() => navigate('/admin/reservations', { state: { highlightId: item.id, tab: 'Pending' } })}
-                className="flex items-center justify-between p-3 bg-transparent hover:bg-white rounded-xl transition-all duration-300 hover:-translate-y-[2px] hover:shadow-md border border-transparent hover:border-gray-100 cursor-pointer group"
+                className="flex items-center justify-between p-3 bg-transparent hover:bg-white rounded-xl transition-all duration-200 hover:shadow-md border border-transparent hover:border-gray-100 cursor-pointer group"
               >
                 {/* Book Info */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">

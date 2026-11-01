@@ -436,35 +436,45 @@ class ReservationViewSet(viewsets.ModelViewSet):
             raise ValidationError({"detail": "Your account is currently suspended. You cannot place reservations on books."})
         serializer.save(user=self.request.user)
 
+    @transaction.atomic
     def perform_update(self, serializer):
         # Remember the old status before saving
         old_status = serializer.instance.status
-        instance = serializer.save()
+        new_status = serializer.validated_data.get('status', old_status)
+
         # 1. Handling Approval (Pending -> Ready)
-        if instance.status == Reservation.READY and old_status != Reservation.READY:
-            # Set the timestamp
-            if not instance.ready_at:
-                instance.ready_at = timezone.now()
-                instance.save(update_fields=['ready_at'])
-            
+        if new_status == Reservation.READY and old_status != Reservation.READY:
+            allocated_copy = (
+                serializer.validated_data.get('allocated_copy') 
+                or serializer.instance.allocated_copy
+            )
+
             # Lock a physical copy!
-            if not instance.allocated_copy:
-                available_copy = BookCopy.objects.filter(book=instance.book, status=BookCopy.AVAILABLE).first()
+            if not allocated_copy:
+                available_copy = BookCopy.objects.select_for_update().filter(
+                    book=serializer.instance.book, 
+                    status=BookCopy.AVAILABLE
+                ).first()
                 
                 if not available_copy:
                     raise ValidationError({"detail": "No available copies to lock for this reservation."})
                 
-                # Link the specific copy to this reservation
-                instance.allocated_copy = available_copy
-                instance.save(update_fields=['allocated_copy'])
+                serializer.validated_data['allocated_copy'] = available_copy
+                allocated_copy = available_copy
                 
-            # Verify the locked copy is actually available if it was manually provided
-            if instance.allocated_copy.status != BookCopy.AVAILABLE:
+            # Verify the locked copy is actually available
+            if allocated_copy.status != BookCopy.AVAILABLE:
                 raise ValidationError({"detail": "The selected copy is not available."})
 
             # Change the physical copy's status to prevent theft
-            instance.allocated_copy.status = BookCopy.RESERVED
-            instance.allocated_copy.save(update_fields=['status'])
+            allocated_copy.status = BookCopy.RESERVED
+            allocated_copy.save(update_fields=['status'])
+
+            # Set the ready timestamp
+            if not serializer.instance.ready_at and 'ready_at' not in serializer.validated_data:
+                serializer.validated_data['ready_at'] = timezone.now()
+
+            instance = serializer.save()
             
             create_student_notification(
                 user=instance.user,
@@ -473,22 +483,24 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 message=f"Good news! Your reserved book '{instance.book.title}' is now available. Please pick it up from the library.",
                 related_entity_id=instance.id
             )
-        # 2. Handling Cancellation/Denial
-        elif instance.status == Reservation.CANCELLED and old_status != Reservation.CANCELLED:
-            if not instance.cancelled_at:
-                instance.cancelled_at = timezone.now()
-                instance.save(update_fields=['cancelled_at'])
+            return
 
-            if instance.allocated_copy:
+        # 2. Handling Cancellation/Denial
+        elif new_status == Reservation.CANCELLED and old_status != Reservation.CANCELLED:
+            if serializer.instance.allocated_copy:
                 # Release the locked copy back to the library
-                released_copy = instance.allocated_copy
+                released_copy = serializer.instance.allocated_copy
                 released_copy.status = BookCopy.AVAILABLE
                 released_copy.save(update_fields=['status'])
                 
                 # Unlink it from the reservation
-                instance.allocated_copy = None
-                instance.save(update_fields=['allocated_copy'])
-            
+                serializer.validated_data['allocated_copy'] = None
+
+            if not serializer.instance.cancelled_at and 'cancelled_at' not in serializer.validated_data:
+                serializer.validated_data['cancelled_at'] = timezone.now()
+
+            instance = serializer.save()
+
             create_student_notification(
                 user=instance.user,
                 notif_type="reservation_cancelled",
@@ -496,6 +508,9 @@ class ReservationViewSet(viewsets.ModelViewSet):
                 message=f"Your reservation for '{instance.book.title}' has been cancelled by the library.",
                 related_entity_id=instance.id
             )
+            return
+
+        serializer.save()
 
     @action(detail=True, methods=["post"])
     def fulfill(self, request, pk=None):
@@ -563,4 +578,4 @@ class ReservationViewSet(viewsets.ModelViewSet):
             related_entity_id=reservation.id
         )
         
-        return Response({"detail": "Pickup deadline extended successfully."}, status=status.HTTP_200_OK)
+        return Response({"detail": "Pickup deadline extended successfully."}, status=status.HTTP_200_OK)
